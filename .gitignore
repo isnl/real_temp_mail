@@ -1,0 +1,4 @@
+node_modules
+/backend/.wrangler/tmp/*
+./backend/dist/*.js
+./backend/dist/*.d.ts.map

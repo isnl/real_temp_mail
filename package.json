@@ -1,0 +1,33 @@
+{
+  "name": "temp-mail-system",
+  "version": "1.0.0",
+  "description": "基于 Cloudflare 全家桶的临时邮箱管理系统",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev:frontend & npm run dev:backend",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "deploy": "npm run deploy:frontend && npm run deploy:backend",
+    "deploy:frontend": "cd frontend && npm run deploy",
+    "deploy:backend": "cd backend && npm run deploy",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "cd backend && npm run test"
+  },
+  "keywords": [
+    "temp-email",
+    "cloudflare",
+    "vue3",
+    "typescript",
+    "workers"
+  ],
+  "author": "Temp Mail System",
+  "license": "MIT",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}

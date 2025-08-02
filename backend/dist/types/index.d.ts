@@ -1,0 +1,177 @@
+export interface Env {
+    DB: D1Database;
+    JWT_SECRET: string;
+    BASE_DOMAIN: string;
+    TURNSTILE_SECRET_KEY: string;
+    TURNSTILE_SITE_KEY: string;
+    ENVIRONMENT: 'development' | 'production';
+}
+export interface User {
+    id: number;
+    email: string;
+    password_hash: string;
+    quota: number;
+    role: 'user' | 'admin';
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+export interface CreateUserData {
+    email: string;
+    password_hash: string;
+    quota?: number;
+    role?: 'user' | 'admin';
+}
+export interface TempEmail {
+    id: number;
+    user_id: number;
+    email: string;
+    domain_id: number;
+    created_at: string;
+    active: boolean;
+}
+export interface Email {
+    id: number;
+    temp_email_id: number;
+    sender: string;
+    subject: string | null;
+    content: string | null;
+    html_content: string | null;
+    verification_code: string | null;
+    is_read: boolean;
+    received_at: string;
+}
+export interface Domain {
+    id: number;
+    domain: string;
+    status: number;
+    created_at: string;
+}
+export interface RedeemCode {
+    code: string;
+    quota: number;
+    valid_until: string;
+    used: boolean;
+    used_by: number | null;
+    used_at: string | null;
+    created_at: string;
+}
+export interface JWTPayload {
+    userId: number;
+    email: string;
+    role: 'user' | 'admin';
+    type: 'access' | 'refresh';
+    iat: number;
+    exp: number;
+}
+export interface TokenPair {
+    accessToken: string;
+    refreshToken: string;
+}
+export interface RefreshToken {
+    id: number;
+    user_id: number;
+    token_hash: string;
+    expires_at: string;
+    created_at: string;
+    is_revoked: boolean;
+}
+export interface ApiResponse<T = any> {
+    success: boolean;
+    data?: T;
+    message?: string;
+    error?: string;
+}
+export interface LoginRequest {
+    email: string;
+    password: string;
+    turnstileToken: string;
+}
+export interface RegisterRequest {
+    email: string;
+    password: string;
+    confirmPassword: string;
+    turnstileToken: string;
+}
+export interface CreateEmailRequest {
+    domainId: number;
+    turnstileToken: string;
+}
+export interface RedeemRequest {
+    code: string;
+    turnstileToken: string;
+}
+export interface PaginationParams {
+    page: number;
+    limit: number;
+    offset: number;
+}
+export interface PaginatedResponse<T> {
+    data: T[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+export interface OperationLog {
+    id: number;
+    user_id: number | null;
+    action: string;
+    ip_address: string | null;
+    user_agent: string | null;
+    details: string | null;
+    timestamp: string;
+}
+export interface RateLimit {
+    id: number;
+    identifier: string;
+    endpoint: string;
+    request_count: number;
+    window_start: string;
+}
+export interface RateLimitRule {
+    endpoint: string;
+    windowMs: number;
+    maxRequests: number;
+    requireAuth: boolean;
+    requireTurnstile: boolean;
+}
+export interface ParsedEmail {
+    from: {
+        address: string;
+        name?: string;
+    };
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+    verificationCode?: string;
+}
+export declare class AppError extends Error {
+    message: string;
+    statusCode: number;
+    code?: string | undefined;
+    constructor(message: string, statusCode?: number, code?: string | undefined);
+}
+export declare class ValidationError extends AppError {
+    constructor(message: string);
+}
+export declare class AuthenticationError extends AppError {
+    constructor(message?: string);
+}
+export declare class AuthorizationError extends AppError {
+    constructor(message?: string);
+}
+export declare class NotFoundError extends AppError {
+    constructor(message?: string);
+}
+export declare class RateLimitError extends AppError {
+    constructor(message?: string);
+}
+export interface TurnstileResponse {
+    success: boolean;
+    'error-codes'?: string[];
+    challenge_ts?: string;
+    hostname?: string;
+}
+//# sourceMappingURL=index.d.ts.map

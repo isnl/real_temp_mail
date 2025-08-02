@@ -1,0 +1,33 @@
+{
+  "name": "temp-mail-backend",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers backend for temp mail system",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:migrate": "wrangler d1 migrations apply email-db",
+    "db:create": "wrangler d1 create email-db"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "email",
+    "typescript"
+  ],
+  "author": "Temp Mail System",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250802.0",
+    "@types/node": "^22.17.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "postal-mime": "^2.4.4"
+  }
+}
