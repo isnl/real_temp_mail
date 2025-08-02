@@ -174,4 +174,54 @@ export interface TurnstileResponse {
     challenge_ts?: string;
     hostname?: string;
 }
+export interface AdminUserListParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: 'user' | 'admin';
+    status?: 'active' | 'inactive';
+}
+export interface AdminUserUpdateData {
+    quota?: number;
+    is_active?: boolean;
+    role?: 'user' | 'admin';
+}
+export interface AdminDomainCreateData {
+    domain: string;
+    status?: number;
+}
+export interface AdminEmailListParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sender?: string;
+    tempEmailId?: number;
+    startDate?: string;
+    endDate?: string;
+}
+export interface AdminLogListParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    action?: string;
+    userId?: number;
+    startDate?: string;
+    endDate?: string;
+}
+export interface AdminRedeemCodeCreateData {
+    quota: number;
+    validUntil: string;
+    count?: number;
+}
+export interface AdminStatsData {
+    totalUsers: number;
+    activeUsers: number;
+    totalTempEmails: number;
+    activeTempEmails: number;
+    totalEmails: number;
+    totalDomains: number;
+    activeDomains: number;
+    totalRedeemCodes: number;
+    usedRedeemCodes: number;
+}
 //# sourceMappingURL=index.d.ts.map

@@ -1,7 +1,13 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
+import DashboardStats from '@/components/admin/DashboardStats.vue'
+import UserManagement from '@/components/admin/UserManagement.vue'
+import DomainManagement from '@/components/admin/DomainManagement.vue'
+import EmailAudit from '@/components/admin/EmailAudit.vue'
+import LogAudit from '@/components/admin/LogAudit.vue'
+import RedeemCodeManagement from '@/components/admin/RedeemCodeManagement.vue'
 
-const activeTab = ref('users')
+const activeTab = ref('dashboard')
 </script>
 
 <template>
@@ -18,26 +24,83 @@ const activeTab = ref('users')
 
     <!-- Tabs -->
     <el-tabs v-model="activeTab" class="admin-tabs">
-      <el-tab-pane label="用户管理" name="users">
-        <div class="card-base p-6">
-          <h3 class="text-lg font-semibold mb-4">用户管理</h3>
-          <p class="text-gray-600 dark:text-gray-400">用户管理功能开发中...</p>
-        </div>
+      <el-tab-pane name="dashboard">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="chart-line" class="mr-2" />
+            仪表板
+          </span>
+        </template>
+        <DashboardStats />
       </el-tab-pane>
-      
-      <el-tab-pane label="域名管理" name="domains">
-        <div class="card-base p-6">
-          <h3 class="text-lg font-semibold mb-4">域名管理</h3>
-          <p class="text-gray-600 dark:text-gray-400">域名管理功能开发中...</p>
-        </div>
+
+      <el-tab-pane name="users">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="users" class="mr-2" />
+            用户管理
+          </span>
+        </template>
+        <UserManagement />
       </el-tab-pane>
-      
-      <el-tab-pane label="系统监控" name="monitor">
-        <div class="card-base p-6">
-          <h3 class="text-lg font-semibold mb-4">系统监控</h3>
-          <p class="text-gray-600 dark:text-gray-400">系统监控功能开发中...</p>
-        </div>
+
+      <el-tab-pane name="domains">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="globe" class="mr-2" />
+            域名管理
+          </span>
+        </template>
+        <DomainManagement />
+      </el-tab-pane>
+
+      <el-tab-pane name="emails">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="envelope-open" class="mr-2" />
+            邮件审查
+          </span>
+        </template>
+        <EmailAudit />
+      </el-tab-pane>
+
+      <el-tab-pane name="logs">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="file-alt" class="mr-2" />
+            日志审计
+          </span>
+        </template>
+        <LogAudit />
+      </el-tab-pane>
+
+      <el-tab-pane name="redeem-codes">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="ticket" class="mr-2" />
+            兑换码管理
+          </span>
+        </template>
+        <RedeemCodeManagement />
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
+
+<style scoped>
+.admin-tabs {
+  @apply min-h-screen;
+}
+
+.admin-tabs :deep(.el-tabs__header) {
+  @apply bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-t-lg;
+}
+
+.admin-tabs :deep(.el-tabs__nav-wrap) {
+  @apply px-6;
+}
+
+.admin-tabs :deep(.el-tabs__content) {
+  @apply pt-6;
+}
+</style>

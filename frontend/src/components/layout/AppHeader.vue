@@ -9,9 +9,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
-const isLoggedIn = computed(() => authStore.isLoggedIn)
+const isLoggedIn = computed(() => authStore.isAuthenticated)
 const user = computed(() => authStore.user)
-const userQuota = computed(() => authStore.userQuota)
+const userQuota = computed(() => authStore.user?.quota || 0)
 
 const handleLogout = async () => {
   try {
@@ -25,7 +25,15 @@ const handleLogout = async () => {
 }
 
 const toggleTheme = () => {
-  themeStore.toggleTheme()
+  // 简单的主题切换逻辑
+  const html = document.documentElement
+  if (html.classList.contains('dark')) {
+    html.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  } else {
+    html.classList.add('dark')
+    localStorage.setItem('theme', 'dark')
+  }
 }
 
 const goToProfile = () => {
@@ -34,6 +42,25 @@ const goToProfile = () => {
 
 const goToAdmin = () => {
   router.push('/admin')
+}
+
+const handleCommand = (command: string) => {
+  switch (command) {
+    case 'profile':
+      goToProfile()
+      break
+    case 'admin':
+      goToAdmin()
+      break
+    case 'logout':
+      handleLogout()
+      break
+  }
+}
+
+const toggleMobileMenu = () => {
+  // 移动端菜单切换逻辑
+  console.log('Toggle mobile menu')
 }
 </script>
 
@@ -78,10 +105,10 @@ const goToAdmin = () => {
           <button
             @click="toggleTheme"
             class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            :title="themeStore.getThemeDisplayName()"
+            title="切换主题"
           >
-            <font-awesome-icon 
-              :icon="['fas', themeStore.getThemeIcon()]" 
+            <font-awesome-icon
+              :icon="['fas', 'sun']"
               class="text-gray-600 dark:text-gray-400"
             />
           </button>
@@ -123,7 +150,7 @@ const goToAdmin = () => {
                     <font-awesome-icon :icon="['fas', 'user']" class="mr-2" />
                     个人中心
                   </el-dropdown-item>
-                  <el-dropdown-item v-if="authStore.isAdmin" command="admin">
+                  <el-dropdown-item v-if="user?.role === 'admin'" command="admin">
                     <font-awesome-icon :icon="['fas', 'cog']" class="mr-2" />
                     管理后台
                   </el-dropdown-item>
@@ -161,28 +188,3 @@ const goToAdmin = () => {
     </div>
   </header>
 </template>
-
-<script lang="ts">
-export default {
-  methods: {
-    handleCommand(command: string) {
-      switch (command) {
-        case 'profile':
-          this.goToProfile()
-          break
-        case 'admin':
-          this.goToAdmin()
-          break
-        case 'logout':
-          this.handleLogout()
-          break
-      }
-    },
-    
-    toggleMobileMenu() {
-      // 移动端菜单切换逻辑
-      console.log('Toggle mobile menu')
-    }
-  }
-}
-</script>

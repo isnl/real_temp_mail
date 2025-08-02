@@ -1,5 +1,6 @@
 import { AuthHandler } from '@/handlers/auth.handler';
 import { EmailHandler } from '@/handlers/email.handler';
+import { AdminHandler } from '@/handlers/admin.handler';
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -21,12 +22,16 @@ export default {
             // 初始化处理器
             const authHandler = new AuthHandler(env);
             const emailHandler = new EmailHandler(env);
+            const adminHandler = new AdminHandler(env);
             // 路由匹配
             if (pathname.startsWith('/api/auth/')) {
                 return await handleAuthRoutes(pathname, method, request, authHandler);
             }
             else if (pathname.startsWith('/api/email/')) {
                 return await handleEmailRoutes(pathname, method, request, emailHandler);
+            }
+            else if (pathname.startsWith('/api/admin/')) {
+                return await handleAdminRoutes(pathname, method, request, adminHandler);
             }
             else if (pathname === '/api/webhook/email') {
                 // Email Routing webhook
@@ -138,6 +143,79 @@ async function handleEmailRoutes(pathname, method, request, handler) {
     if (pathname === '/api/email/quota') {
         if (method === 'GET')
             return await handler.getQuotaInfo(request);
+    }
+    return new Response(JSON.stringify({
+        success: false,
+        error: 'Method Not Allowed'
+    }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+async function handleAdminRoutes(pathname, method, request, handler) {
+    // 仪表板统计
+    if (pathname === '/api/admin/dashboard/stats') {
+        if (method === 'GET')
+            return await handler.getDashboardStats(request);
+    }
+    // 用户管理
+    if (pathname === '/api/admin/users') {
+        if (method === 'GET')
+            return await handler.getUsers(request);
+    }
+    if (pathname.match(/^\/api\/admin\/users\/\d+$/)) {
+        if (method === 'GET')
+            return await handler.getUserById(request);
+        if (method === 'PUT')
+            return await handler.updateUser(request);
+        if (method === 'DELETE')
+            return await handler.deleteUser(request);
+    }
+    // 域名管理
+    if (pathname === '/api/admin/domains') {
+        if (method === 'GET')
+            return await handler.getDomains(request);
+        if (method === 'POST')
+            return await handler.createDomain(request);
+    }
+    if (pathname.match(/^\/api\/admin\/domains\/\d+$/)) {
+        if (method === 'PUT')
+            return await handler.updateDomain(request);
+        if (method === 'DELETE')
+            return await handler.deleteDomain(request);
+    }
+    // 邮件审查
+    if (pathname === '/api/admin/emails') {
+        if (method === 'GET')
+            return await handler.getEmails(request);
+    }
+    if (pathname.match(/^\/api\/admin\/emails\/\d+$/)) {
+        if (method === 'DELETE')
+            return await handler.deleteEmail(request);
+    }
+    // 日志审计
+    if (pathname === '/api/admin/logs') {
+        if (method === 'GET')
+            return await handler.getLogs(request);
+    }
+    if (pathname === '/api/admin/logs/actions') {
+        if (method === 'GET')
+            return await handler.getLogActions(request);
+    }
+    // 兑换码管理
+    if (pathname === '/api/admin/redeem-codes') {
+        if (method === 'GET')
+            return await handler.getRedeemCodes(request);
+        if (method === 'POST')
+            return await handler.createRedeemCode(request);
+    }
+    if (pathname === '/api/admin/redeem-codes/batch') {
+        if (method === 'POST')
+            return await handler.createBatchRedeemCodes(request);
+    }
+    if (pathname.match(/^\/api\/admin\/redeem-codes\/[A-Z0-9]+$/)) {
+        if (method === 'DELETE')
+            return await handler.deleteRedeemCode(request);
     }
     return new Response(JSON.stringify({
         success: false,

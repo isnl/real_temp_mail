@@ -2,47 +2,54 @@
 export interface User {
   id: number
   email: string
-  role: 'user' | 'admin'
+  password_hash: string
   quota: number
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
+  role: 'user' | 'admin'
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 // 临时邮箱类型
 export interface TempEmail {
   id: number
-  userId: number
+  user_id: number
   email: string
-  domainId: number
-  createdAt: string
+  domain_id: number
+  created_at: string
   active: boolean
 }
 
 // 邮件类型
 export interface Email {
   id: number
-  tempEmailId: number
+  temp_email_id: number
   sender: string
-  subject: string
-  content: string
-  receivedAt: string
-  verificationCode?: string
+  subject: string | null
+  content: string | null
+  html_content: string | null
+  verification_code: string | null
+  is_read: boolean
+  received_at: string
 }
 
 // 域名类型
 export interface Domain {
   id: number
   domain: string
-  status: number // 0=禁用 1=启用
+  status: number
+  created_at: string
 }
 
 // 兑换码类型
 export interface RedeemCode {
   code: string
   quota: number
-  validUntil: string
+  valid_until: string
   used: boolean
+  used_by: number | null
+  used_at: string | null
+  created_at: string
 }
 
 // API响应类型
@@ -97,10 +104,11 @@ export type ThemeMode = 'light' | 'dark' | 'auto'
 // 操作日志类型
 export interface OperationLog {
   id: number
-  userId: number
+  user_id: number | null
   action: string
-  ipAddress: string
-  userAgent: string
+  ip_address: string | null
+  user_agent: string | null
+  details: string | null
   timestamp: string
 }
 
