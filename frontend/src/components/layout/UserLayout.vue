@@ -21,7 +21,7 @@ onMounted(() => {
 <template>
   <div id="user-layout" class="w-full h-full overflow-hidden flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <AppHeader />
-    <main class="flex-1 w-full mx-auto px-4 py-6 overflow-hidden">
+    <main class="flex-1 w-full mx-auto overflow-hidden">
       <router-view />
     </main>
   </div>

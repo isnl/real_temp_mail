@@ -11,7 +11,7 @@ interface Props {
 
 interface Emits {
   (e: 'update:modelValue', value: boolean): void
-  (e: 'success'): void
+  (e: 'success', data?: { quota: number }): void
 }
 
 const props = defineProps<Props>()
@@ -39,12 +39,14 @@ const handleSubmit = async () => {
   if (!valid) return
 
   loading.value = true
-  
+
   try {
-    await emailStore.redeemCode(form.value)
-    emit('success')
+    const response = await emailStore.redeemCode(form.value)
+
+    // 传递兑换结果给父组件，包含新的配额信息
+    emit('success', response.data)
     visible.value = false
-    
+
     // 重置表单
     form.value.code = ''
   } catch (error: any) {
@@ -67,6 +69,8 @@ const handleClose = () => {
     width="600px"
     :close-on-click-modal="false"
     @close="handleClose"
+    :show-close="false"
+    :align-center="true"
     class="redeem-dialog"
   >
     <!-- Custom Header -->
@@ -125,43 +129,6 @@ const handleClose = () => {
             兑换码通常为 6-20 位字符，区分大小写
           </div>
         </el-form-item>
-
-        <!-- Premium Features Section -->
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 rounded-xl mb-6 border border-blue-100 dark:border-blue-800">
-          <div class="flex items-start space-x-4">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <font-awesome-icon
-                  :icon="['fas', 'crown']"
-                  class="text-white text-lg"
-                />
-              </div>
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                高级功能解锁
-              </h3>
-              <div class="grid grid-cols-2 gap-3 text-sm">
-                <div class="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                  <font-awesome-icon :icon="['fas', 'check']" class="text-green-500 text-xs" />
-                  <span>无限邮箱创建</span>
-                </div>
-                <div class="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                  <font-awesome-icon :icon="['fas', 'check']" class="text-green-500 text-xs" />
-                  <span>实时邮件推送</span>
-                </div>
-                <div class="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                  <font-awesome-icon :icon="['fas', 'check']" class="text-green-500 text-xs" />
-                  <span>邮件永久保存</span>
-                </div>
-                <div class="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-                  <font-awesome-icon :icon="['fas', 'check']" class="text-green-500 text-xs" />
-                  <span>高级搜索功能</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <!-- Security Notice -->
         <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">

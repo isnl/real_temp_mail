@@ -22,9 +22,9 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`
     
     // 默认请求头
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers
+      ...(options.headers as Record<string, string> || {})
     }
 
     // 添加认证头
@@ -40,8 +40,11 @@ class ApiClient {
 
     // 处理响应
     if (!response.ok) {
-      // 如果是401错误，尝试刷新token
-      if (response.status === 401 && authStore.refreshToken) {
+      // 先获取错误数据
+      const errorData = await response.json().catch(() => ({}))
+
+      // 如果是401错误且不是密码相关的错误，尝试刷新token
+      if (response.status === 401 && authStore.refreshToken && !endpoint.includes('change-password')) {
         try {
           await authStore.refreshTokens()
           // 重新发送原请求
@@ -50,20 +53,32 @@ class ApiClient {
             ...options,
             headers
           })
-          
+
           if (retryResponse.ok) {
             return await retryResponse.json()
+          } else {
+            // 重试后仍然失败，返回错误信息
+            const retryErrorData = await retryResponse.json().catch(() => ({}))
+            return {
+              success: false,
+              error: retryErrorData.error || retryErrorData.message || `HTTP ${retryResponse.status}: ${retryResponse.statusText}`
+            } as ApiResponse<T>
           }
         } catch (error) {
           // 刷新失败，跳转到登录页
           authStore.logout()
-          throw new Error('认证失败，请重新登录')
+          return {
+            success: false,
+            error: '认证失败，请重新登录'
+          } as ApiResponse<T>
         }
       }
 
-      // 处理其他错误
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+      // 对于其他错误（包括密码错误），直接返回错误信息而不抛出异常
+      return {
+        success: false,
+        error: errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      } as ApiResponse<T>
     }
 
     return await response.json()

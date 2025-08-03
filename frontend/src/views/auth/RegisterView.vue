@@ -73,7 +73,7 @@ const goToLogin = () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full flex flex-col gap-8">
       <!-- Header -->
       <div class="text-center">
@@ -183,59 +183,6 @@ const goToLogin = () => {
               立即登录
             </el-button>
           </p>
-        </div>
-      </div>
-
-      <!-- Benefits -->
-      <div class="card-base p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
-          注册即享受
-        </h3>
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-              <font-awesome-icon 
-                :icon="['fas', 'gift']" 
-                class="text-green-500 text-sm"
-              />
-            </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              免费获得5个临时邮箱配额
-            </span>
-          </div>
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-              <font-awesome-icon 
-                :icon="['fas', 'clock']" 
-                class="text-blue-500 text-sm"
-              />
-            </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              实时邮件接收和推送
-            </span>
-          </div>
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
-              <font-awesome-icon 
-                :icon="['fas', 'shield-alt']" 
-                class="text-purple-500 text-sm"
-              />
-            </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              安全加密，保护隐私
-            </span>
-          </div>
-          <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center">
-              <font-awesome-icon 
-                :icon="['fas', 'code']" 
-                class="text-orange-500 text-sm"
-              />
-            </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              智能验证码识别
-            </span>
-          </div>
         </div>
       </div>
     </div>

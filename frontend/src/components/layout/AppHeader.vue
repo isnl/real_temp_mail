@@ -32,11 +32,11 @@ const themeIcon = computed(() => themeStore.getThemeIcon())
 const themeDisplayName = computed(() => themeStore.getThemeDisplayName())
 
 const goToProfile = () => {
-  router.push('/profile')
+  window.open('/profile', '_blank')
 }
 
 const goToAdmin = () => {
-  router.push('/admin/dashboard')
+  window.open('/admin/dashboard', '_blank')
 }
 
 const handleCommand = (command: string) => {
@@ -70,17 +70,6 @@ const handleCommand = (command: string) => {
             </span>
           </router-link>
         </div>
-
-        <!-- Navigation -->
-        <nav class="hidden md:flex items-center space-x-6">
-          <router-link 
-            v-if="!isLoggedIn" 
-            to="/features" 
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-          >
-            功能介绍
-          </router-link>
-        </nav>
 
         <!-- User Actions -->
         <div class="flex items-center space-x-4">
@@ -140,10 +129,10 @@ const handleCommand = (command: string) => {
           <!-- Login/Register Buttons -->
           <div v-else class="flex items-center space-x-2">
             <router-link to="/login">
-              <el-button type="primary" size="small">登录</el-button>
+              <el-button type="primary">登录</el-button>
             </router-link>
             <router-link to="/register">
-              <el-button size="small">注册</el-button>
+              <el-button>注册</el-button>
             </router-link>
           </div>
         </div>

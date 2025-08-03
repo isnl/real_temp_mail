@@ -72,10 +72,17 @@ const handleRefresh = async () => {
   ElMessage.success('刷新成功')
 }
 
-const handleRedeemSuccess = async () => {
+const handleRedeemSuccess = async (data?: { quota: number }) => {
   showRedeemDialog.value = false
-  await authStore.refreshTokens() // 刷新用户信息以更新配额
-  ElMessage.success('兑换码使用成功')
+
+  // 如果有返回配额信息，直接更新；否则刷新用户信息
+  if (data?.quota !== undefined) {
+    updateUserQuotaOptimistic(data.quota)
+    ElMessage.success('兑换码使用成功')
+  } else {
+    await authStore.fetchCurrentUser() // 刷新用户信息以更新配额
+    ElMessage.success('兑换码使用成功')
+  }
 }
 
 // 签到相关方法
@@ -264,7 +271,7 @@ const handleInlineCreateEmail = async (domainId?: number) => {
               :disabled="checkinStatus?.hasCheckedIn"
             >
               <font-awesome-icon :icon="['fas', 'calendar-check']" class="mr-2" />
-              {{ checkinStatus?.hasCheckedIn ? '已签到' : '每日签到' }}
+              {{ checkinStatus?.hasCheckedIn ? '今日已签到' : '每日签到' }}
             </el-button>
 
             <el-button @click="showRedeemDialog = true" type="primary" size="default">

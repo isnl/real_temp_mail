@@ -18,25 +18,19 @@ const router = createRouter({
           path: 'login',
           name: 'login',
           component: () => import('@/views/auth/LoginView.vue'),
-          meta: { requiresGuest: true }
+          meta: { requiresGuest: true },
         },
         {
           path: 'register',
           name: 'register',
           component: () => import('@/views/auth/RegisterView.vue'),
-          meta: { requiresGuest: true }
+          meta: { requiresGuest: true },
         },
         {
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/views/email/DashboardView.vue'),
-          meta: { requiresAuth: true }
-        },
-        {
-          path: 'profile',
-          name: 'profile',
-          component: () => import('@/views/auth/ProfileView.vue'),
-          meta: { requiresAuth: true }
+          meta: { requiresAuth: true },
         },
         {
           path: 'features',
@@ -57,8 +51,44 @@ const router = createRouter({
           path: 'privacy',
           name: 'privacy',
           component: () => import('@/views/PrivacyView.vue'),
-        }
-      ]
+        },
+      ],
+    },
+    {
+      path: '/profile',
+      component: () => import('@/components/layout/ProfileLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          redirect: '/profile/overview',
+        },
+        {
+          path: 'overview',
+          name: 'profile-overview',
+          component: () => import('@/views/profile/OverviewView.vue'),
+        },
+        {
+          path: 'settings',
+          name: 'profile-settings',
+          component: () => import('@/views/profile/SettingsView.vue'),
+        },
+        {
+          path: 'quota',
+          name: 'profile-quota',
+          component: () => import('@/views/profile/QuotaView.vue'),
+        },
+        {
+          path: 'checkin',
+          name: 'profile-checkin',
+          component: () => import('@/views/profile/CheckinView.vue'),
+        },
+        {
+          path: 'security',
+          name: 'profile-security',
+          component: () => import('@/views/profile/SecurityView.vue'),
+        },
+      ],
     },
     // 管理后台路由 - 使用 AdminLayout
     {
@@ -68,49 +98,49 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/admin/dashboard'
+          redirect: '/admin/dashboard',
         },
         {
           path: 'dashboard',
           name: 'admin-dashboard',
-          component: () => import('@/views/admin/DashboardView.vue')
+          component: () => import('@/views/admin/DashboardView.vue'),
         },
         {
           path: 'users',
           name: 'admin-users',
-          component: () => import('@/views/admin/UsersView.vue')
+          component: () => import('@/views/admin/UsersView.vue'),
         },
         {
           path: 'domains',
           name: 'admin-domains',
-          component: () => import('@/views/admin/DomainsView.vue')
+          component: () => import('@/views/admin/DomainsView.vue'),
         },
         {
           path: 'emails',
           name: 'admin-emails',
-          component: () => import('@/views/admin/EmailsView.vue')
+          component: () => import('@/views/admin/EmailsView.vue'),
         },
         {
           path: 'logs',
           name: 'admin-logs',
-          component: () => import('@/views/admin/LogsView.vue')
+          component: () => import('@/views/admin/LogsView.vue'),
         },
         {
           path: 'redeem-codes',
           name: 'admin-redeem-codes',
-          component: () => import('@/views/admin/RedeemCodesView.vue')
+          component: () => import('@/views/admin/RedeemCodesView.vue'),
         },
         {
           path: 'quota-logs',
           name: 'admin-quota-logs',
-          component: () => import('@/views/admin/QuotaLogsView.vue')
+          component: () => import('@/views/admin/QuotaLogsView.vue'),
         },
         {
           path: 'settings',
           name: 'admin-settings',
-          component: () => import('@/views/admin/SettingsView.vue')
-        }
-      ]
+          component: () => import('@/views/admin/SettingsView.vue'),
+        },
+      ],
     },
     // 404 页面 - 使用 UserLayout
     {
@@ -121,9 +151,9 @@ const router = createRouter({
           path: '',
           name: 'not-found',
           component: () => import('@/views/NotFoundView.vue'),
-        }
-      ]
-    }
+        },
+      ],
+    },
   ],
 })
 

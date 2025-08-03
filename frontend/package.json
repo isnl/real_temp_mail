@@ -24,6 +24,7 @@
     "@unocss/preset-attributify": "^66.4.0",
     "@unocss/preset-uno": "^66.4.0",
     "@vueuse/core": "^13.6.0",
+    "dayjs": "^1.11.13",
     "element-plus": "^2.10.5",
     "normalize.css": "^8.0.1",
     "pinia": "^3.0.3",
