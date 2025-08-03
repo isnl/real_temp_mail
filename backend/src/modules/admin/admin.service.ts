@@ -70,11 +70,11 @@ export class AdminService {
 
       // 邮件统计
       const emailStats = await this.env.DB.prepare(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
-          SUM(CASE WHEN DATE(received_at) = DATE('now') THEN 1 ELSE 0 END) as today,
-          SUM(CASE WHEN DATE(received_at) >= DATE('now', '-7 days') THEN 1 ELSE 0 END) as thisWeek,
-          SUM(CASE WHEN DATE(received_at) >= DATE('now', '-30 days') THEN 1 ELSE 0 END) as thisMonth
+          SUM(CASE WHEN DATE(received_at) = DATE('now', '+8 hours') THEN 1 ELSE 0 END) as today,
+          SUM(CASE WHEN DATE(received_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 ELSE 0 END) as thisWeek,
+          SUM(CASE WHEN DATE(received_at) >= DATE('now', '+8 hours', '-30 days') THEN 1 ELSE 0 END) as thisMonth
         FROM emails
       `).first()
 
@@ -89,11 +89,11 @@ export class AdminService {
 
       // 兑换码统计
       const redeemCodeStats = await this.env.DB.prepare(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           SUM(CASE WHEN used = 1 THEN 1 ELSE 0 END) as used,
-          SUM(CASE WHEN used = 0 AND valid_until > datetime('now') THEN 1 ELSE 0 END) as unused,
-          SUM(CASE WHEN used = 0 AND valid_until <= datetime('now') THEN 1 ELSE 0 END) as expired
+          SUM(CASE WHEN used = 0 AND valid_until > datetime('now', '+8 hours') THEN 1 ELSE 0 END) as unused,
+          SUM(CASE WHEN used = 0 AND valid_until <= datetime('now', '+8 hours') THEN 1 ELSE 0 END) as expired
         FROM redeem_codes
       `).first()
 
@@ -313,7 +313,7 @@ export class AdminService {
 
     const result = await this.env.DB.prepare(`
       INSERT INTO domains (domain, status, created_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
+      VALUES (?, ?, datetime('now', '+8 hours'))
     `).bind(domain, status).run()
 
     const newDomain = await this.env.DB.prepare(`
@@ -583,7 +583,7 @@ export class AdminService {
 
     const result = await this.env.DB.prepare(`
       INSERT INTO redeem_codes (code, quota, valid_until, created_at)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, datetime('now', '+8 hours'))
     `).bind(code, quota, validUntil).run()
 
     const newCode = await this.env.DB.prepare(`
@@ -602,7 +602,7 @@ export class AdminService {
 
       await this.env.DB.prepare(`
         INSERT INTO redeem_codes (code, quota, valid_until, created_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, datetime('now', '+8 hours'))
       `).bind(code, quota, validUntil).run()
 
       const newCode = await this.env.DB.prepare(`

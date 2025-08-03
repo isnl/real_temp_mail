@@ -50,13 +50,13 @@ export class DatabaseService {
 
   async updateUserQuota(userId: number, quota: number): Promise<void> {
     await this.db.prepare(`
-      UPDATE users SET quota = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+      UPDATE users SET quota = ?, updated_at = datetime('now', '+8 hours') WHERE id = ?
     `).bind(quota, userId).run()
   }
 
   async decrementUserQuota(userId: number): Promise<boolean> {
     const result = await this.db.prepare(`
-      UPDATE users SET quota = quota - 1, updated_at = CURRENT_TIMESTAMP
+      UPDATE users SET quota = quota - 1, updated_at = datetime('now', '+8 hours')
       WHERE id = ? AND quota > 0
     `).bind(userId).run()
 
@@ -65,7 +65,7 @@ export class DatabaseService {
 
   async updateUserPassword(userId: number, passwordHash: string): Promise<boolean> {
     const result = await this.db.prepare(`
-      UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+      UPDATE users SET password_hash = ?, updated_at = datetime('now', '+8 hours') WHERE id = ?
     `).bind(passwordHash, userId).run()
 
     return (result.meta?.changes ?? 0) > 0
@@ -199,9 +199,9 @@ export class DatabaseService {
 
   async useRedeemCode(code: string, userId: number): Promise<boolean> {
     const result = await this.db.prepare(`
-      UPDATE redeem_codes 
-      SET used = 1, used_by = ?, used_at = CURRENT_TIMESTAMP 
-      WHERE code = ? AND used = 0 AND valid_until > CURRENT_TIMESTAMP
+      UPDATE redeem_codes
+      SET used = 1, used_by = ?, used_at = datetime('now', '+8 hours')
+      WHERE code = ? AND used = 0 AND valid_until > datetime('now', '+8 hours')
     `).bind(userId, code).run()
 
     return (result.meta?.changes ?? 0) > 0
@@ -217,8 +217,8 @@ export class DatabaseService {
 
   async getRefreshToken(tokenHash: string): Promise<RefreshToken | null> {
     return await this.db.prepare(`
-      SELECT * FROM refresh_tokens 
-      WHERE token_hash = ? AND is_revoked = 0 AND expires_at > CURRENT_TIMESTAMP
+      SELECT * FROM refresh_tokens
+      WHERE token_hash = ? AND is_revoked = 0 AND expires_at > datetime('now', '+8 hours')
     `).bind(tokenHash).first<RefreshToken>()
   }
 
@@ -251,19 +251,19 @@ export class DatabaseService {
   // 限流相关操作
   async getRateLimit(identifier: string, endpoint: string): Promise<RateLimit | null> {
     return await this.db.prepare(`
-      SELECT * FROM rate_limits 
-      WHERE identifier = ? AND endpoint = ? 
-      AND datetime(window_start, '+1 hour') > datetime('now')
+      SELECT * FROM rate_limits
+      WHERE identifier = ? AND endpoint = ?
+      AND datetime(window_start, '+1 hour') > datetime('now', '+8 hours')
     `).bind(identifier, endpoint).first<RateLimit>()
   }
 
   async createOrUpdateRateLimit(identifier: string, endpoint: string): Promise<number> {
     // 尝试更新现有记录
     const updateResult = await this.db.prepare(`
-      UPDATE rate_limits 
-      SET request_count = request_count + 1 
-      WHERE identifier = ? AND endpoint = ? 
-      AND datetime(window_start, '+1 hour') > datetime('now')
+      UPDATE rate_limits
+      SET request_count = request_count + 1
+      WHERE identifier = ? AND endpoint = ?
+      AND datetime(window_start, '+1 hour') > datetime('now', '+8 hours')
     `).bind(identifier, endpoint).run()
 
     if ((updateResult.meta?.changes ?? 0) > 0) {

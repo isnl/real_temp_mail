@@ -27,7 +27,7 @@ export const useEmailStore = defineStore('email', {
       this.isLoading = true
       try {
         const response = await emailApi.getTempEmails()
-        this.tempEmails = response.data
+        this.tempEmails = response.data || []
         return response
       } catch (error) {
         throw error
@@ -40,7 +40,9 @@ export const useEmailStore = defineStore('email', {
       this.isCreatingEmail = true
       try {
         const response = await emailApi.createTempEmail(request)
-        this.tempEmails.unshift(response.data)
+        if (response.data) {
+          this.tempEmails.unshift(response.data)
+        }
         return response
       } catch (error) {
         throw error
@@ -68,14 +70,15 @@ export const useEmailStore = defineStore('email', {
       this.isLoading = true
       try {
         const response = await emailApi.getEmailsForTempEmail(tempEmailId)
-        this.currentEmails = response.data
-        
+        // response.data 是 PaginatedResponse<Email>，需要取其中的 data 属性
+        this.currentEmails = response.data?.data || []
+
         // 设置当前选中的临时邮箱
         const tempEmail = this.tempEmails.find(email => email.id === tempEmailId)
         if (tempEmail) {
           this.selectedTempEmail = tempEmail
         }
-        
+
         return response
       } catch (error) {
         throw error
@@ -87,7 +90,7 @@ export const useEmailStore = defineStore('email', {
     async fetchDomains() {
       try {
         const response = await emailApi.getDomains()
-        this.domains = response.data
+        this.domains = response.data || []
         return response
       } catch (error) {
         throw error
@@ -106,7 +109,7 @@ export const useEmailStore = defineStore('email', {
     // 添加新邮件到当前邮件列表（用于实时推送）
     addNewEmail(email: Email) {
       // 检查是否是当前选中临时邮箱的邮件
-      if (this.selectedTempEmail && email.tempEmailId === this.selectedTempEmail.id) {
+      if (this.selectedTempEmail && email.temp_email_id === this.selectedTempEmail.id) {
         this.currentEmails.unshift(email)
       }
     },

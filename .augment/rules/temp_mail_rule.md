@@ -396,5 +396,7 @@ import type { User } from '@/types'
 
 unocss永远不要使用 space-y-xx，用flex flex-col gap-xx替代，不然会有样式冲突！
 
+不要他妈的用原生的Button，样式太丑了，用el-button
+
 
 **注意**: 此编码规范基于项目需求文档制定，所有开发人员必须严格遵守。

@@ -23,7 +23,10 @@ const selectedEmails = ref<number[]>([])
 const selectAll = ref(false)
 
 const sortedEmails = computed(() => {
-  return [...props.emails].sort((a, b) => 
+  if (!props.emails || !Array.isArray(props.emails)) {
+    return []
+  }
+  return [...props.emails].sort((a, b) =>
     new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
   )
 })

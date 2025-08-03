@@ -10,7 +10,6 @@ interface Props {
 
 interface Emits {
   (e: 'select', tempEmail: TempEmail): void
-  (e: 'delete', emailId: number): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,9 +28,6 @@ const handleSelect = (tempEmail: TempEmail) => {
   emit('select', tempEmail)
 }
 
-const handleDelete = (emailId: number) => {
-  emit('delete', emailId)
-}
 
 const copyToClipboard = async (text: string) => {
   try {
@@ -74,16 +70,32 @@ const formatDate = (dateString: string) => {
 
     <!-- Empty State -->
     <div v-else-if="tempEmails.length === 0" class="p-12 text-center">
-      <font-awesome-icon 
-        :icon="['fas', 'envelope-open']" 
-        class="text-6xl text-gray-300 dark:text-gray-600 mb-4"
-      />
-      <p class="text-gray-500 dark:text-gray-400 mb-4">
-        还没有创建任何临时邮箱
+      <div class="relative mb-6">
+        <div class="w-24 h-24 mx-auto bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
+          <font-awesome-icon
+            :icon="['fas', 'envelope-open']"
+            class="text-3xl text-blue-500 dark:text-blue-400"
+          />
+        </div>
+      </div>
+
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+        开始创建您的第一个临时邮箱
+      </h3>
+      <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+        临时邮箱可以帮助您保护隐私，快速接收验证码
       </p>
-      <p class="text-sm text-gray-400 dark:text-gray-500">
-        点击"创建邮箱"按钮开始使用
-      </p>
+
+      <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+        <div class="flex items-center justify-center space-x-2">
+          <font-awesome-icon :icon="['fas', 'shield-alt']" class="text-green-500" />
+          <span>保护您的真实邮箱地址</span>
+        </div>
+        <div class="flex items-center justify-center space-x-2">
+          <font-awesome-icon :icon="['fas', 'clock']" class="text-blue-500" />
+          <span>实时接收邮件通知</span>
+        </div>
+      </div>
     </div>
 
     <!-- Email List -->
@@ -135,26 +147,6 @@ const formatDate = (dateString: string) => {
                 <span>活跃</span>
               </span>
             </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center space-x-2 ml-4">
-            <!-- Status Indicator -->
-            <div class="w-2 h-2 bg-green-500 rounded-full" title="活跃状态"></div>
-            
-            <!-- Delete Button -->
-            <el-button
-              @click.stop="handleDelete(tempEmail.id)"
-              size="small"
-              circle
-              class="hover:bg-red-100 dark:hover:bg-red-900/20 group"
-              title="删除邮箱"
-            >
-              <font-awesome-icon
-                :icon="['fas', 'trash']"
-                class="text-gray-400 group-hover:text-red-500 text-sm"
-              />
-            </el-button>
           </div>
         </div>
 

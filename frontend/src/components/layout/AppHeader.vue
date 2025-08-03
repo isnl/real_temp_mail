@@ -99,16 +99,6 @@ const handleCommand = (command: string) => {
 
           <!-- User Menu -->
           <div v-if="isLoggedIn" class="flex items-center space-x-4">
-            <!-- Quota Display -->
-            <div class="hidden sm:flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <font-awesome-icon 
-                :icon="['fas', 'envelope']" 
-                class="text-blue-500 dark:text-blue-400 text-sm"
-              />
-              <span class="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                配额: {{ userQuota }}
-              </span>
-            </div>
 
             <!-- User Dropdown -->
             <el-dropdown @command="handleCommand">

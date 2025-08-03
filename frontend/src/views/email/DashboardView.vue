@@ -5,15 +5,18 @@ import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
-import CreateEmailDialog from '@/components/email/CreateEmailDialog.vue'
+
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
+import type { CreateEmailRequest } from '@/types'
 
 const emailStore = useEmailStore()
 const authStore = useAuthStore()
 
 const loading = ref(false)
-const showCreateDialog = ref(false)
+
 const showRedeemDialog = ref(false)
+const isCreatingInline = ref(false)
+const selectedDomainId = ref(0)
 
 const quotaInfo = computed(() => ({
   total: authStore.userQuota,
@@ -26,6 +29,10 @@ const currentEmails = computed(() => emailStore.currentEmails)
 
 onMounted(async () => {
   await loadData()
+  // 设置默认选中的域名
+  if (emailStore.availableDomains.length > 0) {
+    selectedDomainId.value = emailStore.availableDomains[0].id
+  }
 })
 
 const loadData = async () => {
@@ -43,42 +50,6 @@ const loadData = async () => {
   }
 }
 
-const handleCreateEmail = () => {
-  if (quotaInfo.value.remaining <= 0) {
-    ElMessage.warning('配额不足，请先兑换配额码')
-    showRedeemDialog.value = true
-    return
-  }
-  showCreateDialog.value = true
-}
-
-const handleEmailCreated = async () => {
-  showCreateDialog.value = false
-  await loadData()
-  ElMessage.success('临时邮箱创建成功')
-}
-
-const handleDeleteEmail = async (emailId: number) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除这个临时邮箱吗？删除后将无法恢复相关邮件。',
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    await emailStore.deleteTempEmail(emailId)
-    ElMessage.success('临时邮箱删除成功')
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('Delete email error:', error)
-      ElMessage.error('删除失败')
-    }
-  }
-}
 
 const handleSelectEmail = async (tempEmail: any) => {
   try {
@@ -101,6 +72,74 @@ const handleRedeemSuccess = async () => {
   showRedeemDialog.value = false
   await authStore.refreshTokens() // 刷新用户信息以更新配额
   ElMessage.success('兑换码使用成功')
+}
+
+// 内联创建邮箱
+const handleInlineCreateEmail = async (domainId?: number) => {
+  if (quotaInfo.value.remaining <= 0) {
+    ElMessage.warning('配额不足，请先兑换配额码')
+    showRedeemDialog.value = true
+    return
+  }
+
+  // 确保域名数据已加载
+  if (emailStore.availableDomains.length === 0) {
+    try {
+      await emailStore.fetchDomains()
+    } catch (error) {
+      console.error('Failed to fetch domains:', error)
+      ElMessage.error('获取域名列表失败，请刷新页面重试')
+      return
+    }
+  }
+
+  const targetDomainId = domainId || selectedDomainId.value || emailStore.availableDomains[0]?.id
+  if (!targetDomainId) {
+    ElMessage.error('请先选择域名')
+    return
+  }
+
+  console.log('Creating email with domain ID:', targetDomainId)
+  isCreatingInline.value = true
+
+  try {
+    const request: CreateEmailRequest = {
+      domainId: targetDomainId,
+      turnstileToken: 'dev-token'
+    }
+
+    console.log('Sending create email request:', request)
+    const response = await emailStore.createTempEmail(request)
+    console.log('Create email response:', response)
+
+    // 刷新数据和用户配额
+    await Promise.all([
+      loadData(),
+      authStore.refreshTokens()
+    ])
+
+    ElMessage.success(`临时邮箱创建成功: ${response.data?.email || '新邮箱'}`)
+  } catch (error: any) {
+    console.error('Create email error:', error)
+
+    // 提供更详细的错误信息
+    let errorMessage = '创建失败'
+    if (error.message) {
+      if (error.message.includes('配额不足')) {
+        errorMessage = '配额不足，请先兑换配额码'
+      } else if (error.message.includes('域名')) {
+        errorMessage = '域名无效，请重新选择'
+      } else if (error.message.includes('网络')) {
+        errorMessage = '网络连接失败，请检查网络后重试'
+      } else {
+        errorMessage = error.message
+      }
+    }
+
+    ElMessage.error(errorMessage)
+  } finally {
+    isCreatingInline.value = false
+  }
 }
 </script>
 
@@ -136,13 +175,7 @@ const handleRedeemSuccess = async () => {
           兑换配额
         </el-button>
 
-        <el-button
-          @click="handleCreateEmail"
-          type="primary"
-        >
-          <font-awesome-icon :icon="['fas', 'plus']" />
-          创建邮箱
-        </el-button>
+
       </div>
     </div>
 
@@ -211,18 +244,48 @@ const handleRedeemSuccess = async () => {
       <!-- Temp Email List -->
       <div class="card-base">
         <div class="p-6 border-b border-base">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            临时邮箱列表
-          </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            点击邮箱查看收到的邮件
-          </p>
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                临时邮箱列表
+              </h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                点击邮箱查看收到的邮件
+              </p>
+            </div>
+
+            <!-- Quick Create Section -->
+            <div class="flex items-center space-x-3">
+              <el-select
+                v-model="selectedDomainId"
+                placeholder="选择域名"
+                style="width: 160px;"
+                :disabled="emailStore.availableDomains.length === 0"
+              >
+                <el-option
+                  v-for="domain in emailStore.availableDomains"
+                  :key="domain.id"
+                  :label="`@${domain.domain}`"
+                  :value="domain.id"
+                />
+              </el-select>
+
+              <el-button
+                @click="handleInlineCreateEmail()"
+                type="primary"
+                :loading="isCreatingInline"
+                :disabled="quotaInfo.remaining <= 0 || !selectedDomainId"
+              >
+                <font-awesome-icon :icon="['fas', 'plus']" />
+                快速创建
+              </el-button>
+            </div>
+          </div>
         </div>
-        
+
         <TempEmailList
           :loading="loading"
           @select="handleSelectEmail"
-          @delete="handleDeleteEmail"
         />
       </div>
 
@@ -262,11 +325,6 @@ const handleRedeemSuccess = async () => {
     </div>
 
     <!-- Dialogs -->
-    <CreateEmailDialog
-      v-model="showCreateDialog"
-      @success="handleEmailCreated"
-    />
-    
     <RedeemCodeDialog
       v-model="showRedeemDialog"
       @success="handleRedeemSuccess"

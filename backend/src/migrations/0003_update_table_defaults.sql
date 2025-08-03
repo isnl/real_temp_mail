@@ -1,5 +1,8 @@
--- 用户表
-CREATE TABLE users (
+-- 更新表的默认时间值为中国时间
+-- 由于SQLite不支持直接修改列的默认值，我们需要重建表
+
+-- 1. 备份现有数据并重建 users 表
+CREATE TABLE users_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -10,16 +13,24 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT (datetime('now', '+8 hours'))
 );
 
--- 域名表
-CREATE TABLE domains (
+INSERT INTO users_new SELECT * FROM users;
+DROP TABLE users;
+ALTER TABLE users_new RENAME TO users;
+
+-- 2. 重建 domains 表
+CREATE TABLE domains_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   domain TEXT UNIQUE NOT NULL,
   status INTEGER DEFAULT 1 CHECK (status IN (0, 1)),
   created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours'))
 );
 
--- 临时邮箱表
-CREATE TABLE temp_emails (
+INSERT INTO domains_new SELECT * FROM domains;
+DROP TABLE domains;
+ALTER TABLE domains_new RENAME TO domains;
+
+-- 3. 重建 temp_emails 表
+CREATE TABLE temp_emails_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   email TEXT UNIQUE NOT NULL,
@@ -30,8 +41,12 @@ CREATE TABLE temp_emails (
   FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
 );
 
--- 邮件表
-CREATE TABLE emails (
+INSERT INTO temp_emails_new SELECT * FROM temp_emails;
+DROP TABLE temp_emails;
+ALTER TABLE temp_emails_new RENAME TO temp_emails;
+
+-- 4. 重建 emails 表
+CREATE TABLE emails_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   temp_email_id INTEGER NOT NULL,
   sender TEXT NOT NULL,
@@ -44,8 +59,12 @@ CREATE TABLE emails (
   FOREIGN KEY (temp_email_id) REFERENCES temp_emails(id) ON DELETE CASCADE
 );
 
--- 兑换码表
-CREATE TABLE redeem_codes (
+INSERT INTO emails_new SELECT * FROM emails;
+DROP TABLE emails;
+ALTER TABLE emails_new RENAME TO emails;
+
+-- 5. 重建 redeem_codes 表
+CREATE TABLE redeem_codes_new (
   code TEXT PRIMARY KEY,
   quota INTEGER NOT NULL,
   valid_until TIMESTAMP NOT NULL,
@@ -56,8 +75,12 @@ CREATE TABLE redeem_codes (
   FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- JWT 刷新令牌表
-CREATE TABLE refresh_tokens (
+INSERT INTO redeem_codes_new SELECT * FROM redeem_codes;
+DROP TABLE redeem_codes;
+ALTER TABLE redeem_codes_new RENAME TO redeem_codes;
+
+-- 6. 重建 refresh_tokens 表
+CREATE TABLE refresh_tokens_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   token_hash TEXT UNIQUE NOT NULL,
@@ -67,8 +90,12 @@ CREATE TABLE refresh_tokens (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 操作日志表
-CREATE TABLE logs (
+INSERT INTO refresh_tokens_new SELECT * FROM refresh_tokens;
+DROP TABLE refresh_tokens;
+ALTER TABLE refresh_tokens_new RENAME TO refresh_tokens;
+
+-- 7. 重建 logs 表
+CREATE TABLE logs_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER,
   action TEXT NOT NULL,
@@ -79,8 +106,12 @@ CREATE TABLE logs (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- API 限流表
-CREATE TABLE rate_limits (
+INSERT INTO logs_new SELECT * FROM logs;
+DROP TABLE logs;
+ALTER TABLE logs_new RENAME TO logs;
+
+-- 8. 重建 rate_limits 表
+CREATE TABLE rate_limits_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   identifier TEXT NOT NULL,
   endpoint TEXT NOT NULL,
@@ -89,7 +120,11 @@ CREATE TABLE rate_limits (
   UNIQUE(identifier, endpoint, window_start)
 );
 
--- 创建索引以提高查询性能
+INSERT INTO rate_limits_new SELECT * FROM rate_limits;
+DROP TABLE rate_limits;
+ALTER TABLE rate_limits_new RENAME TO rate_limits;
+
+-- 重新创建索引
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_temp_emails_user_id ON temp_emails(user_id);
 CREATE INDEX idx_temp_emails_email ON temp_emails(email);
@@ -100,13 +135,3 @@ CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 CREATE INDEX idx_logs_user_id ON logs(user_id);
 CREATE INDEX idx_logs_timestamp ON logs(timestamp);
 CREATE INDEX idx_rate_limits_identifier_endpoint ON rate_limits(identifier, endpoint);
-
--- 插入默认域名
-INSERT INTO domains (domain, status) VALUES 
-('tempmail.dev', 1),
-('temp-email.org', 1),
-('disposable.email', 1);
-
--- 创建默认管理员用户（密码: admin123）
-INSERT INTO users (email, password_hash, quota, role) VALUES 
-('admin@tempmail.dev', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 999999, 'admin');

@@ -62,7 +62,10 @@ import {
   faPause,
   faLayerGroup,
   faChartLine,
-  faPlay
+  faPlay,
+  faInfoCircle,
+  faCrown,
+  faCircle
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -115,7 +118,10 @@ library.add(
   faPause,
   faLayerGroup,
   faChartLine,
-  faPlay
+  faPlay,
+  faInfoCircle,
+  faCrown,
+  faCircle
 )
 
 const app = createApp(App)
