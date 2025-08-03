@@ -156,7 +156,7 @@ const goToUserDashboard = () => {
       <!-- 侧边栏底部操作 -->
       <div class="p-3 border-t border-gray-200 dark:border-gray-700">
         <!-- 展开状态下的底部区域 -->
-        <div v-if="!isCollapsed" class="space-y-3">
+        <div v-if="!isCollapsed" class="flex flex-col gap-3">
           <!-- 主题切换 -->
           <el-button
             @click="themeStore.toggleTheme"
@@ -195,7 +195,7 @@ const goToUserDashboard = () => {
         </div>
 
         <!-- 折叠状态下的底部区域 -->
-        <div v-else class="space-y-3">
+        <div v-else class="flex flex-col gap-3">
           <!-- 主题切换 -->
           <el-button
             @click="themeStore.toggleTheme"
@@ -210,7 +210,7 @@ const goToUserDashboard = () => {
           </el-button>
 
           <!-- 用户信息和退出登录整合 -->
-          <div class="flex flex-col items-center space-y-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+          <div class="flex flex-col items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700">
             <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <font-awesome-icon icon="user" class="text-white text-xs" />
             </div>

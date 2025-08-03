@@ -64,7 +64,7 @@ const handleClose = () => {
     width="800px"
     @close="handleClose"
   >
-    <div v-if="props.email" class="space-y-6">
+    <div v-if="props.email" class="flex flex-col gap-6">
       <!-- Email Header -->
       <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
         <div class="flex items-start justify-between mb-4">
@@ -72,7 +72,7 @@ const handleClose = () => {
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               {{ props.email.subject || '无主题' }}
             </h3>
-            <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <div class="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
               <div class="flex items-center space-x-2">
                 <span class="font-medium">发件人:</span>
                 <span>{{ props.email.sender }}</span>
@@ -131,9 +131,9 @@ const handleClose = () => {
       </div>
 
       <!-- Email Content -->
-      <div class="space-y-4">
+      <div class="flex flex-col gap-4">
         <!-- Text Content -->
-        <div v-if="props.email.content" class="space-y-2">
+        <div v-if="props.email.content" class="flex flex-col gap-2">
           <h4 class="font-medium text-gray-900 dark:text-gray-100">
             邮件内容
           </h4>
@@ -154,7 +154,7 @@ const handleClose = () => {
         </div>
 
         <!-- HTML Content -->
-        <div v-if="props.email.html_content" class="space-y-2">
+        <div v-if="props.email.html_content" class="flex flex-col gap-2">
           <h4 class="font-medium text-gray-900 dark:text-gray-100">
             HTML 内容
           </h4>

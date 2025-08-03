@@ -11,7 +11,7 @@ const activeTab = ref('dashboard')
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">

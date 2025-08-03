@@ -74,7 +74,7 @@ const goToLogin = () => {
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+    <div class="max-w-md w-full flex flex-col gap-8">
       <!-- Header -->
       <div class="text-center">
         <div class="flex justify-center">
@@ -191,7 +191,7 @@ const goToLogin = () => {
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
           注册即享受
         </h3>
-        <div class="space-y-3">
+        <div class="flex flex-col gap-3">
           <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
               <font-awesome-icon 

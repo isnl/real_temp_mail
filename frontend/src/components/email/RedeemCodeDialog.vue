@@ -104,7 +104,7 @@ const handleClose = () => {
             <p class="font-medium text-green-700 dark:text-green-300 mb-1">
               兑换说明
             </p>
-            <ul class="text-green-600 dark:text-green-400 space-y-1">
+            <ul class="text-green-600 dark:text-green-400 flex flex-col gap-1">
               <li>• 兑换码只能使用一次</li>
               <li>• 配额将立即添加到您的账户</li>
               <li>• 请确保兑换码有效且未过期</li>

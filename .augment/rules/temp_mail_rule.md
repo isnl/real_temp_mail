@@ -394,7 +394,7 @@ import type { User } from '@/types'
 
 无须兼容移动端设备，也无须写自适应相关代码，此项目只为标准PC端设备工作，1080p设备
 
-
+unocss永远不要使用 space-y-xx，用flex flex-col gap-xx替代，不然会有样式冲突！
 
 
 **注意**: 此编码规范基于项目需求文档制定，所有开发人员必须严格遵守。

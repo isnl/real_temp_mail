@@ -3,7 +3,7 @@ import LogAudit from '@/components/admin/LogAudit.vue'
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- 页面描述 -->
     <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
       <p class="text-sm text-red-700 dark:text-red-400">

@@ -3,7 +3,7 @@ import EmailAudit from '@/components/admin/EmailAudit.vue'
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- 页面描述 -->
     <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
       <p class="text-sm text-orange-700 dark:text-orange-400">

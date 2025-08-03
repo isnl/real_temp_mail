@@ -183,7 +183,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- 操作栏 -->
     <div class="flex justify-between items-center">
       <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 flex-1 mr-4">

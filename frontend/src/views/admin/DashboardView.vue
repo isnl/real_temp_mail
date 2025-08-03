@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- 页面描述 -->
     <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
       <p class="text-sm text-blue-700 dark:text-blue-400">

@@ -3,7 +3,7 @@ import UserManagement from '@/components/admin/UserManagement.vue'
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- 页面描述 -->
     <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
       <p class="text-sm text-purple-700 dark:text-purple-400">

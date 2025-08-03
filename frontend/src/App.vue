@@ -3,9 +3,7 @@ import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <div id="app">
-    <RouterView />
-  </div>
+  <RouterView />
 </template>
 
 <style>
@@ -17,7 +15,13 @@ import { RouterView } from 'vue-router'
 }
 
 html {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   line-height: 1.6;
 }
 
@@ -25,7 +29,9 @@ body {
   margin: 0;
   background-color: var(--el-bg-color);
   color: var(--el-text-color-primary);
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 /* Element Plus 暗色模式变量覆盖 */

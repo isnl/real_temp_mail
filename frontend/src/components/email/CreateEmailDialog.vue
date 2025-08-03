@@ -124,7 +124,7 @@ const handleClose = () => {
             <p class="font-medium text-blue-700 dark:text-blue-300 mb-1">
               创建说明
             </p>
-            <ul class="text-blue-600 dark:text-blue-400 space-y-1">
+            <ul class="text-blue-600 dark:text-blue-400 flex flex-col gap-1">
               <li>• 每个临时邮箱消耗1个配额</li>
               <li>• 邮箱地址随机生成，确保唯一性</li>
               <li>• 邮件将实时推送到您的收件箱</li>

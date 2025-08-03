@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="flex flex-col gap-8">
     <div class="text-center">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
         功能特性

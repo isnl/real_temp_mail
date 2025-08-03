@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto space-y-8">
+  <div class="max-w-4xl mx-auto flex flex-col gap-8">
     <div class="text-center">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
         隐私政策
@@ -13,7 +13,7 @@
       </p>
     </div>
 
-    <div class="card-base p-8 space-y-6">
+    <div class="card-base p-8 flex flex-col gap-6">
       <section>
         <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
           1. 信息收集

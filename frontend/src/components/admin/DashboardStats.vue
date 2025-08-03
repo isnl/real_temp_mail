@@ -30,7 +30,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
         系统概览

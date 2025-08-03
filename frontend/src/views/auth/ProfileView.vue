@@ -27,7 +27,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -111,7 +111,7 @@ onMounted(async () => {
         账户设置
       </h3>
       
-      <div class="space-y-4">
+      <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
           <div>
             <p class="font-medium text-gray-900 dark:text-gray-100">修改密码</p>

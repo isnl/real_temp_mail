@@ -115,7 +115,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex flex-col gap-6">
     <!-- 搜索表单 -->
     <div class="card-base p-6">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -277,7 +277,7 @@ onMounted(() => {
       width="800px"
       top="5vh"
     >
-      <div v-if="selectedEmail" class="space-y-4">
+      <div v-if="selectedEmail" class="flex flex-col gap-4">
         <!-- 邮件基本信息 -->
         <div class="grid grid-cols-2 gap-4">
           <div>
