@@ -109,16 +109,18 @@ const formatDate = (dateString: string) => {
               <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                 {{ tempEmail.email }}
               </span>
-              <button
+              <el-button
                 @click.stop="copyToClipboard(tempEmail.email)"
-                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                size="small"
+                circle
+                class="hover:bg-gray-200 dark:hover:bg-gray-600"
                 title="复制邮箱地址"
               >
-                <font-awesome-icon 
-                  :icon="['fas', 'copy']" 
+                <font-awesome-icon
+                  :icon="['fas', 'copy']"
                   class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs"
                 />
-              </button>
+              </el-button>
             </div>
 
             <!-- Meta Info -->
@@ -141,16 +143,18 @@ const formatDate = (dateString: string) => {
             <div class="w-2 h-2 bg-green-500 rounded-full" title="活跃状态"></div>
             
             <!-- Delete Button -->
-            <button
+            <el-button
               @click.stop="handleDelete(tempEmail.id)"
-              class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors group"
+              size="small"
+              circle
+              class="hover:bg-red-100 dark:hover:bg-red-900/20 group"
               title="删除邮箱"
             >
-              <font-awesome-icon 
-                :icon="['fas', 'trash']" 
+              <font-awesome-icon
+                :icon="['fas', 'trash']"
                 class="text-gray-400 group-hover:text-red-500 text-sm"
               />
-            </button>
+            </el-button>
           </div>
         </div>
 

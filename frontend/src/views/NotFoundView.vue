@@ -31,12 +31,12 @@ const goBack = () => {
       </p>
       
       <div class="space-x-4">
-        <button @click="goBack" class="btn-secondary">
+        <el-button @click="goBack">
           返回上页
-        </button>
-        <button @click="goHome" class="btn-primary">
+        </el-button>
+        <el-button @click="goHome" type="primary">
           回到首页
-        </button>
+        </el-button>
       </div>
     </div>
   </div>

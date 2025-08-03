@@ -58,7 +58,11 @@ import {
   faArrowLeft,
   faDownload,
   faShare,
-  faEdit
+  faEdit,
+  faPause,
+  faLayerGroup,
+  faChartLine,
+  faPlay
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -107,7 +111,11 @@ library.add(
   faArrowLeft,
   faDownload,
   faShare,
-  faEdit
+  faEdit,
+  faPause,
+  faLayerGroup,
+  faChartLine,
+  faPlay
 )
 
 const app = createApp(App)

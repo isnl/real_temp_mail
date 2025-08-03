@@ -346,16 +346,18 @@ const getEmailTypeIcon = (subject: string, content: string) => {
                 <span class="text-sm font-mono font-bold text-green-700 dark:text-green-300">
                   {{ email.verification_code }}
                 </span>
-                <button
+                <el-button
                   @click.stop="copyToClipboard(email.verification_code!)"
-                  class="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                  size="small"
+                  circle
+                  class="hover:bg-green-200 dark:hover:bg-green-800"
                   title="复制验证码"
                 >
-                  <font-awesome-icon 
-                    :icon="['fas', 'copy']" 
+                  <font-awesome-icon
+                    :icon="['fas', 'copy']"
                     class="text-green-600 dark:text-green-400 text-xs"
                   />
-                </button>
+                </el-button>
               </div>
             </div>
 
@@ -373,27 +375,31 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               </div>
 
               <div class="flex items-center space-x-2">
-                <button
+                <el-button
                   @click.stop="handleEmailClick(email)"
-                  class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  size="small"
+                  circle
+                  class="hover:bg-gray-200 dark:hover:bg-gray-600"
                   title="查看详情"
                 >
-                  <font-awesome-icon 
-                    :icon="['fas', 'eye']" 
+                  <font-awesome-icon
+                    :icon="['fas', 'eye']"
                     class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs"
                   />
-                </button>
-                
-                <button
+                </el-button>
+
+                <el-button
                   @click.stop="handleDeleteEmail(email.id)"
-                  class="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                  size="small"
+                  circle
+                  class="hover:bg-red-100 dark:hover:bg-red-900/20"
                   title="删除邮件"
                 >
-                  <font-awesome-icon 
-                    :icon="['fas', 'trash']" 
+                  <font-awesome-icon
+                    :icon="['fas', 'trash']"
                     class="text-gray-400 hover:text-red-500 text-xs"
                   />
-                </button>
+                </el-button>
               </div>
             </div>
           </div>

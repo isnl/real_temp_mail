@@ -118,33 +118,31 @@ const handleRedeemSuccess = async () => {
       </div>
       
       <div class="mt-4 sm:mt-0 flex items-center space-x-3">
-        <button
+        <el-button
           @click="handleRefresh"
-          class="btn-secondary"
           :disabled="loading"
         >
-          <font-awesome-icon 
-            :icon="['fas', 'refresh']" 
+          <font-awesome-icon
+            :icon="['fas', 'refresh']"
             :class="{ 'animate-spin': loading }"
           />
           刷新
-        </button>
-        
-        <button
+        </el-button>
+
+        <el-button
           @click="showRedeemDialog = true"
-          class="btn-secondary"
         >
           <font-awesome-icon :icon="['fas', 'gift']" />
           兑换配额
-        </button>
-        
-        <button
+        </el-button>
+
+        <el-button
           @click="handleCreateEmail"
-          class="btn-primary"
+          type="primary"
         >
           <font-awesome-icon :icon="['fas', 'plus']" />
           创建邮箱
-        </button>
+        </el-button>
       </div>
     </div>
 

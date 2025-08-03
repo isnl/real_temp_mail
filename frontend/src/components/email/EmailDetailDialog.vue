@@ -76,16 +76,18 @@ const handleClose = () => {
               <div class="flex items-center space-x-2">
                 <span class="font-medium">发件人:</span>
                 <span>{{ props.email.sender }}</span>
-                <button
+                <el-button
                   @click="copyToClipboard(props.email.sender)"
-                  class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  size="small"
+                  circle
+                  class="hover:bg-gray-200 dark:hover:bg-gray-600"
                   title="复制发件人地址"
                 >
-                  <font-awesome-icon 
-                    :icon="['fas', 'copy']" 
+                  <font-awesome-icon
+                    :icon="['fas', 'copy']"
                     class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs"
                   />
-                </button>
+                </el-button>
               </div>
               <div class="flex items-center space-x-2">
                 <span class="font-medium">接收时间:</span>
@@ -110,16 +112,18 @@ const handleClose = () => {
                 <span class="text-lg font-mono font-bold text-green-700 dark:text-green-300">
                   {{ props.email.verification_code }}
                 </span>
-                <button
+                <el-button
                   @click="copyToClipboard(props.email.verification_code!)"
-                  class="p-2 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                  size="small"
+                  circle
+                  class="hover:bg-green-200 dark:hover:bg-green-800"
                   title="复制验证码"
                 >
-                  <font-awesome-icon 
-                    :icon="['fas', 'copy']" 
+                  <font-awesome-icon
+                    :icon="['fas', 'copy']"
                     class="text-green-600 dark:text-green-400"
                   />
-                </button>
+                </el-button>
               </div>
             </div>
           </div>
@@ -137,13 +141,15 @@ const handleClose = () => {
             <pre class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">{{ props.email.content }}</pre>
           </div>
           <div class="flex justify-end">
-            <button
+            <el-button
               @click="copyToClipboard(props.email.content!)"
-              class="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+              type="primary"
+              link
+              size="small"
             >
               <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" />
               复制内容
-            </button>
+            </el-button>
           </div>
         </div>
 
@@ -156,13 +162,15 @@ const handleClose = () => {
             <div v-html="props.email.html_content" class="prose dark:prose-invert max-w-none"></div>
           </div>
           <div class="flex justify-end">
-            <button
+            <el-button
               @click="copyToClipboard(props.email.html_content!)"
-              class="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+              type="primary"
+              link
+              size="small"
             >
               <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" />
               复制HTML
-            </button>
+            </el-button>
           </div>
         </div>
 

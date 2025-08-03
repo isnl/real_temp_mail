@@ -47,32 +47,37 @@ const goToDashboard = () => {
 
         <!-- CTA Buttons -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
+          <el-button
             v-if="!isLoggedIn"
             @click="goToRegister"
-            class="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-lg font-medium"
+            type="primary"
+            size="large"
+            class="px-8 py-3 text-lg font-medium"
           >
             <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-2" />
             免费注册
-          </button>
+          </el-button>
 
-          <button
+          <el-button
             v-if="isLoggedIn"
             @click="goToDashboard"
-            class="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-lg font-medium"
+            type="primary"
+            size="large"
+            class="px-8 py-3 text-lg font-medium"
           >
             <font-awesome-icon :icon="['fas', 'tachometer-alt']" class="mr-2" />
             进入控制台
-          </button>
+          </el-button>
 
-          <button
+          <el-button
             v-if="!isLoggedIn"
             @click="goToLogin"
-            class="px-8 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-lg font-medium"
+            size="large"
+            class="px-8 py-3 text-lg font-medium"
           >
             <font-awesome-icon :icon="['fas', 'sign-in-alt']" class="mr-2" />
             立即登录
-          </button>
+          </el-button>
         </div>
       </div>
     </div>

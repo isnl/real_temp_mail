@@ -135,12 +135,14 @@ const goToRegister = () => {
         <div class="text-center mt-6">
           <p class="text-sm text-gray-600 dark:text-gray-400">
             还没有账户？
-            <button
+            <el-button
               @click="goToRegister"
-              class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+              type="primary"
+              link
+              class="font-medium"
             >
               立即注册
-            </button>
+            </el-button>
           </p>
         </div>
       </div>

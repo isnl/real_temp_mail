@@ -28,6 +28,9 @@ const toggleTheme = () => {
   themeStore.toggleTheme()
 }
 
+const themeIcon = computed(() => themeStore.getThemeIcon())
+const themeDisplayName = computed(() => themeStore.getThemeDisplayName())
+
 const goToProfile = () => {
   router.push('/profile')
 }
@@ -48,11 +51,6 @@ const handleCommand = (command: string) => {
       handleLogout()
       break
   }
-}
-
-const toggleMobileMenu = () => {
-  // 移动端菜单切换逻辑
-  console.log('Toggle mobile menu')
 }
 </script>
 
@@ -87,16 +85,17 @@ const toggleMobileMenu = () => {
         <!-- User Actions -->
         <div class="flex items-center space-x-4">
           <!-- Theme Toggle -->
-          <button
+          <el-button
             @click="toggleTheme"
-            class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="切换主题"
+            circle
+            class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+            :title="`切换主题 (当前: ${themeDisplayName})`"
           >
             <font-awesome-icon
-              :icon="['fas', 'sun']"
+              :icon="['fas', themeIcon]"
               class="text-gray-600 dark:text-gray-400"
             />
-          </button>
+          </el-button>
 
           <!-- User Menu -->
           <div v-if="isLoggedIn" class="flex items-center space-x-4">
@@ -157,17 +156,6 @@ const toggleMobileMenu = () => {
               <el-button size="small">注册</el-button>
             </router-link>
           </div>
-
-          <!-- Mobile Menu Button -->
-          <button 
-            class="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            @click="toggleMobileMenu"
-          >
-            <font-awesome-icon 
-              :icon="['fas', 'bars']" 
-              class="text-gray-600 dark:text-gray-400"
-            />
-          </button>
         </div>
       </div>
     </div>
