@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
@@ -8,6 +8,17 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+
+// 初始化主题和认证状态
+onMounted(() => {
+  // 初始化主题
+  themeStore.initTheme()
+
+  // 检查并刷新token
+  if (authStore.isAuthenticated) {
+    authStore.checkAndRefreshToken()
+  }
+})
 
 const isCollapsed = ref(false)
 const isMobileMenuOpen = ref(false)
@@ -87,7 +98,7 @@ const goToUserDashboard = () => {
 </script>
 
 <template>
-  <div class="admin-layout min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div id="admin-layout" class="admin-layout min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- 移动端遮罩层 -->
     <div 
       v-if="isMobileMenuOpen"
@@ -251,14 +262,21 @@ const goToUserDashboard = () => {
 </template>
 
 <style scoped>
-.admin-layout {
+#admin-layout {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
   background-color: #f9fafb;
+  /* 确保管理后台布局完全独立 */
+  position: relative;
+  z-index: 1;
 }
 
-.dark .admin-layout {
+.dark #admin-layout {
   background-color: #111827;
+}
+
+.admin-layout {
+  min-height: 100vh;
 }
 
 /* 侧边栏样式 */

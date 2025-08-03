@@ -1,30 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
-import { useThemeStore } from '@/stores/theme'
-import { useAuthStore } from '@/stores/auth'
-import AppHeader from '@/components/layout/AppHeader.vue'
-
-const themeStore = useThemeStore()
-const authStore = useAuthStore()
-
-onMounted(() => {
-  // 初始化主题
-  themeStore.initTheme()
-
-  // 检查并刷新token
-  if (authStore.isAuthenticated) {
-    authStore.checkAndRefreshToken()
-  }
-})
 </script>
 
 <template>
-  <div id="app" class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-    <AppHeader />
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <RouterView />
-    </main>
+  <div id="app">
+    <RouterView />
   </div>
 </template>
 

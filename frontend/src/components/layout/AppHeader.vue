@@ -25,15 +25,7 @@ const handleLogout = async () => {
 }
 
 const toggleTheme = () => {
-  // 简单的主题切换逻辑
-  const html = document.documentElement
-  if (html.classList.contains('dark')) {
-    html.classList.remove('dark')
-    localStorage.setItem('theme', 'light')
-  } else {
-    html.classList.add('dark')
-    localStorage.setItem('theme', 'dark')
-  }
+  themeStore.toggleTheme()
 }
 
 const goToProfile = () => {

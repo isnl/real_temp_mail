@@ -4,35 +4,68 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // 用户端路由 - 使用 UserLayout
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/views/HomeView.vue'),
+      component: () => import('@/components/layout/UserLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: () => import('@/views/HomeView.vue'),
+        },
+        {
+          path: 'login',
+          name: 'login',
+          component: () => import('@/views/auth/LoginView.vue'),
+          meta: { requiresGuest: true }
+        },
+        {
+          path: 'register',
+          name: 'register',
+          component: () => import('@/views/auth/RegisterView.vue'),
+          meta: { requiresGuest: true }
+        },
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: () => import('@/views/email/DashboardView.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/auth/ProfileView.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'features',
+          name: 'features',
+          component: () => import('@/views/FeaturesView.vue'),
+        },
+        {
+          path: 'about',
+          name: 'about',
+          component: () => import('@/views/AboutView.vue'),
+        },
+        {
+          path: 'terms',
+          name: 'terms',
+          component: () => import('@/views/TermsView.vue'),
+        },
+        {
+          path: 'privacy',
+          name: 'privacy',
+          component: () => import('@/views/PrivacyView.vue'),
+        },
+        {
+          path: 'layout-test',
+          name: 'layout-test',
+          component: () => import('@/views/LayoutTestView.vue'),
+        }
+      ]
     },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/auth/LoginView.vue'),
-      meta: { requiresGuest: true }
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('@/views/auth/RegisterView.vue'),
-      meta: { requiresGuest: true }
-    },
-    {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/email/DashboardView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/profile',
-      name: 'profile',
-      component: () => import('@/views/auth/ProfileView.vue'),
-      meta: { requiresAuth: true }
-    },
+    // 管理后台路由 - 使用 AdminLayout
     {
       path: '/admin',
       component: () => import('@/components/layout/AdminLayout.vue'),
@@ -74,36 +107,23 @@ const router = createRouter({
         }
       ]
     },
-    {
-      path: '/features',
-      name: 'features',
-      component: () => import('@/views/FeaturesView.vue'),
-    },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/AboutView.vue'),
-    },
-    {
-      path: '/terms',
-      name: 'terms',
-      component: () => import('@/views/TermsView.vue'),
-    },
-    {
-      path: '/privacy',
-      name: 'privacy',
-      component: () => import('@/views/PrivacyView.vue'),
-    },
+    // 404 页面 - 使用 UserLayout
     {
       path: '/:pathMatch(.*)*',
-      name: 'not-found',
-      component: () => import('@/views/NotFoundView.vue'),
+      component: () => import('@/components/layout/UserLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'not-found',
+          component: () => import('@/views/NotFoundView.vue'),
+        }
+      ]
     }
   ],
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   // 检查是否需要认证
