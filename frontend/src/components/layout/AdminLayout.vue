@@ -21,7 +21,6 @@ onMounted(() => {
 })
 
 const isCollapsed = ref(false)
-const isMobileMenuOpen = ref(false)
 
 // 菜单项配置
 const menuItems = [
@@ -29,44 +28,44 @@ const menuItems = [
     key: 'dashboard',
     title: '仪表板',
     icon: 'tachometer-alt',
-    path: '/admin/dashboard'
+    path: '/admin/dashboard',
   },
   {
     key: 'users',
     title: '用户管理',
     icon: 'users',
-    path: '/admin/users'
+    path: '/admin/users',
   },
   {
     key: 'domains',
     title: '域名管理',
     icon: 'globe',
-    path: '/admin/domains'
+    path: '/admin/domains',
   },
   {
     key: 'emails',
     title: '邮件审查',
     icon: 'envelope-open',
-    path: '/admin/emails'
+    path: '/admin/emails',
   },
   {
     key: 'logs',
     title: '日志审计',
     icon: 'file-alt',
-    path: '/admin/logs'
+    path: '/admin/logs',
   },
   {
     key: 'redeem-codes',
     title: '兑换码管理',
     icon: 'ticket-alt',
-    path: '/admin/redeem-codes'
-  }
+    path: '/admin/redeem-codes',
+  },
 ]
 
 // 当前激活的菜单项
 const activeMenuItem = computed(() => {
   const currentPath = route.path
-  return menuItems.find(item => currentPath.startsWith(item.path))?.key || 'dashboard'
+  return menuItems.find((item) => currentPath.startsWith(item.path))?.key || 'dashboard'
 })
 
 // 切换侧边栏折叠状态
@@ -74,15 +73,9 @@ const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
 }
 
-// 切换移动端菜单
-const toggleMobileMenu = () => {
-  isMobileMenuOpen.value = !isMobileMenuOpen.value
-}
-
 // 导航到指定路径
 const navigateTo = (path: string) => {
   router.push(path)
-  isMobileMenuOpen.value = false
 }
 
 // 退出登录
@@ -99,37 +92,30 @@ const goToUserDashboard = () => {
 
 <template>
   <div id="admin-layout" class="admin-layout min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- 移动端遮罩层 -->
-    <div 
-      v-if="isMobileMenuOpen"
-      class="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-      @click="toggleMobileMenu"
-    />
-
     <!-- 侧边栏 -->
     <aside
       :class="[
         'fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 shadow-lg',
         isCollapsed ? 'w-16' : 'w-64',
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        '-translate-x-full lg:translate-x-0',
       ]"
     >
       <!-- 侧边栏头部 -->
-      <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+      <div
+        class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700"
+      >
         <div v-if="!isCollapsed" class="flex items-center space-x-3">
           <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <font-awesome-icon icon="shield-alt" class="text-white text-sm" />
           </div>
-          <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            管理后台
-          </span>
+          <span class="text-lg font-semibold text-gray-900 dark:text-gray-100"> 管理后台 </span>
         </div>
         <button
           @click="toggleSidebar"
           class="hidden lg:flex p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
-          <font-awesome-icon 
-            :icon="isCollapsed ? 'chevron-right' : 'chevron-left'" 
+          <font-awesome-icon
+            :icon="isCollapsed ? 'chevron-right' : 'chevron-left'"
             class="text-gray-500 dark:text-gray-400"
           />
         </button>
@@ -145,15 +131,12 @@ const goToUserDashboard = () => {
             'w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
             activeMenuItem === item.key
               ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
           ]"
         >
-          <font-awesome-icon 
-            :icon="item.icon" 
-            :class="[
-              'flex-shrink-0',
-              isCollapsed ? 'mx-auto' : 'mr-3'
-            ]"
+          <font-awesome-icon
+            :icon="item.icon"
+            :class="['flex-shrink-0', isCollapsed ? 'mx-auto' : 'mr-3']"
           />
           <span v-if="!isCollapsed">{{ item.title }}</span>
         </button>
@@ -197,12 +180,7 @@ const goToUserDashboard = () => {
     </aside>
 
     <!-- 主内容区域 -->
-    <div
-      :class="[
-        'main-content',
-        isCollapsed ? 'collapsed' : 'expanded'
-      ]"
-    >
+    <div :class="['main-content', isCollapsed ? 'collapsed' : 'expanded']">
       <!-- 顶部导航栏 -->
       <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
         <div class="flex items-center justify-between h-full px-4">
@@ -217,7 +195,7 @@ const goToUserDashboard = () => {
           <!-- 页面标题 -->
           <div class="flex-1 lg:flex-none">
             <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              {{ menuItems.find(item => item.key === activeMenuItem)?.title || '管理后台' }}
+              {{ menuItems.find((item) => item.key === activeMenuItem)?.title || '管理后台' }}
             </h1>
           </div>
 
@@ -229,8 +207,8 @@ const goToUserDashboard = () => {
               class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="切换主题"
             >
-              <font-awesome-icon 
-                :icon="themeStore.isDark ? 'sun' : 'moon'" 
+              <font-awesome-icon
+                :icon="themeStore.isDark ? 'sun' : 'moon'"
                 class="text-gray-500 dark:text-gray-400"
               />
             </button>
@@ -244,9 +222,7 @@ const goToUserDashboard = () => {
                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {{ authStore.user?.email }}
                 </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">
-                  管理员
-                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">管理员</div>
               </div>
             </div>
           </div>
@@ -320,22 +296,5 @@ nav::-webkit-scrollbar-thumb {
 
 nav::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.5);
-}
-
-/* 响应式样式 */
-@media (min-width: 1024px) {
-  .main-content.collapsed {
-    margin-left: 4rem;
-  }
-
-  .main-content.expanded {
-    margin-left: 16rem;
-  }
-}
-
-@media (max-width: 1023px) {
-  .main-content {
-    margin-left: 0;
-  }
 }
 </style>
