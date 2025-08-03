@@ -76,13 +76,6 @@ const toggleMobileMenu = () => {
         <!-- Navigation -->
         <nav class="hidden md:flex items-center space-x-6">
           <router-link 
-            v-if="isLoggedIn" 
-            to="/dashboard" 
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-          >
-            邮箱管理
-          </router-link>
-          <router-link 
             v-if="!isLoggedIn" 
             to="/features" 
             class="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"

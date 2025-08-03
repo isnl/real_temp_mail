@@ -11,6 +11,7 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core'
@@ -56,7 +57,8 @@ import {
   faChevronRight,
   faArrowLeft,
   faDownload,
-  faShare
+  faShare,
+  faEdit
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -104,7 +106,8 @@ library.add(
   faChevronRight,
   faArrowLeft,
   faDownload,
-  faShare
+  faShare,
+  faEdit
 )
 
 const app = createApp(App)
@@ -115,7 +118,9 @@ pinia.use(piniaPluginPersistedstate)
 
 app.use(pinia)
 app.use(router)
-app.use(ElementPlus)
+app.use(ElementPlus, {
+  locale: zhCn,
+})
 
 // 注册Element Plus图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

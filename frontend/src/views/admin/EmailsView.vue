@@ -4,13 +4,10 @@ import EmailAudit from '@/components/admin/EmailAudit.vue'
 
 <template>
   <div class="space-y-6">
-    <!-- 页面标题 -->
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        邮件审查
-      </h2>
-      <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        查看和管理系统中的所有邮件
+    <!-- 页面描述 -->
+    <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
+      <p class="text-sm text-orange-700 dark:text-orange-400">
+        查看和管理系统中的所有邮件，支持搜索、导出和批量操作
       </p>
     </div>
 

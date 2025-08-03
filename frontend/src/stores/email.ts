@@ -129,6 +129,6 @@ export const useEmailStore = defineStore('email', {
   persist: {
     key: 'email-store',
     storage: sessionStorage,
-    paths: ['domains'] // 只持久化域名数据，其他数据每次重新获取
+    pick: ['domains'] // 只持久化域名数据，其他数据每次重新获取
   }
 })

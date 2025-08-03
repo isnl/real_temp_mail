@@ -1,9 +1,9 @@
 @import './base.css';
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  /* 移除最大宽度限制，让后台管理系统可以使用全屏宽度 */
+  width: 100%;
+  min-height: 100vh;
   font-weight: normal;
 }
 

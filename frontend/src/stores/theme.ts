@@ -123,6 +123,6 @@ export const useThemeStore = defineStore('theme', {
   persist: {
     key: 'theme-store',
     storage: localStorage,
-    paths: ['theme']
+    pick: ['theme']
   }
 })

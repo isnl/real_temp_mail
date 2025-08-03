@@ -136,12 +136,9 @@ onMounted(() => {
   <div class="space-y-6">
     <!-- 操作栏 -->
     <div class="flex justify-between items-center">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          域名管理
-        </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          管理系统支持的邮箱域名
+      <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 flex-1 mr-4">
+        <p class="text-sm text-blue-700 dark:text-blue-400">
+          管理系统支持的邮箱域名，用户可以选择这些域名创建临时邮箱
         </p>
       </div>
       <div class="flex space-x-2">

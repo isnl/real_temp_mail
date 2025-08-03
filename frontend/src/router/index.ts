@@ -57,11 +57,6 @@ const router = createRouter({
           path: 'privacy',
           name: 'privacy',
           component: () => import('@/views/PrivacyView.vue'),
-        },
-        {
-          path: 'layout-test',
-          name: 'layout-test',
-          component: () => import('@/views/LayoutTestView.vue'),
         }
       ]
     },

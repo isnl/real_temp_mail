@@ -4,13 +4,10 @@ import LogAudit from '@/components/admin/LogAudit.vue'
 
 <template>
   <div class="space-y-6">
-    <!-- 页面标题 -->
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        日志审计
-      </h2>
-      <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        查看系统操作日志和审计记录
+    <!-- 页面描述 -->
+    <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+      <p class="text-sm text-red-700 dark:text-red-400">
+        查看系统操作日志和审计记录，监控用户行为和系统安全
       </p>
     </div>
 

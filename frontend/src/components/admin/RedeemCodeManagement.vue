@@ -186,11 +186,8 @@ onMounted(() => {
   <div class="space-y-6">
     <!-- 操作栏 -->
     <div class="flex justify-between items-center">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          兑换码管理
-        </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+      <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 flex-1 mr-4">
+        <p class="text-sm text-green-700 dark:text-green-400">
           管理系统兑换码，用户可通过兑换码获取配额
         </p>
       </div>

@@ -4,12 +4,9 @@ import UserManagement from '@/components/admin/UserManagement.vue'
 
 <template>
   <div class="space-y-6">
-    <!-- 页面标题 -->
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        用户管理
-      </h2>
-      <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+    <!-- 页面描述 -->
+    <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+      <p class="text-sm text-purple-700 dark:text-purple-400">
         管理系统用户账号、配额和权限
       </p>
     </div>
