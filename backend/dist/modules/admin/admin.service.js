@@ -11,24 +11,30 @@ export class AdminService {
     // ==================== 仪表板统计 ====================
     async getDashboardStats() {
         try {
+            console.log('开始获取仪表板统计数据...');
             // 用户统计
+            console.log('查询用户统计...');
             const userStats = await this.env.DB.prepare(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active,
           SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive,
           SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admins
         FROM users
       `).first();
+            console.log('用户统计结果:', userStats);
             // 临时邮箱统计
+            console.log('查询临时邮箱统计...');
             const tempEmailStats = await this.env.DB.prepare(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active,
           SUM(CASE WHEN active = 0 THEN 1 ELSE 0 END) as inactive
         FROM temp_emails
       `).first();
+            console.log('临时邮箱统计结果:', tempEmailStats);
             // 邮件统计
+            console.log('查询邮件统计...');
             const emailStats = await this.env.DB.prepare(`
         SELECT
           COUNT(*) as total,
@@ -37,15 +43,19 @@ export class AdminService {
           SUM(CASE WHEN DATE(received_at) >= DATE('now', '+8 hours', '-30 days') THEN 1 ELSE 0 END) as thisMonth
         FROM emails
       `).first();
+            console.log('邮件统计结果:', emailStats);
             // 域名统计
+            console.log('查询域名统计...');
             const domainStats = await this.env.DB.prepare(`
-        SELECT 
+        SELECT
           COUNT(*) as total,
           SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active,
           SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive
         FROM domains
       `).first();
+            console.log('域名统计结果:', domainStats);
             // 兑换码统计
+            console.log('查询兑换码统计...');
             const redeemCodeStats = await this.env.DB.prepare(`
         SELECT
           COUNT(*) as total,
@@ -54,7 +64,9 @@ export class AdminService {
           SUM(CASE WHEN used = 0 AND valid_until <= datetime('now', '+8 hours') THEN 1 ELSE 0 END) as expired
         FROM redeem_codes
       `).first();
+            console.log('兑换码统计结果:', redeemCodeStats);
             // 配额统计
+            console.log('查询配额统计...');
             const quotaStats = await this.env.DB.prepare(`
         SELECT
           SUM(CASE WHEN type = 'earn' THEN amount ELSE 0 END) as totalEarned,
@@ -63,7 +75,9 @@ export class AdminService {
           SUM(CASE WHEN type = 'consume' AND DATE(created_at) = DATE('now', '+8 hours') THEN amount ELSE 0 END) as todayConsumed
         FROM quota_logs
       `).first();
+            console.log('配额统计结果:', quotaStats);
             // 签到统计
+            console.log('查询签到统计...');
             const checkinStats = await this.env.DB.prepare(`
         SELECT
           COUNT(*) as totalCheckins,
@@ -72,6 +86,7 @@ export class AdminService {
           SUM(CASE WHEN DATE(created_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 ELSE 0 END) as weekCheckins
         FROM user_checkins
       `).first();
+            console.log('签到统计结果:', checkinStats);
             // 系统健康状态
             const systemHealth = {
                 database: {
@@ -99,8 +114,8 @@ export class AdminService {
         SELECT
           COUNT(CASE WHEN DATE(created_at) = DATE('now', '+8 hours') THEN 1 END) as todayRegistrations,
           COUNT(CASE WHEN DATE(created_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 END) as weekRegistrations,
-          COUNT(CASE WHEN DATE(last_login_at) = DATE('now', '+8 hours') THEN 1 END) as todayActiveUsers,
-          COUNT(CASE WHEN DATE(last_login_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 END) as weekActiveUsers
+          COUNT(CASE WHEN DATE(updated_at) = DATE('now', '+8 hours') THEN 1 END) as todayActiveUsers,
+          COUNT(CASE WHEN DATE(updated_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 END) as weekActiveUsers
         FROM users
       `).first();
             // 用户配额统计
