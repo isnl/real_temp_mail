@@ -19,6 +19,8 @@ const emailStore = useEmailStore()
 
 const selectedEmail = ref<Email | null>(null)
 const showDetailDialog = ref(false)
+const selectedEmails = ref<number[]>([])
+const selectAll = ref(false)
 
 const sortedEmails = computed(() => {
   return [...props.emails].sort((a, b) => 
@@ -60,6 +62,98 @@ const copyToClipboard = async (text: string) => {
   } catch (error) {
     console.error('Copy failed:', error)
     ElMessage.error('复制失败')
+  }
+}
+
+// 导出邮件功能
+const exportEmails = () => {
+  if (props.emails.length === 0) {
+    ElMessage.warning('没有邮件可以导出')
+    return
+  }
+
+  try {
+    const emailData = props.emails.map(email => ({
+      发件人: email.sender,
+      主题: email.subject || '无主题',
+      内容: email.content || '无内容',
+      验证码: email.verification_code || '无',
+      接收时间: new Date(email.received_at).toLocaleString('zh-CN'),
+      是否已读: email.is_read ? '是' : '否'
+    }))
+
+    const csvContent = [
+      Object.keys(emailData[0]).join(','),
+      ...emailData.map(row => Object.values(row).map(value => `"${value}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `emails_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    ElMessage.success('邮件导出成功')
+  } catch (error) {
+    console.error('Export failed:', error)
+    ElMessage.error('导出失败')
+  }
+}
+
+// 批量操作功能
+const handleSelectAll = () => {
+  if (selectAll.value) {
+    selectedEmails.value = props.emails.map(email => email.id)
+  } else {
+    selectedEmails.value = []
+  }
+}
+
+const handleSelectEmail = (emailId: number, checked: boolean) => {
+  if (checked) {
+    selectedEmails.value.push(emailId)
+  } else {
+    selectedEmails.value = selectedEmails.value.filter(id => id !== emailId)
+  }
+
+  // 更新全选状态
+  selectAll.value = selectedEmails.value.length === props.emails.length
+}
+
+const handleBatchDelete = async () => {
+  if (selectedEmails.value.length === 0) {
+    ElMessage.warning('请先选择要删除的邮件')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedEmails.value.length} 封邮件吗？删除后无法恢复。`,
+      '批量删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    // 逐个删除邮件
+    for (const emailId of selectedEmails.value) {
+      await emailStore.deleteEmail(emailId)
+    }
+
+    selectedEmails.value = []
+    selectAll.value = false
+    ElMessage.success('批量删除成功')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Batch delete error:', error)
+      ElMessage.error('批量删除失败')
+    }
   }
 }
 
@@ -121,28 +215,71 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 </script>
 
 <template>
-  <div class="h-96 overflow-y-auto">
-    <!-- Loading State -->
-    <div v-if="loading" class="p-6">
-      <el-skeleton :rows="4" animated />
+  <div class="flex flex-col h-96">
+    <!-- Toolbar -->
+    <div v-if="emails.length > 0" class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+      <div class="flex items-center space-x-4">
+        <el-checkbox
+          v-model="selectAll"
+          @change="handleSelectAll"
+          :indeterminate="selectedEmails.length > 0 && selectedEmails.length < emails.length"
+        >
+          全选
+        </el-checkbox>
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+          <span v-if="selectedEmails.length > 0">
+            已选择 {{ selectedEmails.length }} 封邮件
+          </span>
+          <span v-else>
+            共 {{ emails.length }} 封邮件
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <el-button
+          v-if="selectedEmails.length > 0"
+          size="small"
+          type="danger"
+          @click="handleBatchDelete"
+          :disabled="loading"
+        >
+          <font-awesome-icon icon="trash" class="mr-1" />
+          批量删除
+        </el-button>
+        <el-button
+          size="small"
+          @click="exportEmails"
+          :disabled="loading"
+        >
+          <font-awesome-icon icon="download" class="mr-1" />
+          导出邮件
+        </el-button>
+      </div>
     </div>
 
-    <!-- Empty State -->
-    <div v-else-if="emails.length === 0" class="p-12 text-center">
-      <font-awesome-icon 
-        :icon="['fas', 'inbox']" 
-        class="text-6xl text-gray-300 dark:text-gray-600 mb-4"
-      />
-      <p class="text-gray-500 dark:text-gray-400 mb-2">
-        暂无邮件
-      </p>
-      <p class="text-sm text-gray-400 dark:text-gray-500">
-        邮件将会自动显示在这里
-      </p>
-    </div>
+    <!-- Content Area -->
+    <div class="flex-1 overflow-y-auto">
+      <!-- Loading State -->
+      <div v-if="loading" class="p-6">
+        <el-skeleton :rows="4" animated />
+      </div>
 
-    <!-- Email List -->
-    <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+      <!-- Empty State -->
+      <div v-else-if="emails.length === 0" class="p-12 text-center">
+        <font-awesome-icon
+          :icon="['fas', 'inbox']"
+          class="text-6xl text-gray-300 dark:text-gray-600 mb-4"
+        />
+        <p class="text-gray-500 dark:text-gray-400 mb-2">
+          暂无邮件
+        </p>
+        <p class="text-sm text-gray-400 dark:text-gray-500">
+          邮件将会自动显示在这里
+        </p>
+      </div>
+
+      <!-- Email List -->
+      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
       <div
         v-for="email in sortedEmails"
         :key="email.id"
@@ -150,10 +287,19 @@ const getEmailTypeIcon = (subject: string, content: string) => {
         @click="handleEmailClick(email)"
       >
         <div class="flex items-start space-x-3">
+          <!-- Checkbox -->
+          <div class="flex-shrink-0 mt-1">
+            <el-checkbox
+              :model-value="selectedEmails.includes(email.id)"
+              @change="(checked: boolean) => handleSelectEmail(email.id, checked)"
+              @click.stop
+            />
+          </div>
+
           <!-- Email Type Icon -->
           <div class="flex-shrink-0 mt-1">
             <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-              <font-awesome-icon 
+              <font-awesome-icon
                 :icon="['fas', getEmailTypeIcon(email.subject, email.content).icon]"
                 :class="getEmailTypeIcon(email.subject, email.content).color"
                 class="text-sm"
@@ -268,6 +414,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
             <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
             <span>已读</span>
           </span>
+        </div>
         </div>
       </div>
     </div>

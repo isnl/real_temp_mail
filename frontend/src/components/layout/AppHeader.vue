@@ -41,7 +41,7 @@ const goToProfile = () => {
 }
 
 const goToAdmin = () => {
-  router.push('/admin')
+  router.push('/admin/dashboard')
 }
 
 const handleCommand = (command: string) => {

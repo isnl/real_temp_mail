@@ -34,6 +34,24 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
+// 转发邮件功能
+const forwardEmail = () => {
+  if (!props.email) return
+
+  const subject = `转发: ${props.email.subject || '无主题'}`
+  const body = `
+---------- 转发邮件 ----------
+发件人: ${props.email.sender}
+主题: ${props.email.subject || '无主题'}
+时间: ${formatDate(props.email.received_at)}
+
+${props.email.content || '无内容'}
+`
+
+  const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.open(mailtoLink)
+}
+
 const handleClose = () => {
   visible.value = false
 }
@@ -162,8 +180,12 @@ const handleClose = () => {
     </div>
 
     <template #footer>
-      <div class="flex justify-end">
-        <el-button @click="handleClose">
+      <div class="flex justify-between">
+        <el-button @click="forwardEmail">
+          <font-awesome-icon icon="share" class="mr-1" />
+          转发邮件
+        </el-button>
+        <el-button @click="visible = false">
           关闭
         </el-button>
       </div>

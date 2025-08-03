@@ -24,6 +24,7 @@
     "@unocss/preset-uno": "^66.4.0",
     "@vueuse/core": "^13.6.0",
     "element-plus": "^2.10.5",
+    "normalize.css": "^8.0.1",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.4.1",
     "unocss": "^66.4.0",

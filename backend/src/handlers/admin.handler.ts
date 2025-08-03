@@ -30,11 +30,18 @@ export class AdminHandler {
   }
 
   private async validateAdminAuth(request: Request): Promise<any> {
-    const user = await this.authMiddleware.validateToken(request)
-    if (!user || user.role !== 'admin') {
-      throw new AuthorizationError('需要管理员权限')
+    try {
+      const { user } = await this.authMiddleware.authenticate(request)
+      if (!user || user.role !== 'admin') {
+        throw new AuthorizationError('需要管理员权限')
+      }
+      return user
+    } catch (error) {
+      if (error instanceof Response) {
+        throw new AuthenticationError('认证失败')
+      }
+      throw error
     }
-    return user
   }
 
   private createResponse<T>(data: T, message?: string): Response {

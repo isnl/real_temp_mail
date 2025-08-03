@@ -1,3 +1,4 @@
+import 'normalize.css'
 import './assets/main.css'
 import 'uno.css'
 
@@ -47,7 +48,15 @@ import {
   faInbox,
   faEnvelopeOpen,
   faKey,
-  faChevronDown
+  faChevronDown,
+  faUsers,
+  faFileAlt,
+  faTicketAlt,
+  faChevronLeft,
+  faChevronRight,
+  faArrowLeft,
+  faDownload,
+  faShare
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -87,7 +96,15 @@ library.add(
   faInbox,
   faEnvelopeOpen,
   faKey,
-  faChevronDown
+  faChevronDown,
+  faUsers,
+  faFileAlt,
+  faTicketAlt,
+  faChevronLeft,
+  faChevronRight,
+  faArrowLeft,
+  faDownload,
+  faShare
 )
 
 const app = createApp(App)

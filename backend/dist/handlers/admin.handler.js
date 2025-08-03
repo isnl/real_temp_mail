@@ -1,4 +1,4 @@
-import { ValidationError, AuthorizationError, NotFoundError } from '@/types';
+import { ValidationError, AuthenticationError, AuthorizationError, NotFoundError } from '@/types';
 import { AdminService } from '@/modules/admin/admin.service';
 import { createAuthMiddleware } from '@/middleware/auth.middleware';
 export class AdminHandler {
@@ -11,11 +11,19 @@ export class AdminHandler {
         this.authMiddleware = createAuthMiddleware(env);
     }
     async validateAdminAuth(request) {
-        const user = await this.authMiddleware.validateToken(request);
-        if (!user || user.role !== 'admin') {
-            throw new AuthorizationError('需要管理员权限');
+        try {
+            const { user } = await this.authMiddleware.authenticate(request);
+            if (!user || user.role !== 'admin') {
+                throw new AuthorizationError('需要管理员权限');
+            }
+            return user;
         }
-        return user;
+        catch (error) {
+            if (error instanceof Response) {
+                throw new AuthenticationError('认证失败');
+            }
+            throw error;
+        }
     }
     createResponse(data, message) {
         const response = {

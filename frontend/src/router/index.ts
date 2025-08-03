@@ -35,9 +35,44 @@ const router = createRouter({
     },
     {
       path: '/admin',
-      name: 'admin',
-      component: () => import('@/views/admin/AdminView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true }
+      component: () => import('@/components/layout/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/dashboard'
+        },
+        {
+          path: 'dashboard',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/DashboardView.vue')
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/UsersView.vue')
+        },
+        {
+          path: 'domains',
+          name: 'admin-domains',
+          component: () => import('@/views/admin/DomainsView.vue')
+        },
+        {
+          path: 'emails',
+          name: 'admin-emails',
+          component: () => import('@/views/admin/EmailsView.vue')
+        },
+        {
+          path: 'logs',
+          name: 'admin-logs',
+          component: () => import('@/views/admin/LogsView.vue')
+        },
+        {
+          path: 'redeem-codes',
+          name: 'admin-redeem-codes',
+          component: () => import('@/views/admin/RedeemCodesView.vue')
+        }
+      ]
     },
     {
       path: '/features',

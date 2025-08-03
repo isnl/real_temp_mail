@@ -3,6 +3,21 @@ import { AuthHandler } from '@/handlers/auth.handler'
 import { EmailHandler } from '@/handlers/email.handler'
 import { AdminHandler } from '@/handlers/admin.handler'
 
+// 添加CORS头的工具函数
+function addCorsHeaders(response: Response): Response {
+  const headers = new Headers(response.headers)
+  headers.set('Access-Control-Allow-Origin', '*')
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  headers.set('Access-Control-Max-Age', '86400')
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  })
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url)
@@ -29,18 +44,19 @@ export default {
       const adminHandler = new AdminHandler(env)
 
       // 路由匹配
+      let response: Response
       if (pathname.startsWith('/api/auth/')) {
-        return await handleAuthRoutes(pathname, method, request, authHandler)
+        response = await handleAuthRoutes(pathname, method, request, authHandler)
       } else if (pathname.startsWith('/api/email/')) {
-        return await handleEmailRoutes(pathname, method, request, emailHandler)
+        response = await handleEmailRoutes(pathname, method, request, emailHandler)
       } else if (pathname.startsWith('/api/admin/')) {
-        return await handleAdminRoutes(pathname, method, request, adminHandler)
+        response = await handleAdminRoutes(pathname, method, request, adminHandler)
       } else if (pathname === '/api/webhook/email') {
         // Email Routing webhook
-        return await emailHandler.handleIncomingEmail(request)
+        response = await emailHandler.handleIncomingEmail(request)
       } else if (pathname === '/api/health') {
-        return new Response(JSON.stringify({ 
-          success: true, 
+        response = new Response(JSON.stringify({
+          success: true,
           message: 'Service is healthy',
           timestamp: new Date().toISOString()
         }), {
@@ -48,7 +64,7 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         })
       } else {
-        return new Response(JSON.stringify({
+        response = new Response(JSON.stringify({
           success: false,
           error: 'Not Found'
         }), {
@@ -56,15 +72,18 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         })
       }
+
+      return addCorsHeaders(response)
     } catch (error) {
       console.error('Unhandled error:', error)
-      return new Response(JSON.stringify({
+      const errorResponse = new Response(JSON.stringify({
         success: false,
         error: 'Internal Server Error'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       })
+      return addCorsHeaders(errorResponse)
     }
   }
 }
