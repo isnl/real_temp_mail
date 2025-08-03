@@ -489,4 +489,27 @@ export class AdminService {
       DELETE FROM redeem_codes WHERE code = ?
     `).bind(code).run();
     }
+    // ==================== 系统设置管理 ====================
+    async getSystemSettings() {
+        const settings = await this.env.DB.prepare(`
+      SELECT * FROM system_settings ORDER BY setting_key
+    `).all();
+        return settings.results;
+    }
+    async getSystemSetting(key) {
+        return await this.env.DB.prepare(`
+      SELECT * FROM system_settings WHERE setting_key = ?
+    `).bind(key).first();
+    }
+    async updateSystemSetting(key, value) {
+        const setting = await this.getSystemSetting(key);
+        if (!setting) {
+            throw new NotFoundError('系统设置不存在');
+        }
+        await this.env.DB.prepare(`
+      UPDATE system_settings
+      SET setting_value = ?, updated_at = datetime('now', '+8 hours')
+      WHERE setting_key = ?
+    `).bind(value, key).run();
+    }
 }

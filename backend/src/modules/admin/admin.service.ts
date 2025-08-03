@@ -14,7 +14,8 @@ import type {
   AdminEmailListParams,
   AdminLogListParams,
   AdminRedeemCodeCreateData,
-  AdminStatsData
+  AdminStatsData,
+  SystemSetting
 } from '@/types'
 
 import {
@@ -629,5 +630,34 @@ export class AdminService {
     await this.env.DB.prepare(`
       DELETE FROM redeem_codes WHERE code = ?
     `).bind(code).run()
+  }
+
+  // ==================== 系统设置管理 ====================
+
+  async getSystemSettings(): Promise<SystemSetting[]> {
+    const settings = await this.env.DB.prepare(`
+      SELECT * FROM system_settings ORDER BY setting_key
+    `).all()
+
+    return settings.results as unknown as SystemSetting[]
+  }
+
+  async getSystemSetting(key: string): Promise<SystemSetting | null> {
+    return await this.env.DB.prepare(`
+      SELECT * FROM system_settings WHERE setting_key = ?
+    `).bind(key).first<SystemSetting>()
+  }
+
+  async updateSystemSetting(key: string, value: string): Promise<void> {
+    const setting = await this.getSystemSetting(key)
+    if (!setting) {
+      throw new NotFoundError('系统设置不存在')
+    }
+
+    await this.env.DB.prepare(`
+      UPDATE system_settings
+      SET setting_value = ?, updated_at = datetime('now', '+8 hours')
+      WHERE setting_key = ?
+    `).bind(value, key).run()
   }
 }

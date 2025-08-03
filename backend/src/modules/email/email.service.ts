@@ -59,7 +59,17 @@ export class EmailService {
     try {
       const tempEmail = await this.dbService.createTempEmail(userId, email, request.domainId)
 
-      // 6. 记录日志
+      // 6. 创建配额消费记录
+      await this.dbService.createQuotaLog({
+        userId,
+        type: 'consume',
+        amount: 1,
+        source: 'create_email',
+        description: `创建临时邮箱: ${email}`,
+        relatedId: tempEmail.id
+      })
+
+      // 7. 记录日志
       await this.dbService.createLog({
         userId,
         action: 'CREATE_EMAIL',
@@ -158,7 +168,16 @@ export class EmailService {
     const newQuota = user.quota + redeemCode.quota
     await this.dbService.updateUserQuota(userId, newQuota)
 
-    // 4. 记录日志
+    // 4. 创建配额获得记录
+    await this.dbService.createQuotaLog({
+      userId,
+      type: 'earn',
+      amount: redeemCode.quota,
+      source: 'redeem_code',
+      description: `兑换码奖励: ${request.code}`
+    })
+
+    // 5. 记录日志
     await this.dbService.createLog({
       userId,
       action: 'REDEEM_CODE',

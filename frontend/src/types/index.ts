@@ -41,6 +41,62 @@ export interface Domain {
   created_at: string
 }
 
+// 签到相关类型
+export interface CheckinRequest {
+  turnstileToken: string
+}
+
+export interface CheckinResponse {
+  success: boolean
+  quota_reward: number
+  total_quota: number
+  message: string
+}
+
+export interface CheckinStatus {
+  hasCheckedIn: boolean
+  checkinRecord?: {
+    id: number
+    user_id: number
+    checkin_date: string
+    quota_reward: number
+    created_at: string
+  }
+  nextCheckinTime?: string
+}
+
+export interface CheckinHistory {
+  id: number
+  user_id: number
+  checkin_date: string
+  quota_reward: number
+  created_at: string
+}
+
+export interface CheckinStats {
+  totalCheckins: number
+  currentStreak: number
+  longestStreak: number
+  thisMonthCheckins: number
+}
+
+// 配额记录类型
+export interface QuotaLog {
+  id: number
+  user_id: number
+  type: 'earn' | 'consume'
+  amount: number
+  source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email'
+  description: string | null
+  related_id: number | null
+  created_at: string
+}
+
+export interface QuotaLogsResponse {
+  logs: QuotaLog[]
+  total: number
+}
+
 // 兑换码类型
 export interface RedeemCode {
   code: string

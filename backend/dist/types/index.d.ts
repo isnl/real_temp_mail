@@ -41,6 +41,40 @@ export interface Email {
     is_read: boolean;
     received_at: string;
 }
+export interface SystemSetting {
+    id: number;
+    setting_key: string;
+    setting_value: string;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
+}
+export interface UserCheckin {
+    id: number;
+    user_id: number;
+    checkin_date: string;
+    quota_reward: number;
+    created_at: string;
+}
+export interface QuotaLog {
+    id: number;
+    user_id: number;
+    type: 'earn' | 'consume';
+    amount: number;
+    source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email';
+    description: string | null;
+    related_id: number | null;
+    created_at: string;
+}
+export interface CheckinRequest {
+    turnstileToken: string;
+}
+export interface CheckinResponse {
+    success: boolean;
+    quota_reward: number;
+    total_quota: number;
+    message: string;
+}
 export interface Domain {
     id: number;
     domain: string;
@@ -75,6 +109,9 @@ export interface RefreshToken {
     expires_at: string;
     created_at: string;
     is_revoked: boolean;
+}
+export interface AuthenticatedRequest extends Request {
+    user?: JWTPayload;
 }
 export interface ApiResponse<T = any> {
     success: boolean;

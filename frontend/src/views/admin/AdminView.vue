@@ -6,6 +6,7 @@ import DomainManagement from '@/components/admin/DomainManagement.vue'
 import EmailAudit from '@/components/admin/EmailAudit.vue'
 import LogAudit from '@/components/admin/LogAudit.vue'
 import RedeemCodeManagement from '@/components/admin/RedeemCodeManagement.vue'
+import SystemSettings from '@/components/admin/SystemSettings.vue'
 
 const activeTab = ref('dashboard')
 </script>
@@ -82,6 +83,16 @@ const activeTab = ref('dashboard')
           </span>
         </template>
         <RedeemCodeManagement />
+      </el-tab-pane>
+
+      <el-tab-pane name="settings">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon icon="cog" class="mr-2" />
+            系统设置
+          </span>
+        </template>
+        <SystemSettings />
       </el-tab-pane>
     </el-tabs>
   </div>

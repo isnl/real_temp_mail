@@ -1,4 +1,4 @@
-import type { Env, Domain, RedeemCode, PaginatedResponse, AdminUserListParams, AdminUserUpdateData, AdminDomainCreateData, AdminEmailListParams, AdminLogListParams, AdminRedeemCodeCreateData } from '@/types';
+import type { Env, Domain, RedeemCode, PaginatedResponse, AdminUserListParams, AdminUserUpdateData, AdminDomainCreateData, AdminEmailListParams, AdminLogListParams, AdminRedeemCodeCreateData, SystemSetting } from '@/types';
 import type { AdminDashboardStats, AdminUserDetails, AdminEmailDetails, AdminLogDetails, AdminRedeemCodeDetails, BatchRedeemCodeCreate } from './types';
 export declare class AdminService {
     private env;
@@ -21,5 +21,8 @@ export declare class AdminService {
     createRedeemCode(data: AdminRedeemCodeCreateData): Promise<RedeemCode>;
     createBatchRedeemCodes(data: BatchRedeemCodeCreate): Promise<RedeemCode[]>;
     deleteRedeemCode(code: string): Promise<void>;
+    getSystemSettings(): Promise<SystemSetting[]>;
+    getSystemSetting(key: string): Promise<SystemSetting | null>;
+    updateSystemSetting(key: string, value: string): Promise<void>;
 }
 //# sourceMappingURL=admin.service.d.ts.map

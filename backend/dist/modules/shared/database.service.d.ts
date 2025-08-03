@@ -1,4 +1,4 @@
-import type { User, TempEmail, Email, Domain, RedeemCode, RefreshToken, RateLimit, CreateUserData, PaginationParams, PaginatedResponse } from '@/types';
+import type { User, TempEmail, Email, Domain, RedeemCode, RefreshToken, RateLimit, CreateUserData, PaginationParams, PaginatedResponse, SystemSetting, UserCheckin, QuotaLog } from '@/types';
 export declare class DatabaseService {
     private db;
     constructor(db: D1Database);
@@ -36,6 +36,23 @@ export declare class DatabaseService {
         userAgent?: string;
         details?: string;
     }): Promise<void>;
+    getSystemSetting(key: string): Promise<SystemSetting | null>;
+    updateSystemSetting(key: string, value: string): Promise<void>;
+    getTodayCheckin(userId: number): Promise<UserCheckin | null>;
+    createCheckin(userId: number, quotaReward: number): Promise<UserCheckin>;
+    getUserCheckinHistory(userId: number, limit?: number): Promise<UserCheckin[]>;
+    createQuotaLog(data: {
+        userId: number;
+        type: 'earn' | 'consume';
+        amount: number;
+        source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email';
+        description?: string;
+        relatedId?: number;
+    }): Promise<QuotaLog>;
+    getUserQuotaLogs(userId: number, page?: number, limit?: number): Promise<{
+        logs: QuotaLog[];
+        total: number;
+    }>;
     getRateLimit(identifier: string, endpoint: string): Promise<RateLimit | null>;
     createOrUpdateRateLimit(identifier: string, endpoint: string): Promise<number>;
 }

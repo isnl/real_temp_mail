@@ -8,7 +8,8 @@ import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
 
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
-import type { CreateEmailRequest } from '@/types'
+import { checkinApi } from '@/api/checkin'
+import type { CreateEmailRequest, CheckinStatus } from '@/types'
 
 const emailStore = useEmailStore()
 const authStore = useAuthStore()
@@ -19,6 +20,10 @@ const loading = ref(false)
 const showRedeemDialog = ref(false)
 const isCreatingInline = ref(false)
 const selectedDomainId = ref(0)
+
+// 签到相关状态
+const checkinLoading = ref(false)
+const checkinStatus = ref<CheckinStatus | null>(null)
 
 const quotaInfo = computed(() => ({
   total: authStore.userQuota,
@@ -31,6 +36,7 @@ const currentEmails = computed(() => emailStore.currentEmails)
 
 onMounted(async () => {
   await loadData()
+  await loadCheckinStatus()
   // 设置默认选中的域名
   if (emailStore.availableDomains.length > 0) {
     selectedDomainId.value = emailStore.availableDomains[0].id
@@ -70,6 +76,49 @@ const handleRedeemSuccess = async () => {
   showRedeemDialog.value = false
   await authStore.refreshTokens() // 刷新用户信息以更新配额
   ElMessage.success('兑换码使用成功')
+}
+
+// 签到相关方法
+const loadCheckinStatus = async () => {
+  try {
+    const response = await checkinApi.getCheckinStatus()
+    if (response.success && response.data) {
+      checkinStatus.value = response.data
+    }
+  } catch (error) {
+    console.error('Load checkin status error:', error)
+  }
+}
+
+const handleCheckin = async () => {
+  if (checkinStatus.value?.hasCheckedIn) {
+    ElMessage.info('今日已签到，请明天再来')
+    return
+  }
+
+  checkinLoading.value = true
+  try {
+    const response = await checkinApi.checkin({
+      turnstileToken: 'dev-token' // 开发环境使用固定token
+    })
+
+    if (response.success && response.data) {
+      // 更新签到状态
+      await loadCheckinStatus()
+
+      // 更新用户配额
+      updateUserQuotaOptimistic(response.data.total_quota)
+
+      ElMessage.success(response.data.message)
+    } else {
+      ElMessage.error(response.error || '签到失败')
+    }
+  } catch (error: any) {
+    console.error('Checkin error:', error)
+    ElMessage.error(error.message || '签到失败')
+  } finally {
+    checkinLoading.value = false
+  }
 }
 
 const copyToClipboard = async (text: string) => {
@@ -205,11 +254,24 @@ const handleInlineCreateEmail = async (domainId?: number) => {
             <p class="text-sm text-gray-600 dark:text-gray-400">管理您的临时邮箱和接收的邮件</p>
           </div>
 
-          <!-- Action Button -->
-          <el-button @click="showRedeemDialog = true" type="primary" size="default">
-            <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
-            兑换配额
-          </el-button>
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-3">
+            <el-button
+              @click="handleCheckin"
+              type="success"
+              size="default"
+              :loading="checkinLoading"
+              :disabled="checkinStatus?.hasCheckedIn"
+            >
+              <font-awesome-icon :icon="['fas', 'calendar-check']" class="mr-2" />
+              {{ checkinStatus?.hasCheckedIn ? '已签到' : '每日签到' }}
+            </el-button>
+
+            <el-button @click="showRedeemDialog = true" type="primary" size="default">
+              <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
+              兑换配额
+            </el-button>
+          </div>
         </div>
 
         <!-- Quota Cards -->

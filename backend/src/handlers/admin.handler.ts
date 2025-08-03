@@ -507,4 +507,57 @@ export class AdminHandler {
       return this.createErrorResponse(error as Error)
     }
   }
+
+  // ==================== 系统设置管理 ====================
+
+  async getSystemSettings(request: Request): Promise<Response> {
+    try {
+      await this.validateAdminAuth(request)
+
+      const settings = await this.adminService.getSystemSettings()
+      return this.createResponse(settings)
+    } catch (error) {
+      console.error('获取系统设置失败:', error)
+      if (error instanceof AuthorizationError) {
+        return this.createErrorResponse(error, 403)
+      }
+      return this.createErrorResponse(error as Error)
+    }
+  }
+
+  async updateSystemSetting(request: Request): Promise<Response> {
+    try {
+      await this.validateAdminAuth(request)
+
+      const url = new URL(request.url)
+      const key = url.pathname.split('/').pop()
+
+      if (!key) {
+        throw new ValidationError('设置键无效')
+      }
+
+      const requestData = await request.json() as { value: string }
+
+      if (typeof requestData.value !== 'string') {
+        throw new ValidationError('设置值必须是字符串')
+      }
+
+      const { value } = requestData
+
+      await this.adminService.updateSystemSetting(key, value)
+      return this.createResponse(null, '系统设置更新成功')
+    } catch (error) {
+      console.error('更新系统设置失败:', error)
+      if (error instanceof AuthorizationError) {
+        return this.createErrorResponse(error, 403)
+      }
+      if (error instanceof NotFoundError) {
+        return this.createErrorResponse(error, 404)
+      }
+      if (error instanceof ValidationError) {
+        return this.createErrorResponse(error, 400)
+      }
+      return this.createErrorResponse(error as Error)
+    }
+  }
 }

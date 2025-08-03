@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEmailStore } from '@/stores/email'
 import { ElMessage } from 'element-plus'
+import { checkinApi, formatQuotaSource, formatQuotaType, getQuotaSourceIcon } from '@/api/checkin'
+import type { QuotaLog } from '@/types'
 
 const authStore = useAuthStore()
 const emailStore = useEmailStore()
@@ -16,18 +18,56 @@ const quotaInfo = computed(() => ({
 
 const loading = ref(false)
 
+// 配额记录相关状态
+const quotaLogs = ref<QuotaLog[]>([])
+const quotaLoading = ref(false)
+const quotaTotal = ref(0)
+const quotaPage = ref(1)
+
 onMounted(async () => {
   // 加载用户数据
   try {
     await emailStore.fetchTempEmails()
+    await loadQuotaLogs()
   } catch (error) {
     console.error('Load profile data error:', error)
   }
 })
+
+// 配额记录相关方法
+const loadQuotaLogs = async (reset = true) => {
+  if (reset) {
+    quotaPage.value = 1
+    quotaLogs.value = []
+  }
+
+  quotaLoading.value = true
+  try {
+    const response = await checkinApi.getQuotaLogs(quotaPage.value, 10)
+    if (response.success && response.data) {
+      if (reset) {
+        quotaLogs.value = response.data.logs
+      } else {
+        quotaLogs.value.push(...response.data.logs)
+      }
+      quotaTotal.value = response.data.total
+    }
+  } catch (error) {
+    console.error('Load quota logs error:', error)
+    ElMessage.error('加载配额记录失败')
+  } finally {
+    quotaLoading.value = false
+  }
+}
+
+const loadMoreQuotaLogs = async () => {
+  quotaPage.value++
+  await loadQuotaLogs(false)
+}
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-6 max-w-1500px px-4 mx-auto h-full overflow-y-auto">
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -170,6 +210,85 @@ onMounted(async () => {
               注册时间: {{ new Date(user?.created_at || '').toLocaleDateString('zh-CN') }}
             </span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quota Records -->
+    <div class="card-base p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          配额记录
+        </h3>
+        <el-button @click="loadQuotaLogs" size="small" :loading="quotaLoading">
+          <font-awesome-icon :icon="['fas', 'refresh']" class="mr-1" />
+          刷新
+        </el-button>
+      </div>
+
+      <div v-if="quotaLogs.length === 0 && !quotaLoading" class="text-center py-8">
+        <font-awesome-icon :icon="['fas', 'inbox']" class="text-4xl text-gray-400 mb-4" />
+        <p class="text-gray-500 dark:text-gray-400">暂无配额记录</p>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div
+          v-for="log in quotaLogs"
+          :key="log.id"
+          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+        >
+          <div class="flex items-center space-x-3">
+            <div
+              :class="[
+                'w-8 h-8 rounded-full flex items-center justify-center',
+                log.type === 'earn' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-orange-100 dark:bg-orange-900/30'
+              ]"
+            >
+              <font-awesome-icon
+                :icon="['fas', getQuotaSourceIcon(log.source)]"
+                :class="[
+                  'text-sm',
+                  log.type === 'earn' ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+                ]"
+              />
+            </div>
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">
+                {{ log.description || formatQuotaSource(log.source) }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ new Date(log.created_at).toLocaleString('zh-CN') }}
+              </p>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <p
+              :class="[
+                'font-semibold',
+                log.type === 'earn' ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
+              ]"
+            >
+              {{ log.type === 'earn' ? '+' : '-' }}{{ log.amount }}
+            </p>
+            <el-tag
+              :type="log.type === 'earn' ? 'success' : 'warning'"
+              size="small"
+            >
+              {{ formatQuotaType(log.type) }}
+            </el-tag>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="quotaTotal > quotaLogs.length" class="flex justify-center mt-4">
+          <el-button
+            @click="loadMoreQuotaLogs"
+            :loading="quotaLoading"
+            size="small"
+          >
+            加载更多
+          </el-button>
         </div>
       </div>
     </div>

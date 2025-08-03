@@ -24,5 +24,7 @@ export declare class AdminHandler {
     createRedeemCode(request: Request): Promise<Response>;
     createBatchRedeemCodes(request: Request): Promise<Response>;
     deleteRedeemCode(request: Request): Promise<Response>;
+    getSystemSettings(request: Request): Promise<Response>;
+    updateSystemSetting(request: Request): Promise<Response>;
 }
 //# sourceMappingURL=admin.handler.d.ts.map

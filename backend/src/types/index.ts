@@ -50,6 +50,50 @@ export interface Email {
   received_at: string
 }
 
+// 系统设置类型
+export interface SystemSetting {
+  id: number
+  setting_key: string
+  setting_value: string
+  description: string | null
+  created_at: string
+  updated_at: string
+}
+
+// 用户签到记录类型
+export interface UserCheckin {
+  id: number
+  user_id: number
+  checkin_date: string
+  quota_reward: number
+  created_at: string
+}
+
+// 配额记录类型
+export interface QuotaLog {
+  id: number
+  user_id: number
+  type: 'earn' | 'consume'
+  amount: number
+  source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email'
+  description: string | null
+  related_id: number | null
+  created_at: string
+}
+
+// 签到请求类型
+export interface CheckinRequest {
+  turnstileToken: string
+}
+
+// 签到响应类型
+export interface CheckinResponse {
+  success: boolean
+  quota_reward: number
+  total_quota: number
+  message: string
+}
+
 // 域名类型
 export interface Domain {
   id: number
@@ -91,6 +135,11 @@ export interface RefreshToken {
   expires_at: string
   created_at: string
   is_revoked: boolean
+}
+
+// 认证请求类型
+export interface AuthenticatedRequest extends Request {
+  user?: JWTPayload
 }
 
 // API请求/响应类型

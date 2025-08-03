@@ -2,6 +2,8 @@ import type { Env } from '@/types'
 import { AuthHandler } from '@/handlers/auth.handler'
 import { EmailHandler } from '@/handlers/email.handler'
 import { AdminHandler } from '@/handlers/admin.handler'
+import { CheckinHandler } from '@/handlers/checkin.handler'
+import { QuotaHandler } from '@/handlers/quota.handler'
 
 // 添加CORS头的工具函数
 function addCorsHeaders(response: Response): Response {
@@ -42,6 +44,8 @@ export default {
       const authHandler = new AuthHandler(env)
       const emailHandler = new EmailHandler(env)
       const adminHandler = new AdminHandler(env)
+      const checkinHandler = new CheckinHandler(env)
+      const quotaHandler = new QuotaHandler(env)
 
       // 路由匹配
       let response: Response
@@ -51,6 +55,10 @@ export default {
         response = await handleEmailRoutes(pathname, method, request, emailHandler)
       } else if (pathname.startsWith('/api/admin/')) {
         response = await handleAdminRoutes(pathname, method, request, adminHandler)
+      } else if (pathname.startsWith('/api/checkin/')) {
+        response = await handleCheckinRoutes(pathname, method, request, checkinHandler)
+      } else if (pathname.startsWith('/api/quota/')) {
+        response = await handleQuotaRoutes(pathname, method, request, quotaHandler)
       } else if (pathname === '/api/webhook/email') {
         // Email Routing webhook
         response = await emailHandler.handleIncomingEmail(request)
@@ -248,6 +256,62 @@ async function handleAdminRoutes(
     if (method === 'DELETE') return await handler.deleteRedeemCode(request)
   }
 
+  // 系统设置管理
+  if (pathname === '/api/admin/settings') {
+    if (method === 'GET') return await handler.getSystemSettings(request)
+  }
+
+  if (pathname.match(/^\/api\/admin\/settings\/[a-zA-Z_]+$/)) {
+    if (method === 'PUT') return await handler.updateSystemSetting(request)
+  }
+
+  return new Response(JSON.stringify({
+    success: false,
+    error: 'Method Not Allowed'
+  }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json' }
+  })
+}
+
+// 签到路由处理
+async function handleCheckinRoutes(pathname: string, method: string, request: Request, handler: CheckinHandler): Promise<Response> {
+  // 用户签到
+  if (pathname === '/api/checkin/checkin') {
+    if (method === 'POST') return await handler.checkin(request)
+  }
+
+  // 获取签到状态
+  if (pathname === '/api/checkin/status') {
+    if (method === 'GET') return await handler.getCheckinStatus(request)
+  }
+
+  // 获取签到历史
+  if (pathname === '/api/checkin/history') {
+    if (method === 'GET') return await handler.getCheckinHistory(request)
+  }
+
+  // 获取签到统计
+  if (pathname === '/api/checkin/stats') {
+    if (method === 'GET') return await handler.getCheckinStats(request)
+  }
+
+  return new Response(JSON.stringify({
+    success: false,
+    error: 'Method Not Allowed'
+  }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json' }
+  })
+}
+
+// 配额路由处理
+async function handleQuotaRoutes(pathname: string, method: string, request: Request, handler: QuotaHandler): Promise<Response> {
+  // 获取配额记录
+  if (pathname === '/api/quota/logs') {
+    if (method === 'GET') return await handler.getQuotaLogs(request)
+  }
+
   return new Response(JSON.stringify({
     success: false,
     error: 'Method Not Allowed'
@@ -261,7 +325,7 @@ async function handleAdminRoutes(
 export async function email(message: any, env: Env, ctx: ExecutionContext) {
   try {
     const emailHandler = new EmailHandler(env)
-    
+
     // 构造一个模拟的Request对象来处理邮件
     const url = new URL(`https://temp-email.workers.dev/api/webhook/email?to=${message.to}`)
     const request = new Request(url.toString(), {

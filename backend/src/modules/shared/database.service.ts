@@ -1,16 +1,19 @@
-import type { 
-  Env, 
-  User, 
-  TempEmail, 
-  Email, 
-  Domain, 
-  RedeemCode, 
+import type {
+  Env,
+  User,
+  TempEmail,
+  Email,
+  Domain,
+  RedeemCode,
   RefreshToken,
   OperationLog,
   RateLimit,
   CreateUserData,
   PaginationParams,
-  PaginatedResponse
+  PaginatedResponse,
+  SystemSetting,
+  UserCheckin,
+  QuotaLog
 } from '@/types'
 
 export class DatabaseService {
@@ -246,6 +249,112 @@ export class DatabaseService {
       logData.userAgent || null,
       logData.details || null
     ).run()
+  }
+
+  // ==================== 系统设置相关操作 ====================
+
+  async getSystemSetting(key: string): Promise<SystemSetting | null> {
+    return await this.db.prepare(`
+      SELECT * FROM system_settings WHERE setting_key = ?
+    `).bind(key).first<SystemSetting>()
+  }
+
+  async updateSystemSetting(key: string, value: string): Promise<void> {
+    await this.db.prepare(`
+      UPDATE system_settings
+      SET setting_value = ?, updated_at = datetime('now', '+8 hours')
+      WHERE setting_key = ?
+    `).bind(value, key).run()
+  }
+
+  // ==================== 签到相关操作 ====================
+
+  async getTodayCheckin(userId: number): Promise<UserCheckin | null> {
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD格式
+    return await this.db.prepare(`
+      SELECT * FROM user_checkins
+      WHERE user_id = ? AND checkin_date = ?
+    `).bind(userId, today).first<UserCheckin>()
+  }
+
+  async createCheckin(userId: number, quotaReward: number): Promise<UserCheckin> {
+    const today = new Date().toISOString().split('T')[0]
+
+    const result = await this.db.prepare(`
+      INSERT INTO user_checkins (user_id, checkin_date, quota_reward)
+      VALUES (?, ?, ?)
+      RETURNING *
+    `).bind(userId, today, quotaReward).first<UserCheckin>()
+
+    if (!result) {
+      throw new Error('Failed to create checkin record')
+    }
+
+    return result
+  }
+
+  async getUserCheckinHistory(userId: number, limit: number = 30): Promise<UserCheckin[]> {
+    return await this.db.prepare(`
+      SELECT * FROM user_checkins
+      WHERE user_id = ?
+      ORDER BY checkin_date DESC
+      LIMIT ?
+    `).bind(userId, limit).all<UserCheckin>().then(result => result.results || [])
+  }
+
+  // ==================== 配额记录相关操作 ====================
+
+  async createQuotaLog(data: {
+    userId: number
+    type: 'earn' | 'consume'
+    amount: number
+    source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email'
+    description?: string
+    relatedId?: number
+  }): Promise<QuotaLog> {
+    const result = await this.db.prepare(`
+      INSERT INTO quota_logs (user_id, type, amount, source, description, related_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `).bind(
+      data.userId,
+      data.type,
+      data.amount,
+      data.source,
+      data.description || null,
+      data.relatedId || null
+    ).first<QuotaLog>()
+
+    if (!result) {
+      throw new Error('Failed to create quota log')
+    }
+
+    return result
+  }
+
+  async getUserQuotaLogs(userId: number, page: number = 1, limit: number = 20): Promise<{
+    logs: QuotaLog[]
+    total: number
+  }> {
+    const offset = (page - 1) * limit
+
+    // 获取记录
+    const logs = await this.db.prepare(`
+      SELECT * FROM quota_logs
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).bind(userId, limit, offset).all<QuotaLog>().then(result => result.results || [])
+
+    // 获取总数
+    const countResult = await this.db.prepare(`
+      SELECT COUNT(*) as total FROM quota_logs WHERE user_id = ?
+    `).bind(userId).first<{ total: number }>()
+
+    return {
+      logs,
+      total: countResult?.total || 0
+    }
   }
 
   // 限流相关操作

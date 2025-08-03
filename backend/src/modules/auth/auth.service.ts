@@ -46,17 +46,26 @@ export class AuthService {
 
     const user = await this.dbService.createUser(userData)
 
-    // 5. 生成JWT token对
+    // 5. 创建注册配额记录
+    await this.dbService.createQuotaLog({
+      userId: user.id,
+      type: 'earn',
+      amount: 5,
+      source: 'register',
+      description: '注册赠送配额'
+    })
+
+    // 6. 生成JWT token对
     const tokens = await this.jwtService.generateTokenPair(user)
 
-    // 6. 记录日志
+    // 7. 记录日志
     await this.dbService.createLog({
       userId: user.id,
       action: 'REGISTER',
       details: `User registered: ${user.email}`
     })
 
-    // 7. 返回用户信息（不包含密码）
+    // 8. 返回用户信息（不包含密码）
     const { password_hash, ...userWithoutPassword } = user
     return {
       user: userWithoutPassword as User,

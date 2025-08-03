@@ -164,6 +164,77 @@ export class DatabaseService {
       VALUES (?, ?, ?, ?, ?)
     `).bind(logData.userId || null, logData.action, logData.ipAddress || null, logData.userAgent || null, logData.details || null).run();
     }
+    // ==================== 系统设置相关操作 ====================
+    async getSystemSetting(key) {
+        return await this.db.prepare(`
+      SELECT * FROM system_settings WHERE setting_key = ?
+    `).bind(key).first();
+    }
+    async updateSystemSetting(key, value) {
+        await this.db.prepare(`
+      UPDATE system_settings
+      SET setting_value = ?, updated_at = datetime('now', '+8 hours')
+      WHERE setting_key = ?
+    `).bind(value, key).run();
+    }
+    // ==================== 签到相关操作 ====================
+    async getTodayCheckin(userId) {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD格式
+        return await this.db.prepare(`
+      SELECT * FROM user_checkins
+      WHERE user_id = ? AND checkin_date = ?
+    `).bind(userId, today).first();
+    }
+    async createCheckin(userId, quotaReward) {
+        const today = new Date().toISOString().split('T')[0];
+        const result = await this.db.prepare(`
+      INSERT INTO user_checkins (user_id, checkin_date, quota_reward)
+      VALUES (?, ?, ?)
+      RETURNING *
+    `).bind(userId, today, quotaReward).first();
+        if (!result) {
+            throw new Error('Failed to create checkin record');
+        }
+        return result;
+    }
+    async getUserCheckinHistory(userId, limit = 30) {
+        return await this.db.prepare(`
+      SELECT * FROM user_checkins
+      WHERE user_id = ?
+      ORDER BY checkin_date DESC
+      LIMIT ?
+    `).bind(userId, limit).all().then(result => result.results || []);
+    }
+    // ==================== 配额记录相关操作 ====================
+    async createQuotaLog(data) {
+        const result = await this.db.prepare(`
+      INSERT INTO quota_logs (user_id, type, amount, source, description, related_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `).bind(data.userId, data.type, data.amount, data.source, data.description || null, data.relatedId || null).first();
+        if (!result) {
+            throw new Error('Failed to create quota log');
+        }
+        return result;
+    }
+    async getUserQuotaLogs(userId, page = 1, limit = 20) {
+        const offset = (page - 1) * limit;
+        // 获取记录
+        const logs = await this.db.prepare(`
+      SELECT * FROM quota_logs
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `).bind(userId, limit, offset).all().then(result => result.results || []);
+        // 获取总数
+        const countResult = await this.db.prepare(`
+      SELECT COUNT(*) as total FROM quota_logs WHERE user_id = ?
+    `).bind(userId).first();
+        return {
+            logs,
+            total: countResult?.total || 0
+        };
+    }
     // 限流相关操作
     async getRateLimit(identifier, endpoint) {
         return await this.db.prepare(`

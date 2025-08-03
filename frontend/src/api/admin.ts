@@ -260,3 +260,22 @@ export const formatFileSize = (bytes: number): string => {
 export const formatNumber = (num: number): string => {
   return num.toLocaleString()
 }
+
+// 系统设置相关类型
+export interface SystemSetting {
+  id: number
+  setting_key: string
+  setting_value: string
+  description: string | null
+  created_at: string
+  updated_at: string
+}
+
+// 系统设置API
+export const getSystemSettings = async (): Promise<ApiResponse<SystemSetting[]>> => {
+  return apiClient.get<SystemSetting[]>('/api/admin/settings')
+}
+
+export const updateSystemSetting = async (key: string, value: string): Promise<ApiResponse<void>> => {
+  return apiClient.put<void>(`/api/admin/settings/${key}`, { value })
+}
