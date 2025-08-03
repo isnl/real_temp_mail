@@ -128,7 +128,41 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     // 只需要刷新邮箱数据，配额已经通过乐观更新了
     await loadData()
 
-    ElMessage.success(`临时邮箱创建成功: ${response.data?.tempEmail?.email || '新邮箱'}`)
+    // 🎯 新增功能：自动选中新创建的邮箱并复制地址
+    if (response.data?.tempEmail) {
+      const newTempEmail = response.data.tempEmail
+
+      // 自动选中新创建的邮箱
+      emailStore.setSelectedTempEmail(newTempEmail)
+
+      // 自动复制邮箱地址到剪贴板
+      try {
+        await navigator.clipboard.writeText(newTempEmail.email)
+
+        // 显示成功通知（包含复制成功的信息）
+        ElMessage({
+          message: `临时邮箱创建成功！邮箱地址 ${newTempEmail.email} 已复制到剪贴板`,
+          type: 'success',
+          duration: 4000,
+          showClose: true
+        })
+      } catch (copyError) {
+        console.error('Copy failed:', copyError)
+        // 如果复制失败，只显示创建成功的消息
+        ElMessage.success(`临时邮箱创建成功: ${newTempEmail.email}`)
+      }
+
+      // 自动获取该邮箱的邮件列表
+      try {
+        await emailStore.fetchEmailsForTempEmail(newTempEmail.id)
+      } catch (fetchError) {
+        console.error('Failed to fetch emails for new temp email:', fetchError)
+        // 不影响主流程，只是获取邮件失败
+      }
+    } else {
+      // 兜底处理：如果没有返回邮箱信息
+      ElMessage.success('临时邮箱创建成功')
+    }
 
     // 成功后重置状态
     isCreatingInline.value = false

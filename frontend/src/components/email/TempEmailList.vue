@@ -91,10 +91,6 @@ const formatDate = (dateString: string) => {
         </p>
 
         <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-          <div class="flex items-center justify-center space-x-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <font-awesome-icon :icon="['fas', 'shield-alt']" class="text-green-500" />
-            <span>保护您的真实邮箱地址</span>
-          </div>
           <div class="flex items-center justify-center space-x-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <font-awesome-icon :icon="['fas', 'bolt']" class="text-blue-500" />
             <span>实时接收邮件通知</span>
