@@ -40,8 +40,8 @@ export const useEmailStore = defineStore('email', {
       this.isCreatingEmail = true
       try {
         const response = await emailApi.createTempEmail(request)
-        if (response.data) {
-          this.tempEmails.unshift(response.data)
+        if (response.data?.tempEmail) {
+          this.tempEmails.unshift(response.data.tempEmail)
         }
         return response
       } catch (error) {

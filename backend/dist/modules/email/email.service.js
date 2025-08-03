@@ -165,6 +165,10 @@ export class EmailService {
         }
         return result;
     }
+    // 获取用户信息
+    async getUserById(userId) {
+        return await this.dbService.getUserById(userId);
+    }
     // 获取用户配额信息
     async getQuotaInfo(userId) {
         const user = await this.dbService.getUserById(userId);

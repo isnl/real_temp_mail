@@ -5,6 +5,7 @@ import 'uno.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 
 // Element Plus
 import ElementPlus from 'element-plus'
@@ -32,6 +33,21 @@ pinia.use(piniaPluginPersistedstate)
 
 app.use(pinia)
 app.use(router)
+
+// 配置 Vue Query
+app.use(VueQueryPlugin, {
+  queryClientConfig: {
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5, // 5分钟
+        gcTime: 1000 * 60 * 10, // 10分钟 (新版本用 gcTime 替代 cacheTime)
+        refetchOnWindowFocus: false,
+        retry: 1
+      }
+    }
+  }
+})
+
 app.use(ElementPlus, {
   locale: zhCn,
 })

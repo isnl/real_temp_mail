@@ -16,6 +16,7 @@ export declare class EmailService {
     }>;
     handleIncomingEmail(rawEmail: string | ArrayBuffer, recipientEmail: string): Promise<void>;
     private generateEmailPrefix;
+    getUserById(userId: number): Promise<import("@/types").User | null>;
     getQuotaInfo(userId: number): Promise<{
         quota: number;
         used: number;

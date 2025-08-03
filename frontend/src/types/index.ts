@@ -126,6 +126,12 @@ export interface CreateEmailRequest {
   turnstileToken: string
 }
 
+// 邮件创建响应
+export interface CreateEmailResponse {
+  tempEmail: TempEmail
+  userQuota: number
+}
+
 // 兑换码使用请求
 export interface RedeemRequest {
   code: string

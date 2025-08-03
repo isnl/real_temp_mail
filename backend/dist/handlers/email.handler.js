@@ -81,7 +81,12 @@ export class EmailHandler {
                 return this.errorResponse('人机验证失败', 400);
             }
             const tempEmail = await this.emailService.createTempEmail(user.userId, data);
-            return this.successResponse(tempEmail, '临时邮箱创建成功');
+            // 获取用户最新配额信息
+            const updatedUser = await this.emailService.getUserById(user.userId);
+            return this.successResponse({
+                tempEmail,
+                userQuota: updatedUser?.quota || 0
+            }, '临时邮箱创建成功');
         }
         catch (error) {
             console.error('Create temp email error:', error);

@@ -108,7 +108,14 @@ export class EmailHandler {
       }
 
       const tempEmail = await this.emailService.createTempEmail(user.userId, data)
-      return this.successResponse(tempEmail, '临时邮箱创建成功')
+
+      // 获取用户最新配额信息
+      const updatedUser = await this.emailService.getUserById(user.userId)
+
+      return this.successResponse({
+        tempEmail,
+        userQuota: updatedUser?.quota || 0
+      }, '临时邮箱创建成功')
     } catch (error: any) {
       console.error('Create temp email error:', error)
       return this.errorResponse(error.message || '创建临时邮箱失败', error.statusCode || 500)

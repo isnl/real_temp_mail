@@ -1,9 +1,10 @@
 import { apiClient } from './request'
-import type { 
-  TempEmail, 
-  Email, 
-  Domain, 
+import type {
+  TempEmail,
+  Email,
+  Domain,
   CreateEmailRequest,
+  CreateEmailResponse,
   RedeemRequest,
   ApiResponse,
   PaginatedResponse,
@@ -17,8 +18,8 @@ export const emailApi = {
   },
 
   // 创建临时邮箱
-  async createTempEmail(data: CreateEmailRequest): Promise<ApiResponse<TempEmail>> {
-    return apiClient.post<TempEmail>('/api/email/create', data)
+  async createTempEmail(data: CreateEmailRequest): Promise<ApiResponse<CreateEmailResponse>> {
+    return apiClient.post<CreateEmailResponse>('/api/email/create', data)
   },
 
   // 删除临时邮箱

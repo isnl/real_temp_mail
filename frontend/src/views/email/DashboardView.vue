@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useEmailStore } from '@/stores/email'
 import { useAuthStore } from '@/stores/auth'
+import { useUserQueries } from '@/composables/useUserQueries'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
@@ -11,6 +12,7 @@ import type { CreateEmailRequest } from '@/types'
 
 const emailStore = useEmailStore()
 const authStore = useAuthStore()
+const { updateUserQuotaOptimistic } = useUserQueries()
 
 const loading = ref(false)
 
@@ -118,10 +120,18 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     const response = await emailStore.createTempEmail(request)
     console.log('Create email response:', response)
 
-    // 刷新数据和用户配额
-    await Promise.all([loadData(), authStore.refreshTokens()])
+    // 🔥 使用后端返回的最新配额信息更新前端
+    if (response.data?.userQuota !== undefined) {
+      updateUserQuotaOptimistic(response.data.userQuota)
+    }
 
-    ElMessage.success(`临时邮箱创建成功: ${response.data?.email || '新邮箱'}`)
+    // 只需要刷新邮箱数据，配额已经通过乐观更新了
+    await loadData()
+
+    ElMessage.success(`临时邮箱创建成功: ${response.data?.tempEmail?.email || '新邮箱'}`)
+
+    // 成功后重置状态
+    isCreatingInline.value = false
   } catch (error: any) {
     console.error('Create email error:', error)
 
@@ -140,7 +150,8 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     }
 
     ElMessage.error(errorMessage)
-  } finally {
+
+    // 错误后重置状态
     isCreatingInline.value = false
   }
 }
@@ -221,10 +232,10 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 min-h-0 py-6">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+    <div class="flex-1 py-6 overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full overflow-hidden">
         <!-- Temp Email List -->
-        <div class="group relative">
+        <div class="group relative h-ful overflow-hidden">
           <div
             class="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border border-gray-200/50 dark:border-gray-700/50 flex flex-col h-full overflow-hidden"
           >
@@ -278,14 +289,14 @@ const handleInlineCreateEmail = async (domainId?: number) => {
               </div>
             </div>
 
-            <div class="flex-1 min-h-0 overflow-hidden">
+            <div class="flex-1 overflow-hidden">
               <TempEmailList :loading="loading" @select="handleSelectEmail" />
             </div>
           </div>
         </div>
 
         <!-- Email List -->
-        <div class="group relative">
+        <div class="group relative h-ful overflow-hidden">
           <div
             class="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border border-gray-200/50 dark:border-gray-700/50 flex flex-col h-full overflow-hidden"
           >

@@ -96,6 +96,18 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    async fetchCurrentUser() {
+      try {
+        const response = await authApi.getCurrentUser()
+        if (response.data) {
+          this.user = response.data
+        }
+        return response
+      } catch (error) {
+        throw error
+      }
+    },
+
     // 检查token是否即将过期并自动刷新
     async checkAndRefreshToken() {
       if (!this.accessToken || !this.refreshToken) {
