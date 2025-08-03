@@ -251,7 +251,7 @@ const handleInlineCreateEmail = async (domainId?: number) => {
   <div class="max-w-1500px mx-auto px-4 sm:px-6 lg:px-8 flex flex-col h-full">
     <!-- Header -->
     <div
-      class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700"
+      class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 mt-4"
     >
       <div class="px-6 py-4">
         <div class="flex items-center justify-between">
