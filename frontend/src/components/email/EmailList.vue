@@ -220,43 +220,60 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 <template>
   <div class="flex flex-col h-full">
     <!-- Toolbar -->
-    <div v-if="emails.length > 0" class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-      <div class="flex items-center space-x-4">
-        <el-checkbox
-          v-model="selectAll"
-          @change="handleSelectAll"
-          :indeterminate="selectedEmails.length > 0 && selectedEmails.length < emails.length"
-        >
-          全选
-        </el-checkbox>
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span v-if="selectedEmails.length > 0">
-            已选择 {{ selectedEmails.length }} 封邮件
-          </span>
-          <span v-else>
-            共 {{ emails.length }} 封邮件
-          </span>
+    <div v-if="emails.length > 0" class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <el-checkbox
+              v-model="selectAll"
+              @change="handleSelectAll"
+              :indeterminate="selectedEmails.length > 0 && selectedEmails.length < emails.length"
+              class="font-medium"
+            >
+              全选
+            </el-checkbox>
+
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+            <div class="flex items-center space-x-2">
+              <div class="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-xs" />
+              </div>
+              <div class="text-sm">
+                <span v-if="selectedEmails.length > 0" class="font-semibold text-green-700 dark:text-green-300">
+                  已选择 {{ selectedEmails.length }} 封邮件
+                </span>
+                <span v-else class="font-medium text-gray-700 dark:text-gray-300">
+                  共 {{ emails.length }} 封邮件
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="flex items-center space-x-2">
-        <el-button
-          v-if="selectedEmails.length > 0"
-          size="small"
-          type="danger"
-          @click="handleBatchDelete"
-          :disabled="loading"
-        >
-          <font-awesome-icon icon="trash" class="mr-1" />
-          批量删除
-        </el-button>
-        <el-button
-          size="small"
-          @click="exportEmails"
-          :disabled="loading"
-        >
-          <font-awesome-icon icon="download" class="mr-1" />
-          导出邮件
-        </el-button>
+
+        <div class="flex items-center space-x-3">
+          <el-button
+            v-if="selectedEmails.length > 0"
+            size="default"
+            type="danger"
+            @click="handleBatchDelete"
+            :disabled="loading"
+            class="shadow-sm"
+          >
+            <font-awesome-icon icon="trash" class="mr-2" />
+            批量删除 ({{ selectedEmails.length }})
+          </el-button>
+
+          <el-button
+            size="default"
+            @click="exportEmails"
+            :disabled="loading"
+            class="shadow-sm"
+          >
+            <font-awesome-icon icon="download" class="mr-2" />
+            导出邮件
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -268,164 +285,231 @@ const getEmailTypeIcon = (subject: string, content: string) => {
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="emails.length === 0" class="p-12 text-center">
-        <font-awesome-icon
-          :icon="['fas', 'inbox']"
-          class="text-6xl text-gray-300 dark:text-gray-600 mb-4"
-        />
-        <p class="text-gray-500 dark:text-gray-400 mb-2">
-          暂无邮件
-        </p>
-        <p class="text-sm text-gray-400 dark:text-gray-500">
-          邮件将会自动显示在这里
-        </p>
+      <div v-else-if="emails.length === 0" class="flex items-center justify-center h-full p-12">
+        <div class="text-center max-w-sm">
+          <div class="relative mb-8">
+            <div class="w-32 h-32 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center shadow-inner">
+              <font-awesome-icon
+                :icon="['fas', 'inbox']"
+                class="text-4xl text-gray-400 dark:text-gray-500"
+              />
+            </div>
+            <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+              <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-sm" />
+            </div>
+          </div>
+
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            邮箱空空如也
+          </h3>
+          <p class="text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+            当有新邮件到达时，它们会自动显示在这里
+          </p>
+
+          <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <div class="flex items-center justify-center space-x-2">
+              <font-awesome-icon :icon="['fas', 'bolt']" class="text-yellow-500" />
+              <span>实时接收邮件</span>
+            </div>
+            <div class="flex items-center justify-center space-x-2">
+              <font-awesome-icon :icon="['fas', 'shield-alt']" class="text-green-500" />
+              <span>自动识别验证码</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Email List -->
-      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
-      <div
-        v-for="email in sortedEmails"
-        :key="email.id"
-        class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
-        @click="handleEmailClick(email)"
-      >
-        <div class="flex items-start space-x-3">
-          <!-- Checkbox -->
-          <div class="flex-shrink-0 mt-1">
-            <el-checkbox
-              :model-value="selectedEmails.includes(email.id)"
-              @change="(checked: boolean) => handleSelectEmail(email.id, checked)"
-              @click.stop
-            />
-          </div>
+      <div v-else class="p-4 space-y-3">
+        <div
+          v-for="email in sortedEmails"
+          :key="email.id"
+          class="group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer"
+          :class="{
+            'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg hover:transform hover:scale-[1.01]': true,
+            'ring-2 ring-blue-200 dark:ring-blue-800 bg-blue-50/30 dark:bg-blue-900/10': !email.is_read
+          }"
+          @click="handleEmailClick(email)"
+        >
+          <!-- 未读邮件的装饰条 -->
+          <div
+            v-if="!email.is_read"
+            class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-l-xl"
+          ></div>
 
-          <!-- Email Type Icon -->
-          <div class="flex-shrink-0 mt-1">
-            <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-              <font-awesome-icon
-                :icon="['fas', getEmailTypeIcon(email.subject, email.content).icon]"
-                :class="getEmailTypeIcon(email.subject, email.content).color"
-                class="text-sm"
+          <div class="flex items-start space-x-4">
+            <!-- Checkbox -->
+            <div class="flex-shrink-0 mt-1">
+              <el-checkbox
+                :model-value="selectedEmails.includes(email.id)"
+                @change="(checked: boolean) => handleSelectEmail(email.id, checked)"
+                @click.stop
+                class="opacity-60 group-hover:opacity-100 transition-opacity"
               />
             </div>
-          </div>
 
-          <!-- Email Content -->
-          <div class="flex-1 min-w-0">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {{ email.sender }}
-                </span>
-                <span v-if="!email.is_read" class="w-2 h-2 bg-blue-500 rounded-full"></span>
-              </div>
-              <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                {{ formatDate(email.received_at) }}
-              </span>
-            </div>
-
-            <!-- Subject -->
-            <div class="mb-2">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                {{ email.subject || '无主题' }}
-              </h3>
-            </div>
-
-            <!-- Preview -->
-            <div class="mb-2">
-              <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                {{ truncateText(email.content || '') }}
-              </p>
-            </div>
-
-            <!-- Verification Code -->
-            <div v-if="email.verification_code" class="mb-2">
-              <div class="inline-flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <font-awesome-icon 
-                  :icon="['fas', 'key']" 
-                  class="text-green-600 dark:text-green-400 text-xs"
+            <!-- Email Type Icon -->
+            <div class="flex-shrink-0 mt-1">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                   :class="{
+                     'bg-gradient-to-br from-green-500 to-emerald-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'shield-alt',
+                     'bg-gradient-to-br from-orange-500 to-red-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'key',
+                     'bg-gradient-to-br from-blue-500 to-indigo-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'user-plus',
+                     'bg-gradient-to-br from-gray-400 to-gray-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'envelope'
+                   }">
+                <font-awesome-icon
+                  :icon="['fas', getEmailTypeIcon(email.subject, email.content).icon]"
+                  class="text-sm"
                 />
-                <span class="text-sm font-mono font-bold text-green-700 dark:text-green-300">
-                  {{ email.verification_code }}
-                </span>
-                <el-button
-                  @click.stop="copyToClipboard(email.verification_code!)"
-                  size="small"
-                  circle
-                  class="hover:bg-green-200 dark:hover:bg-green-800"
-                  title="复制验证码"
-                >
-                  <font-awesome-icon
-                    :icon="['fas', 'copy']"
-                    class="text-green-600 dark:text-green-400 text-xs"
-                  />
-                </el-button>
               </div>
             </div>
 
-            <!-- Actions -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                <span v-if="email.verification_code" class="flex items-center space-x-1">
-                  <font-awesome-icon :icon="['fas', 'shield-alt']" />
-                  <span>验证码</span>
-                </span>
-                <span class="flex items-center space-x-1">
-                  <font-awesome-icon :icon="['fas', 'eye']" />
-                  <span>{{ email.is_read ? '已读' : '未读' }}</span>
+            <!-- Email Content -->
+            <div class="flex-1 min-w-0">
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                  <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {{ email.sender }}
+                  </span>
+                  <div class="flex items-center space-x-2">
+                    <span v-if="!email.is_read" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                      <div class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1 animate-pulse"></div>
+                      新邮件
+                    </span>
+                    <span v-else class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                      已读
+                    </span>
+                  </div>
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 font-medium">
+                  {{ formatDate(email.received_at) }}
                 </span>
               </div>
 
-              <div class="flex items-center space-x-2">
-                <el-button
-                  @click.stop="handleEmailClick(email)"
-                  size="small"
-                  circle
-                  class="hover:bg-gray-200 dark:hover:bg-gray-600"
-                  title="查看详情"
-                >
-                  <font-awesome-icon
-                    :icon="['fas', 'eye']"
-                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs"
-                  />
-                </el-button>
+              <!-- Subject -->
+              <div class="mb-3">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  {{ email.subject || '无主题' }}
+                </h3>
+              </div>
 
-                <el-button
-                  @click.stop="handleDeleteEmail(email.id)"
-                  size="small"
-                  circle
-                  class="hover:bg-red-100 dark:hover:bg-red-900/20"
-                  title="删除邮件"
-                >
-                  <font-awesome-icon
-                    :icon="['fas', 'trash']"
-                    class="text-gray-400 hover:text-red-500 text-xs"
-                  />
-                </el-button>
+              <!-- Preview -->
+              <div class="mb-3">
+                <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                  {{ truncateText(email.content || '') }}
+                </p>
+              </div>
+
+              <!-- Verification Code -->
+              <div v-if="email.verification_code" class="mb-4">
+                <div class="inline-flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
+                      <font-awesome-icon :icon="['fas', 'key']" class="text-white text-xs" />
+                    </div>
+                    <span class="text-xs font-medium text-green-700 dark:text-green-300">验证码</span>
+                  </div>
+
+                  <span class="text-lg font-mono font-bold text-green-800 dark:text-green-200 tracking-wider">
+                    {{ email.verification_code }}
+                  </span>
+
+                  <el-button
+                    @click.stop="copyToClipboard(email.verification_code!)"
+                    size="small"
+                    circle
+                    class="hover:bg-green-200 dark:hover:bg-green-800 shadow-sm"
+                    title="复制验证码"
+                  >
+                    <font-awesome-icon
+                      :icon="['fas', 'copy']"
+                      class="text-green-600 dark:text-green-400 text-xs"
+                    />
+                  </el-button>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                  <!-- 邮件类型标签 -->
+                  <span v-if="email.verification_code" class="inline-flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full text-xs font-medium text-green-700 dark:text-green-300">
+                    <font-awesome-icon :icon="['fas', 'shield-alt']" />
+                    <span>验证邮件</span>
+                  </span>
+                  <span v-else class="inline-flex items-center space-x-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400">
+                    <font-awesome-icon :icon="['fas', 'envelope']" />
+                    <span>普通邮件</span>
+                  </span>
+                </div>
+
+                <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <el-button
+                    @click.stop="handleEmailClick(email)"
+                    size="small"
+                    circle
+                    class="hover:bg-blue-100 dark:hover:bg-blue-900/30 shadow-sm"
+                    title="查看详情"
+                  >
+                    <font-awesome-icon
+                      :icon="['fas', 'eye']"
+                      class="text-blue-500 text-xs"
+                    />
+                  </el-button>
+
+                  <el-button
+                    @click.stop="handleDeleteEmail(email.id)"
+                    size="small"
+                    circle
+                    class="hover:bg-red-100 dark:hover:bg-red-900/20 shadow-sm"
+                    title="删除邮件"
+                  >
+                    <font-awesome-icon
+                      :icon="['fas', 'trash']"
+                      class="text-red-500 text-xs"
+                    />
+                  </el-button>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+    <!-- Footer -->
+    <div v-if="emails.length > 0" class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+            <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-white text-xs" />
+          </div>
+          <div>
+            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+              邮件统计
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              共 {{ emails.length }} 封邮件
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span class="text-xs font-medium text-blue-700 dark:text-blue-300">
+              {{ emails.filter(e => !e.is_read).length }} 未读
+            </span>
+          </div>
+          <div class="flex items-center space-x-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {{ emails.filter(e => e.is_read).length }} 已读
+            </span>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Footer -->
-    <div v-if="emails.length > 0" class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-      <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span>共 {{ emails.length }} 封邮件</span>
-        <div class="flex items-center space-x-4">
-          <span class="flex items-center space-x-1">
-            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>未读</span>
-          </span>
-          <span class="flex items-center space-x-1">
-            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <span>已读</span>
-          </span>
-        </div>
-        </div>
-      </div>
     </div>
 
     <!-- Email Detail Dialog -->
