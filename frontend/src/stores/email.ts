@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { TempEmail, Email, Domain, CreateEmailRequest } from '@/types'
+import type { TempEmail, Email, Domain, CreateEmailRequest, RedeemRequest } from '@/types'
 import { emailApi } from '@/api/email'
 
 export const useEmailStore = defineStore('email', {
@@ -125,6 +125,16 @@ export const useEmailStore = defineStore('email', {
       this.selectedTempEmail = tempEmail
       if (!tempEmail) {
         this.currentEmails = []
+      }
+    },
+
+    // 兑换配额码
+    async redeemCode(request: RedeemRequest) {
+      try {
+        const response = await emailApi.redeemCode(request)
+        return response
+      } catch (error) {
+        throw error
       }
     }
   },

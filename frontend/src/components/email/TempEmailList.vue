@@ -62,7 +62,7 @@ const formatDate = (dateString: string) => {
 </script>
 
 <template>
-  <div class="h-96 overflow-y-auto">
+  <div class="h-full px-10px pb-10px overflow-hidden flex flex-col">
     <!-- Loading State -->
     <div v-if="loading" class="p-6 text-center">
       <el-skeleton :rows="3" animated />
@@ -99,7 +99,7 @@ const formatDate = (dateString: string) => {
     </div>
 
     <!-- Email List -->
-    <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+    <div v-else class="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
       <div
         v-for="tempEmail in tempEmails"
         :key="tempEmail.id"
@@ -143,7 +143,7 @@ const formatDate = (dateString: string) => {
               </span>
               
               <span class="flex items-center space-x-1">
-                <font-awesome-icon :icon="['fas', 'circle']" />
+                <font-awesome-icon class="text-green-500" :icon="['fas', 'circle']" />
                 <span>活跃</span>
               </span>
             </div>

@@ -218,7 +218,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-96">
+  <div class="flex flex-col h-full">
     <!-- Toolbar -->
     <div v-if="emails.length > 0" class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
       <div class="flex items-center space-x-4">

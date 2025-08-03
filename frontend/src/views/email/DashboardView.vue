@@ -144,114 +144,88 @@ const handleInlineCreateEmail = async (domainId?: number) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col h-full">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          邮箱管理
-        </h1>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          管理您的临时邮箱和接收的邮件
-        </p>
-      </div>
-      
-      <div class="mt-4 sm:mt-0 flex items-center space-x-3">
-        <el-button
-          @click="handleRefresh"
-          :disabled="loading"
-        >
-          <font-awesome-icon
-            :icon="['fas', 'refresh']"
-            :class="{ 'animate-spin': loading }"
-          />
-          刷新
-        </el-button>
-
-        <el-button
-          @click="showRedeemDialog = true"
-        >
-          <font-awesome-icon :icon="['fas', 'gift']" />
-          兑换配额
-        </el-button>
-
-
-      </div>
-    </div>
-
-    <!-- Quota Info -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-            <font-awesome-icon 
-              :icon="['fas', 'envelope']" 
-              class="text-blue-500 text-xl"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              总配额
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.total }}
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4">
+        <div class="flex items-center justify-between">
+          <!-- Title Section -->
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+              邮箱管理
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              管理您的临时邮箱和接收的邮件
             </p>
           </div>
+
+          <!-- Action Button -->
+          <el-button
+            @click="showRedeemDialog = true"
+            type="primary"
+            size="default"
+          >
+            <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
+            兑换配额
+          </el-button>
         </div>
-      </div>
 
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-            <font-awesome-icon 
-              :icon="['fas', 'check-circle']" 
-              class="text-green-500 text-xl"
-            />
+        <!-- Quota Cards -->
+        <div class="grid grid-cols-3 gap-4 mt-6">
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
+                <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-lg" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">总配额</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ quotaInfo.total }}</p>
+              </div>
+            </div>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              已使用
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.used }}
-            </p>
-          </div>
-        </div>
-      </div>
 
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-            <font-awesome-icon 
-              :icon="['fas', 'clock']" 
-              class="text-orange-500 text-xl"
-            />
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mr-4">
+                <font-awesome-icon :icon="['fas', 'check-circle']" class="text-white text-lg" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">已使用</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ quotaInfo.used }}</p>
+              </div>
+            </div>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              剩余配额
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.remaining }}
-            </p>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-4">
+                <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-lg" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">剩余配额</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ quotaInfo.remaining }}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Main Content -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Temp Email List -->
-      <div class="card-base">
-        <div class="p-6 border-b border-base">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                临时邮箱列表
-              </h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                点击邮箱查看收到的邮件
-              </p>
+    <div class="flex-1 min-h-0">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+        <!-- Temp Email List -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full">
+          <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  临时邮箱列表
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  点击邮箱查看收到的邮件
+                </p>
+              </div>
             </div>
 
             <!-- Quick Create Section -->
@@ -276,52 +250,78 @@ const handleInlineCreateEmail = async (domainId?: number) => {
                 :loading="isCreatingInline"
                 :disabled="quotaInfo.remaining <= 0 || !selectedDomainId"
               >
-                <font-awesome-icon :icon="['fas', 'plus']" />
-                快速创建
+                <font-awesome-icon v-if="!isCreatingInline" :icon="['fas', 'plus']" class="mr-2" />
+                {{ isCreatingInline ? '创建中...' : '快速创建' }}
               </el-button>
             </div>
           </div>
+
+          <div class="flex-1 min-h-0 overflow-hidden">
+            <TempEmailList
+              :loading="loading"
+              @select="handleSelectEmail"
+            />
+          </div>
         </div>
 
-        <TempEmailList
-          :loading="loading"
-          @select="handleSelectEmail"
-        />
-      </div>
+        <!-- Email List -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full">
+          <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  邮件列表
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <span v-if="selectedTempEmail">
+                    {{ selectedTempEmail.email }} 的邮件
+                  </span>
+                  <span v-else>
+                    请先选择一个临时邮箱
+                  </span>
+                </p>
+              </div>
 
-      <!-- Email List -->
-      <div class="card-base">
-        <div class="p-6 border-b border-base">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            邮件列表
-          </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            <span v-if="selectedTempEmail">
-              {{ selectedTempEmail.email }} 的邮件
-            </span>
-            <span v-else>
-              请先选择一个临时邮箱
-            </span>
-          </p>
+              <!-- 刷新按钮 - 只在选中临时邮箱时显示 -->
+              <div v-if="selectedTempEmail" class="flex items-center gap-2">
+                <el-button
+                  @click="handleRefresh"
+                  :disabled="loading"
+                  size="small"
+                >
+                  <font-awesome-icon
+                    :icon="['fas', 'refresh']"
+                    :class="{ 'animate-spin': loading }"
+                    class="mr-2"
+                  />
+                  刷新邮件
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 min-h-0 overflow-hidden">
+            <EmailList
+              v-if="selectedTempEmail"
+              :temp-email-id="selectedTempEmail.id"
+              :emails="currentEmails"
+              :loading="emailStore.isLoading"
+            />
+
+            <div v-else class="flex items-center justify-center h-full">
+              <div class="text-center">
+                <font-awesome-icon
+                  :icon="['fas', 'envelope-open']"
+                  class="text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                />
+                <p class="text-gray-500 dark:text-gray-400">
+                  请选择一个临时邮箱查看邮件
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <EmailList
-          v-if="selectedTempEmail"
-          :temp-email-id="selectedTempEmail.id"
-          :emails="currentEmails"
-          :loading="emailStore.isLoading"
-        />
-        
-        <div v-else class="p-12 text-center">
-          <font-awesome-icon 
-            :icon="['fas', 'envelope-open']" 
-            class="text-6xl text-gray-300 dark:text-gray-600 mb-4"
-          />
-          <p class="text-gray-500 dark:text-gray-400">
-            请选择一个临时邮箱查看邮件
-          </p>
-        </div>
-      </div>
+    </div>
     </div>
 
     <!-- Dialogs -->
