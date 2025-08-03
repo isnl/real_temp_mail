@@ -207,6 +207,107 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 新增统计卡片 -->
+    <div v-if="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- 配额活动统计 -->
+      <div class="card-base p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <font-awesome-icon
+              icon="coins"
+              class="text-3xl text-yellow-500 dark:text-yellow-400"
+            />
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+              配额活动
+            </p>
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">
+              +{{ formatNumber(stats.quotaActivity.totalEarned) }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-500">
+              今日: +{{ formatNumber(stats.quotaActivity.todayEarned) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 签到统计 -->
+      <div class="card-base p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <font-awesome-icon
+              icon="calendar-check"
+              class="text-3xl text-blue-500 dark:text-blue-400"
+            />
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+              签到统计
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {{ formatNumber(stats.checkinActivity.totalCheckins) }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-500">
+              今日: {{ formatNumber(stats.checkinActivity.todayCheckins) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 用户活跃度 -->
+      <div class="card-base p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <font-awesome-icon
+              icon="user-clock"
+              class="text-3xl text-purple-500 dark:text-purple-400"
+            />
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+              活跃用户
+            </p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {{ formatNumber(stats.recentActivity.todayActiveUsers) }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-500">
+              本周: {{ formatNumber(stats.recentActivity.weekActiveUsers) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 系统健康状态 -->
+      <div class="card-base p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <font-awesome-icon
+              :icon="stats.systemHealth.status === 'healthy' ? 'heart' : 'exclamation-triangle'"
+              :class="[
+                'text-3xl',
+                stats.systemHealth.status === 'healthy' ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+              ]"
+            />
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+              系统状态
+            </p>
+            <p :class="[
+              'text-2xl font-bold',
+              stats.systemHealth.status === 'healthy' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            ]">
+              {{ stats.systemHealth.status === 'healthy' ? '健康' : '异常' }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-500">
+              响应时间: {{ stats.systemHealth.responseTime }}ms
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-else class="text-center py-12">
       <font-awesome-icon 
         icon="exclamation-triangle" 

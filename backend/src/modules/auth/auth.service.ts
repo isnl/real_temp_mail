@@ -35,22 +35,26 @@ export class AuthService {
       throw new ValidationError('两次输入的密码不一致')
     }
 
-    // 4. 创建用户
+    // 4. 获取注册默认配额设置
+    const defaultQuotaSetting = await this.dbService.getSystemSetting('default_register_quota')
+    const defaultQuota = parseInt(defaultQuotaSetting?.setting_value || '5')
+
+    // 5. 创建用户
     const passwordHash = await this.hashPassword(data.password)
     const userData: CreateUserData = {
       email: data.email,
       password_hash: passwordHash,
-      quota: 5, // 注册赠送5个配额
+      quota: defaultQuota,
       role: 'user'
     }
 
     const user = await this.dbService.createUser(userData)
 
-    // 5. 创建注册配额记录
+    // 6. 创建注册配额记录
     await this.dbService.createQuotaLog({
       userId: user.id,
       type: 'earn',
-      amount: 5,
+      amount: defaultQuota,
       source: 'register',
       description: '注册赠送配额'
     })

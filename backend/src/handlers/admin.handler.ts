@@ -560,4 +560,93 @@ export class AdminHandler {
       return this.createErrorResponse(error as Error)
     }
   }
+
+  // ==================== 配额记录管理 ====================
+
+  async getQuotaLogs(request: Request): Promise<Response> {
+    try {
+      await this.validateAdminAuth(request)
+
+      const url = new URL(request.url)
+      const page = parseInt(url.searchParams.get('page') || '1')
+      const limit = parseInt(url.searchParams.get('limit') || '20')
+      const userId = url.searchParams.get('userId') ? parseInt(url.searchParams.get('userId')!) : undefined
+      const type = url.searchParams.get('type') as 'earn' | 'consume' | undefined
+      const source = url.searchParams.get('source') || undefined
+      const startDate = url.searchParams.get('startDate') || undefined
+      const endDate = url.searchParams.get('endDate') || undefined
+
+      const filters = { userId, type, source, startDate, endDate }
+      const logs = await this.adminService.getQuotaLogs(page, limit, filters)
+      return this.createResponse(logs)
+    } catch (error) {
+      console.error('获取配额记录失败:', error)
+      if (error instanceof AuthorizationError) {
+        return this.createErrorResponse(error, 403)
+      }
+      return this.createErrorResponse(error as Error)
+    }
+  }
+
+  async getQuotaStats(request: Request): Promise<Response> {
+    try {
+      await this.validateAdminAuth(request)
+
+      const stats = await this.adminService.getQuotaStats()
+      return this.createResponse(stats)
+    } catch (error) {
+      console.error('获取配额统计失败:', error)
+      if (error instanceof AuthorizationError) {
+        return this.createErrorResponse(error, 403)
+      }
+      return this.createErrorResponse(error as Error)
+    }
+  }
+
+  // ==================== 用户配额分配 ====================
+
+  async allocateQuotaToUser(request: Request): Promise<Response> {
+    try {
+      await this.validateAdminAuth(request)
+
+      const url = new URL(request.url)
+      const pathParts = url.pathname.split('/')
+      const userIdStr = pathParts[4] // /api/admin/users/{userId}/quota
+
+      if (!userIdStr) {
+        throw new ValidationError('用户ID缺失')
+      }
+
+      const userId = parseInt(userIdStr)
+      if (isNaN(userId)) {
+        throw new ValidationError('用户ID无效')
+      }
+
+      const requestData = await request.json() as { amount: number; description?: string }
+      const { amount, description } = requestData
+
+      if (typeof amount !== 'number' || amount === 0) {
+        throw new ValidationError('配额数量必须是非零数字')
+      }
+
+      if (Math.abs(amount) > 10000) {
+        throw new ValidationError('单次调整配额不能超过10000')
+      }
+
+      await this.adminService.allocateQuotaToUser(userId, amount, description)
+      return this.createResponse(null, `配额${amount > 0 ? '分配' : '扣除'}成功`)
+    } catch (error) {
+      console.error('配额分配失败:', error)
+      if (error instanceof AuthorizationError) {
+        return this.createErrorResponse(error, 403)
+      }
+      if (error instanceof NotFoundError) {
+        return this.createErrorResponse(error, 404)
+      }
+      if (error instanceof ValidationError) {
+        return this.createErrorResponse(error, 400)
+      }
+      return this.createErrorResponse(error as Error)
+    }
+  }
 }

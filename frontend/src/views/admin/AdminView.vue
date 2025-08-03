@@ -7,6 +7,7 @@ import EmailAudit from '@/components/admin/EmailAudit.vue'
 import LogAudit from '@/components/admin/LogAudit.vue'
 import RedeemCodeManagement from '@/components/admin/RedeemCodeManagement.vue'
 import SystemSettings from '@/components/admin/SystemSettings.vue'
+import QuotaLogManagement from '@/components/admin/QuotaLogManagement.vue'
 
 const activeTab = ref('dashboard')
 </script>
@@ -28,7 +29,7 @@ const activeTab = ref('dashboard')
       <el-tab-pane name="dashboard">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="chart-line" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'chart-line']" class="mr-2" />
             仪表板
           </span>
         </template>
@@ -38,7 +39,7 @@ const activeTab = ref('dashboard')
       <el-tab-pane name="users">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="users" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'users']" class="mr-2" />
             用户管理
           </span>
         </template>
@@ -48,7 +49,7 @@ const activeTab = ref('dashboard')
       <el-tab-pane name="domains">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="globe" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'globe']" class="mr-2" />
             域名管理
           </span>
         </template>
@@ -58,7 +59,7 @@ const activeTab = ref('dashboard')
       <el-tab-pane name="emails">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="envelope-open" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'envelope-open']" class="mr-2" />
             邮件审查
           </span>
         </template>
@@ -68,7 +69,7 @@ const activeTab = ref('dashboard')
       <el-tab-pane name="logs">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="file-alt" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'file-alt']" class="mr-2" />
             日志审计
           </span>
         </template>
@@ -78,17 +79,27 @@ const activeTab = ref('dashboard')
       <el-tab-pane name="redeem-codes">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="ticket" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'ticket']" class="mr-2" />
             兑换码管理
           </span>
         </template>
         <RedeemCodeManagement />
       </el-tab-pane>
 
+      <el-tab-pane name="quota-logs">
+        <template #label>
+          <span class="flex items-center">
+            <font-awesome-icon :icon="['fas', 'coins']" class="mr-2" />
+            配额记录
+          </span>
+        </template>
+        <QuotaLogManagement />
+      </el-tab-pane>
+
       <el-tab-pane name="settings">
         <template #label>
           <span class="flex items-center">
-            <font-awesome-icon icon="cog" class="mr-2" />
+            <font-awesome-icon :icon="['fas', 'cog']" class="mr-2" />
             系统设置
           </span>
         </template>

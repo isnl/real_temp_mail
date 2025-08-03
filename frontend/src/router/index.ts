@@ -99,6 +99,16 @@ const router = createRouter({
           path: 'redeem-codes',
           name: 'admin-redeem-codes',
           component: () => import('@/views/admin/RedeemCodesView.vue')
+        },
+        {
+          path: 'quota-logs',
+          name: 'admin-quota-logs',
+          component: () => import('@/views/admin/QuotaLogsView.vue')
+        },
+        {
+          path: 'settings',
+          name: 'admin-settings',
+          component: () => import('@/views/admin/SettingsView.vue')
         }
       ]
     },

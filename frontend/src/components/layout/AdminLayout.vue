@@ -60,6 +60,18 @@ const menuItems = [
     icon: 'ticket-alt',
     path: '/admin/redeem-codes',
   },
+  {
+    key: 'quota-logs',
+    title: '配额记录',
+    icon: 'coins',
+    path: '/admin/quota-logs',
+  },
+  {
+    key: 'settings',
+    title: '系统设置',
+    icon: 'cog',
+    path: '/admin/settings',
+  },
 ]
 
 // 当前激活的菜单项

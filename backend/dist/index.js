@@ -197,6 +197,10 @@ async function handleAdminRoutes(pathname, method, request, handler) {
         if (method === 'DELETE')
             return await handler.deleteUser(request);
     }
+    if (pathname.match(/^\/api\/admin\/users\/\d+\/quota$/)) {
+        if (method === 'POST')
+            return await handler.allocateQuotaToUser(request);
+    }
     // 域名管理
     if (pathname === '/api/admin/domains') {
         if (method === 'GET')
@@ -251,6 +255,15 @@ async function handleAdminRoutes(pathname, method, request, handler) {
     if (pathname.match(/^\/api\/admin\/settings\/[a-zA-Z_]+$/)) {
         if (method === 'PUT')
             return await handler.updateSystemSetting(request);
+    }
+    // 配额记录管理
+    if (pathname === '/api/admin/quota-logs') {
+        if (method === 'GET')
+            return await handler.getQuotaLogs(request);
+    }
+    if (pathname === '/api/admin/quota-stats') {
+        if (method === 'GET')
+            return await handler.getQuotaStats(request);
     }
     return new Response(JSON.stringify({
         success: false,

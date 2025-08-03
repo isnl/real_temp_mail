@@ -36,6 +36,14 @@ const editForm = reactive<AdminUserUpdateData>({
   role: 'user'
 })
 
+// 配额分配相关状态
+const quotaDialogVisible = ref(false)
+const quotaUser = ref<AdminUserDetails | null>(null)
+const quotaForm = reactive({
+  amount: 0,
+  description: ''
+})
+
 const loadUsers = async () => {
   try {
     loading.value = true
@@ -129,6 +137,36 @@ const handleDelete = async (user: AdminUserDetails) => {
       console.error('用户删除失败:', error)
       ElMessage.error('用户删除失败')
     }
+  }
+}
+
+// 配额分配相关方法
+const handleAllocateQuota = (user: AdminUserDetails) => {
+  quotaUser.value = user
+  quotaForm.amount = 0
+  quotaForm.description = ''
+  quotaDialogVisible.value = true
+}
+
+const handleQuotaSubmit = async () => {
+  if (!quotaUser.value) return
+
+  try {
+    const response = await apiClient.post(`/api/admin/users/${quotaUser.value.id}/quota`, {
+      amount: quotaForm.amount,
+      description: quotaForm.description || undefined
+    })
+
+    if (response.success) {
+      ElMessage.success('配额分配成功')
+      quotaDialogVisible.value = false
+      loadUsers()
+    } else {
+      ElMessage.error(response.error || '配额分配失败')
+    }
+  } catch (error) {
+    console.error('配额分配失败:', error)
+    ElMessage.error('配额分配失败')
   }
 }
 
@@ -233,7 +271,7 @@ onMounted(() => {
             {{ new Date(row.created_at).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <div class="flex space-x-2">
               <el-button
@@ -242,6 +280,13 @@ onMounted(() => {
                 @click="handleEdit(row)"
               >
                 <font-awesome-icon icon="edit" />
+              </el-button>
+              <el-button
+                type="success"
+                size="small"
+                @click="handleAllocateQuota(row)"
+              >
+                <font-awesome-icon icon="coins" />
               </el-button>
               <el-button
                 type="danger"
@@ -311,6 +356,66 @@ onMounted(() => {
           </el-button>
           <el-button type="primary" @click="handleSaveEdit">
             保存
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 配额分配对话框 -->
+    <el-dialog
+      v-model="quotaDialogVisible"
+      :title="`配额分配 - ${quotaUser?.email}`"
+      width="500px"
+    >
+      <div v-if="quotaUser" class="space-y-4">
+        <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            <strong>当前配额:</strong> {{ quotaUser.quota }}
+          </p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            <strong>用户邮箱:</strong> {{ quotaUser.email }}
+          </p>
+        </div>
+
+        <el-form label-width="80px">
+          <el-form-item label="配额数量">
+            <el-input-number
+              v-model="quotaForm.amount"
+              :min="-10000"
+              :max="10000"
+              controls-position="right"
+              class="w-full"
+              placeholder="正数为增加，负数为扣除"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              正数为增加配额，负数为扣除配额
+            </p>
+          </el-form-item>
+
+          <el-form-item label="备注说明">
+            <el-input
+              v-model="quotaForm.description"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入分配原因或备注（可选）"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end space-x-3">
+          <el-button @click="quotaDialogVisible = false">
+            取消
+          </el-button>
+          <el-button
+            @click="handleQuotaSubmit"
+            type="primary"
+            :disabled="!quotaForm.amount"
+          >
+            确认分配
           </el-button>
         </div>
       </template>

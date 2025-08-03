@@ -1,3 +1,4 @@
+import type { QuotaLog } from '@/types';
 export interface AdminDashboardStats {
     users: {
         total: number;
@@ -32,6 +33,25 @@ export interface AdminDashboardStats {
         usedQuota: number;
         averageQuotaPerUser: number;
     };
+    quotaActivity: {
+        totalEarned: number;
+        totalConsumed: number;
+        todayEarned: number;
+        todayConsumed: number;
+    };
+    checkinActivity: {
+        totalCheckins: number;
+        uniqueUsers: number;
+        todayCheckins: number;
+        weekCheckins: number;
+    };
+    recentActivity: {
+        todayRegistrations: number;
+        weekRegistrations: number;
+        todayActiveUsers: number;
+        weekActiveUsers: number;
+    };
+    systemHealth: SystemHealth;
 }
 export interface AdminUserDetails extends User {
     tempEmailCount: number;
@@ -49,6 +69,9 @@ export interface AdminLogDetails extends OperationLog {
 }
 export interface AdminRedeemCodeDetails extends RedeemCode {
     usedByEmail?: string;
+}
+export interface QuotaLogWithUser extends QuotaLog {
+    user_email: string;
 }
 export interface BatchUserOperation {
     userIds: number[];

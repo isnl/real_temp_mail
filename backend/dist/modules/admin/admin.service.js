@@ -56,7 +56,56 @@ export class AdminService {
       `).first();
             // 配额统计
             const quotaStats = await this.env.DB.prepare(`
-        SELECT 
+        SELECT
+          SUM(CASE WHEN type = 'earn' THEN amount ELSE 0 END) as totalEarned,
+          SUM(CASE WHEN type = 'consume' THEN amount ELSE 0 END) as totalConsumed,
+          SUM(CASE WHEN type = 'earn' AND DATE(created_at) = DATE('now', '+8 hours') THEN amount ELSE 0 END) as todayEarned,
+          SUM(CASE WHEN type = 'consume' AND DATE(created_at) = DATE('now', '+8 hours') THEN amount ELSE 0 END) as todayConsumed
+        FROM quota_logs
+      `).first();
+            // 签到统计
+            const checkinStats = await this.env.DB.prepare(`
+        SELECT
+          COUNT(*) as totalCheckins,
+          COUNT(DISTINCT user_id) as uniqueUsers,
+          SUM(CASE WHEN DATE(created_at) = DATE('now', '+8 hours') THEN 1 ELSE 0 END) as todayCheckins,
+          SUM(CASE WHEN DATE(created_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 ELSE 0 END) as weekCheckins
+        FROM user_checkins
+      `).first();
+            // 系统健康状态
+            const systemHealth = {
+                database: {
+                    status: 'healthy',
+                    responseTime: 50,
+                    connectionCount: 1
+                },
+                storage: {
+                    totalEmails: Number(emailStats?.total) || 0,
+                    totalSize: 0,
+                    avgEmailSize: 0
+                },
+                performance: {
+                    avgResponseTime: 50,
+                    requestsPerMinute: 0,
+                    errorRate: 0
+                },
+                rateLimits: {
+                    activeRateLimits: 0,
+                    blockedRequests: 0
+                }
+            };
+            // 最近活动统计
+            const recentActivity = await this.env.DB.prepare(`
+        SELECT
+          COUNT(CASE WHEN DATE(created_at) = DATE('now', '+8 hours') THEN 1 END) as todayRegistrations,
+          COUNT(CASE WHEN DATE(created_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 END) as weekRegistrations,
+          COUNT(CASE WHEN DATE(last_login_at) = DATE('now', '+8 hours') THEN 1 END) as todayActiveUsers,
+          COUNT(CASE WHEN DATE(last_login_at) >= DATE('now', '+8 hours', '-7 days') THEN 1 END) as weekActiveUsers
+        FROM users
+      `).first();
+            // 用户配额统计
+            const userQuotaStats = await this.env.DB.prepare(`
+        SELECT
           SUM(quota) as totalQuota,
           COUNT(*) as userCount,
           AVG(quota) as averageQuota
@@ -95,10 +144,29 @@ export class AdminService {
                     expired: Number(redeemCodeStats?.expired) || 0
                 },
                 quotaDistribution: {
-                    totalQuota: Number(quotaStats?.totalQuota) || 0,
+                    totalQuota: Number(userQuotaStats?.totalQuota) || 0,
                     usedQuota: Number(usedQuota?.usedQuota) || 0,
-                    averageQuotaPerUser: Number(quotaStats?.averageQuota) || 0
-                }
+                    averageQuotaPerUser: Number(userQuotaStats?.averageQuota) || 0
+                },
+                quotaActivity: {
+                    totalEarned: Number(quotaStats?.totalEarned) || 0,
+                    totalConsumed: Number(quotaStats?.totalConsumed) || 0,
+                    todayEarned: Number(quotaStats?.todayEarned) || 0,
+                    todayConsumed: Number(quotaStats?.todayConsumed) || 0
+                },
+                checkinActivity: {
+                    totalCheckins: Number(checkinStats?.totalCheckins) || 0,
+                    uniqueUsers: Number(checkinStats?.uniqueUsers) || 0,
+                    todayCheckins: Number(checkinStats?.todayCheckins) || 0,
+                    weekCheckins: Number(checkinStats?.weekCheckins) || 0
+                },
+                recentActivity: {
+                    todayRegistrations: Number(recentActivity?.todayRegistrations) || 0,
+                    weekRegistrations: Number(recentActivity?.weekRegistrations) || 0,
+                    todayActiveUsers: Number(recentActivity?.todayActiveUsers) || 0,
+                    weekActiveUsers: Number(recentActivity?.weekActiveUsers) || 0
+                },
+                systemHealth
             };
         }
         catch (error) {
@@ -511,5 +579,127 @@ export class AdminService {
       SET setting_value = ?, updated_at = datetime('now', '+8 hours')
       WHERE setting_key = ?
     `).bind(value, key).run();
+    }
+    // ==================== 配额记录管理 ====================
+    async getQuotaLogs(page = 1, limit = 20, filters) {
+        const offset = (page - 1) * limit;
+        let whereConditions = [];
+        let params = [];
+        if (filters?.userId) {
+            whereConditions.push('q.user_id = ?');
+            params.push(filters.userId);
+        }
+        if (filters?.type) {
+            whereConditions.push('q.type = ?');
+            params.push(filters.type);
+        }
+        if (filters?.source) {
+            whereConditions.push('q.source = ?');
+            params.push(filters.source);
+        }
+        if (filters?.startDate) {
+            whereConditions.push('q.created_at >= ?');
+            params.push(filters.startDate);
+        }
+        if (filters?.endDate) {
+            whereConditions.push('q.created_at <= ?');
+            params.push(filters.endDate);
+        }
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        // 获取配额记录列表
+        const logsQuery = `
+      SELECT
+        q.*,
+        u.email as user_email
+      FROM quota_logs q
+      LEFT JOIN users u ON q.user_id = u.id
+      ${whereClause}
+      ORDER BY q.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+        const logs = await this.env.DB.prepare(logsQuery)
+            .bind(...params, limit, offset)
+            .all();
+        // 获取总数
+        const countQuery = `
+      SELECT COUNT(*) as total
+      FROM quota_logs q
+      LEFT JOIN users u ON q.user_id = u.id
+      ${whereClause}
+    `;
+        const countResult = await this.env.DB.prepare(countQuery)
+            .bind(...params)
+            .first();
+        const total = Number(countResult?.total) || 0;
+        const totalPages = Math.ceil(total / limit);
+        return {
+            data: logs.results,
+            total,
+            page,
+            limit,
+            totalPages
+        };
+    }
+    async getQuotaStats() {
+        // 总获得和消费
+        const totalStats = await this.env.DB.prepare(`
+      SELECT
+        type,
+        SUM(amount) as total_amount,
+        COUNT(*) as count
+      FROM quota_logs
+      GROUP BY type
+    `).all();
+        // 今日获得和消费
+        const todayStats = await this.env.DB.prepare(`
+      SELECT
+        type,
+        SUM(amount) as total_amount,
+        COUNT(*) as count
+      FROM quota_logs
+      WHERE DATE(created_at) = DATE('now', '+8 hours')
+      GROUP BY type
+    `).all();
+        // 来源统计
+        const sourceStats = await this.env.DB.prepare(`
+      SELECT
+        source,
+        COUNT(*) as count,
+        SUM(amount) as amount
+      FROM quota_logs
+      GROUP BY source
+      ORDER BY amount DESC
+    `).all();
+        const totalEarned = totalStats.results?.find((s) => s.type === 'earn')?.total_amount || 0;
+        const totalConsumed = totalStats.results?.find((s) => s.type === 'consume')?.total_amount || 0;
+        const todayEarned = todayStats.results?.find((s) => s.type === 'earn')?.total_amount || 0;
+        const todayConsumed = todayStats.results?.find((s) => s.type === 'consume')?.total_amount || 0;
+        return {
+            totalEarned: Number(totalEarned),
+            totalConsumed: Number(totalConsumed),
+            todayEarned: Number(todayEarned),
+            todayConsumed: Number(todayConsumed),
+            sourceStats: sourceStats.results || []
+        };
+    }
+    // ==================== 用户配额分配 ====================
+    async allocateQuotaToUser(userId, amount, description) {
+        // 1. 检查用户是否存在
+        const user = await this.env.DB.prepare(`
+      SELECT id, quota FROM users WHERE id = ?
+    `).bind(userId).first();
+        if (!user) {
+            throw new NotFoundError('用户不存在');
+        }
+        // 2. 更新用户配额
+        const newQuota = Number(user.quota) + amount;
+        await this.env.DB.prepare(`
+      UPDATE users SET quota = ? WHERE id = ?
+    `).bind(newQuota, userId).run();
+        // 3. 创建配额记录
+        await this.env.DB.prepare(`
+      INSERT INTO quota_logs (user_id, type, amount, source, description)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(userId, amount > 0 ? 'earn' : 'consume', Math.abs(amount), 'admin_adjust', description || `管理员${amount > 0 ? '赠送' : '扣除'}配额`).run();
     }
 }

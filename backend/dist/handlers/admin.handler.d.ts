@@ -26,5 +26,8 @@ export declare class AdminHandler {
     deleteRedeemCode(request: Request): Promise<Response>;
     getSystemSettings(request: Request): Promise<Response>;
     updateSystemSetting(request: Request): Promise<Response>;
+    getQuotaLogs(request: Request): Promise<Response>;
+    getQuotaStats(request: Request): Promise<Response>;
+    allocateQuotaToUser(request: Request): Promise<Response>;
 }
 //# sourceMappingURL=admin.handler.d.ts.map

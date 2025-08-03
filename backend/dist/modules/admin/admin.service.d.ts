@@ -1,5 +1,5 @@
 import type { Env, Domain, RedeemCode, PaginatedResponse, AdminUserListParams, AdminUserUpdateData, AdminDomainCreateData, AdminEmailListParams, AdminLogListParams, AdminRedeemCodeCreateData, SystemSetting } from '@/types';
-import type { AdminDashboardStats, AdminUserDetails, AdminEmailDetails, AdminLogDetails, AdminRedeemCodeDetails, BatchRedeemCodeCreate } from './types';
+import type { AdminDashboardStats, AdminUserDetails, AdminEmailDetails, AdminLogDetails, AdminRedeemCodeDetails, BatchRedeemCodeCreate, QuotaLogWithUser } from './types';
 export declare class AdminService {
     private env;
     private db;
@@ -24,5 +24,24 @@ export declare class AdminService {
     getSystemSettings(): Promise<SystemSetting[]>;
     getSystemSetting(key: string): Promise<SystemSetting | null>;
     updateSystemSetting(key: string, value: string): Promise<void>;
+    getQuotaLogs(page?: number, limit?: number, filters?: {
+        userId?: number;
+        type?: 'earn' | 'consume';
+        source?: string;
+        startDate?: string;
+        endDate?: string;
+    }): Promise<PaginatedResponse<QuotaLogWithUser>>;
+    getQuotaStats(): Promise<{
+        totalEarned: number;
+        totalConsumed: number;
+        todayEarned: number;
+        todayConsumed: number;
+        sourceStats: Array<{
+            source: string;
+            count: number;
+            amount: number;
+        }>;
+    }>;
+    allocateQuotaToUser(userId: number, amount: number, description?: string): Promise<void>;
 }
 //# sourceMappingURL=admin.service.d.ts.map

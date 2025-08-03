@@ -5,7 +5,8 @@ import type {
   User,
   Email,
   RedeemCode,
-  OperationLog
+  OperationLog,
+  Domain
 } from '@/types'
 
 // 重新导出需要的类型
@@ -45,6 +46,30 @@ export interface AdminDashboardStats {
     totalQuota: number
     usedQuota: number
     averageQuotaPerUser: number
+  }
+  quotaActivity: {
+    totalEarned: number
+    totalConsumed: number
+    todayEarned: number
+    todayConsumed: number
+  }
+  checkinActivity: {
+    totalCheckins: number
+    uniqueUsers: number
+    todayCheckins: number
+    weekCheckins: number
+  }
+  recentActivity: {
+    todayRegistrations: number
+    weekRegistrations: number
+    todayActiveUsers: number
+    weekActiveUsers: number
+  }
+  systemHealth: {
+    status: 'healthy' | 'warning' | 'error'
+    uptime: number
+    memoryUsage: number
+    responseTime: number
   }
 }
 

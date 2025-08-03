@@ -1,4 +1,5 @@
 // 管理员模块专用类型定义
+import type { QuotaLog } from '@/types'
 
 export interface AdminDashboardStats {
   users: {
@@ -34,6 +35,25 @@ export interface AdminDashboardStats {
     usedQuota: number
     averageQuotaPerUser: number
   }
+  quotaActivity: {
+    totalEarned: number
+    totalConsumed: number
+    todayEarned: number
+    todayConsumed: number
+  }
+  checkinActivity: {
+    totalCheckins: number
+    uniqueUsers: number
+    todayCheckins: number
+    weekCheckins: number
+  }
+  recentActivity: {
+    todayRegistrations: number
+    weekRegistrations: number
+    todayActiveUsers: number
+    weekActiveUsers: number
+  }
+  systemHealth: SystemHealth
 }
 
 export interface AdminUserDetails extends User {
@@ -55,6 +75,10 @@ export interface AdminLogDetails extends OperationLog {
 
 export interface AdminRedeemCodeDetails extends RedeemCode {
   usedByEmail?: string
+}
+
+export interface QuotaLogWithUser extends QuotaLog {
+  user_email: string
 }
 
 // 批量操作类型
