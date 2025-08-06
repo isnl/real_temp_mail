@@ -201,13 +201,87 @@ export class DatabaseService {
   }
 
   async useRedeemCode(code: string, userId: number): Promise<boolean> {
+    // 检查用户是否已经使用过这个兑换码
+    const existingUsage = await this.db.prepare(`
+      SELECT id FROM redeem_code_usage WHERE code = ? AND user_id = ?
+    `).bind(code, userId).first()
+
+    if (existingUsage) {
+      return false // 用户已经使用过这个兑换码
+    }
+
+    // 检查兑换码是否还有可用次数
+    const redeemCode = await this.getRedeemCode(code)
+    if (!redeemCode) {
+      return false
+    }
+
+    // 检查当前使用次数
+    const currentUsesResult = await this.db.prepare(`
+      SELECT COUNT(*) as count FROM redeem_code_usage WHERE code = ?
+    `).bind(code).first()
+
+    const currentUses = Number(currentUsesResult?.count) || 0
+
+    if (currentUses >= redeemCode.max_uses) {
+      return false // 已达到最大使用次数
+    }
+
+    // 检查兑换码是否过期
+    if (new Date(redeemCode.valid_until) < new Date()) {
+      return false
+    }
+
+    // 添加使用记录
     const result = await this.db.prepare(`
-      UPDATE redeem_codes
-      SET used = 1, used_by = ?, used_at = datetime('now', '+8 hours')
-      WHERE code = ? AND used = 0 AND valid_until > datetime('now', '+8 hours')
-    `).bind(userId, code).run()
+      INSERT INTO redeem_code_usage (code, user_id)
+      VALUES (?, ?)
+    `).bind(code, userId).run()
+
+    // 如果这是第一次使用，更新兑换码的used字段（保持向后兼容）
+    if (currentUses === 0) {
+      await this.db.prepare(`
+        UPDATE redeem_codes
+        SET used = 1, used_by = ?, used_at = datetime('now', '+8 hours')
+        WHERE code = ?
+      `).bind(userId, code).run()
+    }
 
     return (result.meta?.changes ?? 0) > 0
+  }
+
+  // 检查用户是否已使用过兑换码
+  async hasUserUsedRedeemCode(code: string, userId: number): Promise<boolean> {
+    const result = await this.db.prepare(`
+      SELECT id FROM redeem_code_usage WHERE code = ? AND user_id = ?
+    `).bind(code, userId).first()
+
+    return !!result
+  }
+
+  // 获取兑换码的使用次数
+  async getRedeemCodeUsageCount(code: string): Promise<number> {
+    const result = await this.db.prepare(`
+      SELECT COUNT(*) as count FROM redeem_code_usage WHERE code = ?
+    `).bind(code).first()
+
+    return Number(result?.count) || 0
+  }
+
+  // 获取兑换码的使用记录
+  async getRedeemCodeUsageList(code: string): Promise<Array<{userId: number, userEmail: string, usedAt: string}>> {
+    const result = await this.db.prepare(`
+      SELECT
+        rcu.user_id as userId,
+        u.email as userEmail,
+        rcu.used_at as usedAt
+      FROM redeem_code_usage rcu
+      JOIN users u ON rcu.user_id = u.id
+      WHERE rcu.code = ?
+      ORDER BY rcu.used_at DESC
+    `).bind(code).all()
+
+    return result.results as Array<{userId: number, userEmail: string, usedAt: string}> || []
   }
 
   // 刷新令牌相关操作

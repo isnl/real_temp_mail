@@ -639,9 +639,15 @@ export class AdminService {
     const codesQuery = `
       SELECT
         r.*,
-        u.email as usedByEmail
+        u.email as usedByEmail,
+        COALESCE(usage_count.count, 0) as currentUses
       FROM redeem_codes r
       LEFT JOIN users u ON r.used_by = u.id
+      LEFT JOIN (
+        SELECT code, COUNT(*) as count
+        FROM redeem_code_usage
+        GROUP BY code
+      ) usage_count ON r.code = usage_count.code
       ORDER BY r.created_at DESC
       LIMIT ? OFFSET ?
     `
@@ -658,8 +664,29 @@ export class AdminService {
     const total = Number(countResult?.total) || 0
     const totalPages = Math.ceil(total / limit)
 
+    // 为每个兑换码获取使用记录列表
+    const enrichedCodes = await Promise.all(
+      (codes.results as any[]).map(async (code) => {
+        const usageList = await this.env.DB.prepare(`
+          SELECT
+            rcu.user_id as userId,
+            u.email as userEmail,
+            rcu.used_at as usedAt
+          FROM redeem_code_usage rcu
+          JOIN users u ON rcu.user_id = u.id
+          WHERE rcu.code = ?
+          ORDER BY rcu.used_at DESC
+        `).bind(code.code).all()
+
+        return {
+          ...code,
+          usageList: usageList.results || []
+        }
+      })
+    )
+
     return {
-      data: codes.results as unknown as AdminRedeemCodeDetails[],
+      data: enrichedCodes as AdminRedeemCodeDetails[],
       total,
       page,
       limit,
@@ -668,13 +695,13 @@ export class AdminService {
   }
 
   async createRedeemCode(data: AdminRedeemCodeCreateData): Promise<RedeemCode> {
-    const { quota, validUntil } = data
+    const { quota, validUntil, maxUses = 1 } = data
     const code = generateRandomString(12).toUpperCase()
 
     const result = await this.env.DB.prepare(`
-      INSERT INTO redeem_codes (code, quota, valid_until, created_at)
-      VALUES (?, ?, ?, datetime('now', '+8 hours'))
-    `).bind(code, quota, validUntil).run()
+      INSERT INTO redeem_codes (code, quota, valid_until, max_uses, created_at)
+      VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
+    `).bind(code, quota, validUntil, maxUses).run()
 
     const newCode = await this.env.DB.prepare(`
       SELECT * FROM redeem_codes WHERE code = ?
@@ -684,16 +711,16 @@ export class AdminService {
   }
 
   async createBatchRedeemCodes(data: BatchRedeemCodeCreate): Promise<RedeemCode[]> {
-    const { quota, validUntil, count, prefix = '' } = data
+    const { quota, validUntil, count, prefix = '', maxUses = 1 } = data
     const codes: RedeemCode[] = []
 
     for (let i = 0; i < count; i++) {
       const code = prefix + generateRandomString(12 - prefix.length).toUpperCase()
 
       await this.env.DB.prepare(`
-        INSERT INTO redeem_codes (code, quota, valid_until, created_at)
-        VALUES (?, ?, ?, datetime('now', '+8 hours'))
-      `).bind(code, quota, validUntil).run()
+        INSERT INTO redeem_codes (code, quota, valid_until, max_uses, created_at)
+        VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
+      `).bind(code, quota, validUntil, maxUses).run()
 
       const newCode = await this.env.DB.prepare(`
         SELECT * FROM redeem_codes WHERE code = ?

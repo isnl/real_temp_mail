@@ -1,12 +1,11 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  getRedeemCodes, 
-  createRedeemCode, 
+import {
+  getRedeemCodes,
+  createRedeemCode,
   createBatchRedeemCodes,
   deleteRedeemCode,
-  formatRedeemCodeStatus,
   formatNumber
 } from '@/api/admin'
 import type { 
@@ -27,14 +26,16 @@ const batchCreateDialogVisible = ref(false)
 
 const createForm = reactive<AdminRedeemCodeCreateData>({
   quota: 5,
-  validUntil: ''
+  validUntil: '',
+  maxUses: 1
 })
 
 const batchCreateForm = reactive<BatchRedeemCodeCreate>({
   quota: 5,
   validUntil: '',
   count: 10,
-  prefix: ''
+  prefix: '',
+  maxUses: 1
 })
 
 const loadCodes = async () => {
@@ -64,6 +65,7 @@ const handlePageChange = (page: number) => {
 const handleCreate = () => {
   createForm.quota = 5
   createForm.validUntil = ''
+  createForm.maxUses = 1
   createDialogVisible.value = true
 }
 
@@ -72,6 +74,7 @@ const handleBatchCreate = () => {
   batchCreateForm.validUntil = ''
   batchCreateForm.count = 10
   batchCreateForm.prefix = ''
+  batchCreateForm.maxUses = 1
   batchCreateDialogVisible.value = true
 }
 
@@ -174,6 +177,48 @@ const getDefaultValidUntil = (): string => {
   return date.toISOString().split('T')[0]
 }
 
+// 获取兑换码状态类型
+const getStatusType = (code: AdminRedeemCodeDetails): string => {
+  const now = new Date()
+  const validUntil = new Date(code.valid_until)
+  const currentUses = code.currentUses || 0
+
+  if (validUntil < now) {
+    return 'danger' // 已过期
+  }
+
+  if (currentUses >= code.max_uses) {
+    return 'success' // 已用完
+  }
+
+  if (currentUses > 0) {
+    return 'warning' // 部分使用
+  }
+
+  return 'info' // 未使用
+}
+
+// 获取兑换码状态文本
+const getStatusText = (code: AdminRedeemCodeDetails): string => {
+  const now = new Date()
+  const validUntil = new Date(code.valid_until)
+  const currentUses = code.currentUses || 0
+
+  if (validUntil < now) {
+    return '已过期'
+  }
+
+  if (currentUses >= code.max_uses) {
+    return '已用完'
+  }
+
+  if (currentUses > 0) {
+    return '部分使用'
+  }
+
+  return '未使用'
+}
+
 onMounted(() => {
   loadCodes()
   // 设置默认有效期
@@ -240,21 +285,44 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="quota" label="配额" width="80" />
+        <el-table-column label="使用次数" width="120">
+          <template #default="{ row }">
+            <div class="text-sm">
+              <span class="font-semibold">{{ row.currentUses || 0 }}</span>
+              <span class="text-gray-500"> / {{ row.max_uses }}</span>
+            </div>
+            <div class="text-xs text-gray-400">
+              {{ row.max_uses === 1 ? '单次使用' : '多次使用' }}
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag 
-              :type="row.used ? 'success' : (new Date(row.valid_until) < new Date() ? 'danger' : 'warning')"
+            <el-tag
+              :type="getStatusType(row)"
               size="small"
             >
-              {{ formatRedeemCodeStatus(row) }}
+              {{ getStatusText(row) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="使用者" min-width="150">
+        <el-table-column label="使用记录" min-width="200">
           <template #default="{ row }">
-            <div v-if="row.usedByEmail" class="flex items-center">
-              <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
-              <span class="text-sm">{{ row.usedByEmail }}</span>
+            <div v-if="row.usageList && row.usageList.length > 0" class="space-y-1">
+              <div
+                v-for="(usage, index) in row.usageList.slice(0, 2)"
+                :key="index"
+                class="flex items-center text-sm"
+              >
+                <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
+                <span class="truncate">{{ usage.userEmail }}</span>
+                <span class="text-xs text-gray-400 ml-2">
+                  {{ new Date(usage.usedAt).toLocaleDateString() }}
+                </span>
+              </div>
+              <div v-if="row.usageList.length > 2" class="text-xs text-gray-400">
+                还有 {{ row.usageList.length - 2 }} 条记录...
+              </div>
             </div>
             <span v-else class="text-gray-400 text-sm">未使用</span>
           </template>
@@ -326,7 +394,20 @@ onMounted(() => {
             用户使用此兑换码可获得的配额数量
           </div>
         </el-form-item>
-        
+
+        <el-form-item label="使用次数" required>
+          <el-input-number
+            v-model="createForm.maxUses"
+            :min="1"
+            :max="1000"
+            controls-position="right"
+            class="w-full"
+          />
+          <div class="text-xs text-gray-500 mt-1">
+            此兑换码最多可被使用的次数（每个用户只能使用一次）
+          </div>
+        </el-form-item>
+
         <el-form-item label="有效期" required>
           <el-date-picker
             v-model="createForm.validUntil"
@@ -371,7 +452,20 @@ onMounted(() => {
             class="w-full"
           />
         </el-form-item>
-        
+
+        <el-form-item label="使用次数" required>
+          <el-input-number
+            v-model="batchCreateForm.maxUses"
+            :min="1"
+            :max="1000"
+            controls-position="right"
+            class="w-full"
+          />
+          <div class="text-xs text-gray-500 mt-1">
+            每个兑换码最多可被使用的次数
+          </div>
+        </el-form-item>
+
         <el-form-item label="数量" required>
           <el-input-number
             v-model="batchCreateForm.count"
@@ -384,7 +478,7 @@ onMounted(() => {
             一次最多创建100个兑换码
           </div>
         </el-form-item>
-        
+
         <el-form-item label="前缀">
           <el-input
             v-model="batchCreateForm.prefix"

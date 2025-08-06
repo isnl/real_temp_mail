@@ -26,6 +26,13 @@ export declare class DatabaseService {
     getDomainById(id: number): Promise<Domain | null>;
     getRedeemCode(code: string): Promise<RedeemCode | null>;
     useRedeemCode(code: string, userId: number): Promise<boolean>;
+    hasUserUsedRedeemCode(code: string, userId: number): Promise<boolean>;
+    getRedeemCodeUsageCount(code: string): Promise<number>;
+    getRedeemCodeUsageList(code: string): Promise<Array<{
+        userId: number;
+        userEmail: string;
+        usedAt: string;
+    }>>;
     storeRefreshToken(userId: number, tokenHash: string, expiresAt: string): Promise<void>;
     getRefreshToken(tokenHash: string): Promise<RefreshToken | null>;
     revokeRefreshToken(tokenHash: string): Promise<void>;

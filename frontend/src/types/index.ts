@@ -106,6 +106,7 @@ export interface RedeemCode {
   used_by: number | null
   used_at: string | null
   created_at: string
+  max_uses: number
 }
 
 // API响应类型

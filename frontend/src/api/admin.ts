@@ -92,6 +92,12 @@ export interface AdminLogDetails extends OperationLog {
 
 export interface AdminRedeemCodeDetails extends RedeemCode {
   usedByEmail?: string
+  currentUses?: number
+  usageList?: Array<{
+    userId: number
+    userEmail: string
+    usedAt: string
+  }>
 }
 
 export interface AdminUserListParams {
@@ -136,6 +142,7 @@ export interface AdminLogListParams {
 export interface AdminRedeemCodeCreateData {
   quota: number
   validUntil: string
+  maxUses?: number
 }
 
 export interface BatchRedeemCodeCreate {
@@ -143,6 +150,7 @@ export interface BatchRedeemCodeCreate {
   validUntil: string
   count: number
   prefix?: string
+  maxUses?: number
 }
 
 // ==================== 仪表板统计 ====================

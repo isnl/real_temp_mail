@@ -75,6 +75,12 @@ export interface AdminLogDetails extends OperationLog {
 
 export interface AdminRedeemCodeDetails extends RedeemCode {
   usedByEmail?: string
+  currentUses?: number
+  usageList?: Array<{
+    userId: number
+    userEmail: string
+    usedAt: string
+  }>
 }
 
 export interface QuotaLogWithUser extends QuotaLog {
@@ -98,6 +104,7 @@ export interface BatchRedeemCodeCreate {
   validUntil: string
   count: number
   prefix?: string
+  maxUses?: number
 }
 
 // 导出数据类型

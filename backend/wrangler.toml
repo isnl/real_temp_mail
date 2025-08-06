@@ -6,8 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 # D1 数据库配置
 [[d1_databases]]
 binding = "DB"
-database_name = "email-db"
-database_id = "local-dev-db"
+database_name = "oooo-mail"
+database_id = "d1144511-217a-4db6-ab72-35f05dff553e"
 
 # 环境变量
 [vars]
@@ -20,10 +20,9 @@ TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
 # 生产环境配置
 [env.production.vars]
 ENVIRONMENT = "production"
-JWT_SECRET = "your-jwt-secret-here"
-BASE_DOMAIN = "yourapp.com"
-TURNSTILE_SECRET_KEY = "your-turnstile-secret-key"
-TURNSTILE_SITE_KEY = "your-turnstile-site-key"
+JWT_SECRET = "peanut_0806_temp_mail_1Bl8GHds"
+TURNSTILE_SECRET_KEY = "0x4AAAAAABnwzIt8NcyNxRXOCs6EH7npA_Y"
+TURNSTILE_SITE_KEY = "0x4AAAAAABnwzPzpwOU-tYrL"
 
 # 开发环境配置
 [env.development.vars]
@@ -33,10 +32,6 @@ BASE_DOMAIN = "localhost"
 TURNSTILE_SECRET_KEY = "dev-turnstile-secret"
 TURNSTILE_SITE_KEY = "dev-turnstile-site"
 
-# Email Routing 配置
-[[email]]
-name = "temp-email-routing"
-destination_address = "your-worker@yourapp.com"
 
 # 构建配置
 [build]

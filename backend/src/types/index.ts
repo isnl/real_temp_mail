@@ -111,6 +111,15 @@ export interface RedeemCode {
   used_by: number | null
   used_at: string | null
   created_at: string
+  max_uses: number
+}
+
+// 兑换码使用记录类型
+export interface RedeemCodeUsage {
+  id: number
+  code: string
+  user_id: number
+  used_at: string
 }
 
 // JWT相关类型
@@ -323,6 +332,7 @@ export interface AdminRedeemCodeCreateData {
   quota: number
   validUntil: string
   count?: number
+  maxUses?: number
 }
 
 export interface AdminStatsData {

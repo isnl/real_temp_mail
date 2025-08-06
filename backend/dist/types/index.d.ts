@@ -89,6 +89,13 @@ export interface RedeemCode {
     used_by: number | null;
     used_at: string | null;
     created_at: string;
+    max_uses: number;
+}
+export interface RedeemCodeUsage {
+    id: number;
+    code: string;
+    user_id: number;
+    used_at: string;
 }
 export interface JWTPayload {
     userId: number;
@@ -249,6 +256,7 @@ export interface AdminRedeemCodeCreateData {
     quota: number;
     validUntil: string;
     count?: number;
+    maxUses?: number;
 }
 export interface AdminStatsData {
     totalUsers: number;

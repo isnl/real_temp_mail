@@ -23,7 +23,10 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       try {
         const response = await authApi.login(loginData)
-        this.setAuthData(response.data.user, response.data.tokens)
+        if (!response.success) {
+          throw new Error(response.error || '登录失败')
+        }
+        this.setAuthData(response.data!.user, response.data!.tokens)
         return response
       } catch (error) {
         throw error
@@ -36,7 +39,10 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       try {
         const response = await authApi.register(registerData)
-        this.setAuthData(response.data.user, response.data.tokens)
+        if (!response.success) {
+          throw new Error(response.error || '注册失败')
+        }
+        this.setAuthData(response.data!.user, response.data!.tokens)
         return response
       } catch (error) {
         throw error
@@ -52,7 +58,10 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await authApi.refreshToken(this.refreshToken)
-        this.setTokens(response.data)
+        if (!response.success) {
+          throw new Error(response.error || 'Token刷新失败')
+        }
+        this.setTokens(response.data!)
         return response
       } catch (error) {
         this.logout()

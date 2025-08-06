@@ -148,15 +148,23 @@ export class EmailService {
       throw new ValidationError('兑换码不存在')
     }
 
-    if (redeemCode.used) {
-      throw new ValidationError('兑换码已被使用')
-    }
-
     if (new Date(redeemCode.valid_until) < new Date()) {
       throw new ValidationError('兑换码已过期')
     }
 
-    // 2. 使用兑换码
+    // 2. 检查用户是否已经使用过这个兑换码
+    const hasUsed = await this.dbService.hasUserUsedRedeemCode(request.code, userId)
+    if (hasUsed) {
+      throw new ValidationError('您已经使用过这个兑换码')
+    }
+
+    // 3. 检查兑换码是否还有可用次数
+    const currentUses = await this.dbService.getRedeemCodeUsageCount(request.code)
+    if (currentUses >= redeemCode.max_uses) {
+      throw new ValidationError('兑换码使用次数已达上限')
+    }
+
+    // 4. 使用兑换码
     const success = await this.dbService.useRedeemCode(request.code, userId)
     if (!success) {
       throw new ValidationError('兑换码使用失败')
