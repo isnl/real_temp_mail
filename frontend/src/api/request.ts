@@ -7,6 +7,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 // 请求拦截器
 class ApiClient {
   private baseURL: string
+  private isRefreshing = false
+  private refreshPromise: Promise<void> | null = null
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
@@ -17,10 +19,10 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const authStore = useAuthStore()
-    
+
     // 构建完整URL
     const url = `${this.baseURL}${endpoint}`
-    
+
     // 默认请求头
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -43,10 +45,36 @@ class ApiClient {
       // 先获取错误数据
       const errorData = await response.json().catch(() => ({}))
 
-      // 如果是401错误且不是密码相关的错误，尝试刷新token
-      if (response.status === 401 && authStore.refreshToken && !endpoint.includes('change-password')) {
+      // 如果是401错误且不是刷新token或密码相关的错误，尝试刷新token
+      if (response.status === 401 &&
+          authStore.refreshToken &&
+          !endpoint.includes('refresh') &&
+          !endpoint.includes('change-password') &&
+          !endpoint.includes('login') &&
+          !endpoint.includes('register')) {
+
         try {
-          await authStore.refreshTokens()
+          // 防止并发刷新
+          if (this.isRefreshing) {
+            // 等待正在进行的刷新完成
+            if (this.refreshPromise) {
+              await this.refreshPromise
+            }
+          } else {
+            // 开始刷新
+            this.isRefreshing = true
+            this.refreshPromise = authStore.refreshTokens().then(() => {
+              this.isRefreshing = false
+              this.refreshPromise = null
+            }).catch((error) => {
+              this.isRefreshing = false
+              this.refreshPromise = null
+              throw error
+            })
+
+            await this.refreshPromise
+          }
+
           // 重新发送原请求
           headers['Authorization'] = `Bearer ${authStore.accessToken}`
           const retryResponse = await fetch(url, {
@@ -65,7 +93,7 @@ class ApiClient {
             } as ApiResponse<T>
           }
         } catch (error) {
-          // 刷新失败，跳转到登录页
+          // 刷新失败，清除认证状态
           authStore.logout()
           return {
             success: false,

@@ -53,31 +53,39 @@ export const useAuthStore = defineStore('auth', {
 
     async refreshTokens() {
       if (!this.refreshToken) {
+        this.logout()
         throw new Error('No refresh token available')
       }
 
       try {
         const response = await authApi.refreshToken(this.refreshToken)
         if (!response.success) {
+          this.logout()
           throw new Error(response.error || 'Token刷新失败')
         }
         this.setTokens(response.data!)
         return response
       } catch (error) {
+        console.error('Token refresh failed:', error)
         this.logout()
         throw error
       }
     },
 
     async logout() {
-      try {
-        if (this.refreshToken) {
-          await authApi.logout(this.refreshToken)
+      const currentRefreshToken = this.refreshToken
+
+      // 立即清除本地状态，防止死循环
+      this.clearAuthData()
+
+      // 尝试通知服务器撤销token
+      if (currentRefreshToken) {
+        try {
+          await authApi.logout(currentRefreshToken)
+        } catch (error) {
+          console.error('Logout API error (ignored):', error)
+          // 忽略服务器错误，因为本地状态已经清除
         }
-      } catch (error) {
-        console.error('Logout error:', error)
-      } finally {
-        this.clearAuthData()
       }
     },
 
