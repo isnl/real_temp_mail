@@ -15,8 +15,8 @@ const user = computed(() => authStore.user)
 // 表单数据
 const profileForm = ref({
   email: user.value?.email || '',
-  nickname: user.value?.nickname || '',
-  avatar: user.value?.avatar || ''
+  nickname: '', // User类型中没有nickname字段
+  avatar: '' // User类型中没有avatar字段
 })
 
 // 表单验证规则
@@ -57,8 +57,8 @@ const saveProfile = async () => {
 const resetForm = () => {
   profileForm.value = {
     email: user.value?.email || '',
-    nickname: user.value?.nickname || '',
-    avatar: user.value?.avatar || ''
+    nickname: '', // User类型中没有nickname字段
+    avatar: '' // User类型中没有avatar字段
   }
   profileFormRef.value?.clearValidate()
 }

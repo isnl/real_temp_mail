@@ -1,0 +1,15 @@
+name = "temp-mail-frontend"
+compatibility_date = "2024-08-06"
+
+[env.production]
+name = "temp-mail-frontend"
+
+[env.development]
+name = "temp-mail-frontend-dev"
+
+# Pages 配置
+pages_build_output_dir = "dist"
+
+# 构建配置
+[build]
+command = "npm run build"

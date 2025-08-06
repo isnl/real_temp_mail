@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { checkinApi, type CheckinHistory, type CheckinStats } from '@/api/checkin'
+import type { CheckinStatus } from '@/types'
 import dayjs from 'dayjs'
 import { usePageTitle } from '@/composables/usePageTitle'
 
@@ -17,9 +18,9 @@ const currentYear = ref(dayjs().year())
 const currentMonth = ref(dayjs().month() + 1) // dayjs月份从0开始，需要+1
 
 // 签到状态
-const checkinStatus = ref({
+const checkinStatus = ref<CheckinStatus>({
   hasCheckedIn: false,
-  checkinRecord: null as any,
+  checkinRecord: undefined,
   nextCheckinTime: '',
 })
 

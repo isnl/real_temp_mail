@@ -352,13 +352,13 @@ const getEmailTypeIcon = (subject: string, content: string) => {
             <div class="flex-shrink-0 mt-1">
               <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
                    :class="{
-                     'bg-gradient-to-br from-green-500 to-emerald-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'shield-alt',
-                     'bg-gradient-to-br from-orange-500 to-red-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'key',
-                     'bg-gradient-to-br from-blue-500 to-indigo-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'user-plus',
-                     'bg-gradient-to-br from-gray-400 to-gray-600 text-white': getEmailTypeIcon(email.subject, email.content).icon === 'envelope'
+                     'bg-gradient-to-br from-green-500 to-emerald-600 text-white': getEmailTypeIcon(email.subject || '', email.content || '').icon === 'shield-alt',
+                     'bg-gradient-to-br from-orange-500 to-red-600 text-white': getEmailTypeIcon(email.subject || '', email.content || '').icon === 'key',
+                     'bg-gradient-to-br from-blue-500 to-indigo-600 text-white': getEmailTypeIcon(email.subject || '', email.content || '').icon === 'user-plus',
+                     'bg-gradient-to-br from-gray-400 to-gray-600 text-white': getEmailTypeIcon(email.subject || '', email.content || '').icon === 'envelope'
                    }">
                 <font-awesome-icon
-                  :icon="['fas', getEmailTypeIcon(email.subject, email.content).icon]"
+                  :icon="['fas', getEmailTypeIcon(email.subject || '', email.content || '').icon]"
                   class="text-sm"
                 />
               </div>

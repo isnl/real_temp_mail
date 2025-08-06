@@ -20,7 +20,7 @@ export const useUserQueries = () => {
 
   // 刷新用户信息
   const refreshUserInfo = () => {
-    return queryClient.invalidateQueries(['user', 'current'])
+    return queryClient.invalidateQueries({ queryKey: ['user', 'current'] })
   }
 
   // 手动更新用户配额（乐观更新）

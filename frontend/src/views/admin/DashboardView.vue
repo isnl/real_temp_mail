@@ -157,10 +157,10 @@ onMounted(() => {
           <div class="flex items-center">
             <div class="w-12 h-12 bg-rose-100 dark:bg-rose-900 rounded-lg flex items-center justify-center">
               <font-awesome-icon
-                :icon="['fas', stats.systemHealth.database?.status === 'healthy' ? 'heart' : 'exclamation-triangle']"
+                :icon="['fas', stats.systemHealth.status === 'healthy' ? 'heart' : 'exclamation-triangle']"
                 :class="[
                   'text-xl',
-                  stats.systemHealth.database?.status === 'healthy' ? 'text-rose-600 dark:text-rose-400' : 'text-red-600 dark:text-red-400'
+                  stats.systemHealth.status === 'healthy' ? 'text-rose-600 dark:text-rose-400' : 'text-red-600 dark:text-red-400'
                 ]"
               />
             </div>
@@ -168,12 +168,12 @@ onMounted(() => {
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">系统状态</p>
               <p :class="[
                 'text-2xl font-semibold',
-                stats.systemHealth.database?.status === 'healthy' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                stats.systemHealth.status === 'healthy' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
               ]">
-                {{ stats.systemHealth.database?.status === 'healthy' ? '健康' : '异常' }}
+                {{ stats.systemHealth.status === 'healthy' ? '健康' : '异常' }}
               </p>
               <p class="text-xs text-gray-500 dark:text-gray-500">
-                响应: {{ stats.systemHealth.database?.responseTime || 0 }}ms
+                响应: {{ stats.systemHealth.responseTime || 0 }}ms
               </p>
             </div>
           </div>
