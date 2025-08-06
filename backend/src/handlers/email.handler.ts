@@ -18,6 +18,7 @@ export class EmailHandler {
   public getTempEmails: (request: Request) => Promise<Response>
   public deleteTempEmail: (request: Request) => Promise<Response>
   public getEmailsForTempEmail: (request: Request) => Promise<Response>
+  public getEmailDetail: (request: Request) => Promise<Response>
   public deleteEmail: (request: Request) => Promise<Response>
   public redeemCode: (request: Request) => Promise<Response>
   public getQuotaInfo: (request: Request) => Promise<Response>
@@ -42,6 +43,10 @@ export class EmailHandler {
 
     this.getEmailsForTempEmail = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
       return this.handleGetEmailsForTempEmail(request, user)
+    })
+
+    this.getEmailDetail = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
+      return this.handleGetEmailDetail(request, user)
     })
 
     this.deleteEmail = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
@@ -166,11 +171,28 @@ export class EmailHandler {
 
       const pagination: PaginationParams = { page, limit, offset }
       const emails = await this.emailService.getEmailsForTempEmail(user.userId, tempEmailId, pagination)
-      
+
       return this.successResponse(emails)
     } catch (error: any) {
       console.error('Get emails for temp email error:', error)
       return this.errorResponse(error.message || '获取邮件列表失败', error.statusCode || 500)
+    }
+  }
+
+  private async handleGetEmailDetail(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
+    try {
+      const url = new URL(request.url)
+      const emailId = parseInt(url.pathname.split('/').pop() || '0')
+
+      if (!emailId) {
+        return this.errorResponse('无效的邮件ID', 400)
+      }
+
+      const email = await this.emailService.getEmailDetail(user.userId, emailId)
+      return this.successResponse(email)
+    } catch (error: any) {
+      console.error('Get email detail error:', error)
+      return this.errorResponse(error.message || '获取邮件详情失败', error.statusCode || 500)
     }
   }
 

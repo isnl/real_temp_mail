@@ -170,6 +170,12 @@ export class DatabaseService {
     }
   }
 
+  async getEmailById(id: number): Promise<Email | null> {
+    return await this.db.prepare(`
+      SELECT * FROM emails WHERE id = ?
+    `).bind(id).first<Email>()
+  }
+
   async deleteEmail(id: number): Promise<boolean> {
     const result = await this.db.prepare(`
       DELETE FROM emails WHERE id = ?

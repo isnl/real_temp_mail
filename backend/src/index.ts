@@ -4,6 +4,7 @@ import { EmailHandler } from '@/handlers/email.handler'
 import { AdminHandler } from '@/handlers/admin.handler'
 import { CheckinHandler } from '@/handlers/checkin.handler'
 import { QuotaHandler } from '@/handlers/quota.handler'
+import { handleEmailProcessing } from '@/modules/email/email-processor'
 
 // 添加CORS头的工具函数
 function addCorsHeaders(response: Response): Response {
@@ -59,9 +60,6 @@ export default {
         response = await handleCheckinRoutes(pathname, method, request, checkinHandler)
       } else if (pathname.startsWith('/api/quota/')) {
         response = await handleQuotaRoutes(pathname, method, request, quotaHandler)
-      } else if (pathname === '/api/webhook/email') {
-        // Email Routing webhook
-        response = await emailHandler.handleIncomingEmail(request)
       } else if (pathname === '/api/health') {
         response = new Response(JSON.stringify({
           success: true,
@@ -93,6 +91,11 @@ export default {
       })
       return addCorsHeaders(errorResponse)
     }
+  },
+
+  // 邮件处理功能 - Email Routing 入口
+  async email(message: any, env: Env, ctx: ExecutionContext) {
+    return await handleEmailProcessing(message, env)
   }
 }
 
@@ -167,8 +170,9 @@ async function handleEmailRoutes(
     if (method === 'GET') return await handler.getEmailsForTempEmail(request)
   }
 
-  // 删除邮件 /api/email/emails/:id
+  // 获取邮件详情 /api/email/emails/:id
   if (pathname.match(/^\/api\/email\/emails\/\d+$/)) {
+    if (method === 'GET') return await handler.getEmailDetail(request)
     if (method === 'DELETE') return await handler.deleteEmail(request)
   }
 
@@ -337,22 +341,4 @@ async function handleQuotaRoutes(pathname: string, method: string, request: Requ
     status: 405,
     headers: { 'Content-Type': 'application/json' }
   })
-}
-
-// Email Routing 处理器
-export async function email(message: any, env: Env, ctx: ExecutionContext) {
-  try {
-    const emailHandler = new EmailHandler(env)
-
-    // 构造一个模拟的Request对象来处理邮件
-    const url = new URL(`https://temp-email.workers.dev/api/webhook/email?to=${message.to}`)
-    const request = new Request(url.toString(), {
-      method: 'POST',
-      body: message.raw
-    })
-
-    await emailHandler.handleIncomingEmail(request)
-  } catch (error) {
-    console.error('Email routing error:', error)
-  }
 }

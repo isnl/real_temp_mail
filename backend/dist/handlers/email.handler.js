@@ -10,6 +10,7 @@ export class EmailHandler {
     getTempEmails;
     deleteTempEmail;
     getEmailsForTempEmail;
+    getEmailDetail;
     deleteEmail;
     redeemCode;
     getQuotaInfo;
@@ -30,6 +31,9 @@ export class EmailHandler {
         });
         this.getEmailsForTempEmail = withAuth(this.env)((request, user) => {
             return this.handleGetEmailsForTempEmail(request, user);
+        });
+        this.getEmailDetail = withAuth(this.env)((request, user) => {
+            return this.handleGetEmailDetail(request, user);
         });
         this.deleteEmail = withAuth(this.env)((request, user) => {
             return this.handleDeleteEmail(request, user);
@@ -137,6 +141,21 @@ export class EmailHandler {
         catch (error) {
             console.error('Get emails for temp email error:', error);
             return this.errorResponse(error.message || '获取邮件列表失败', error.statusCode || 500);
+        }
+    }
+    async handleGetEmailDetail(request, user) {
+        try {
+            const url = new URL(request.url);
+            const emailId = parseInt(url.pathname.split('/').pop() || '0');
+            if (!emailId) {
+                return this.errorResponse('无效的邮件ID', 400);
+            }
+            const email = await this.emailService.getEmailDetail(user.userId, emailId);
+            return this.successResponse(email);
+        }
+        catch (error) {
+            console.error('Get email detail error:', error);
+            return this.errorResponse(error.message || '获取邮件详情失败', error.statusCode || 500);
         }
     }
     async handleDeleteEmail(request, user) {

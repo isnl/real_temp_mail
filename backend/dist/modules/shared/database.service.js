@@ -107,6 +107,11 @@ export class DatabaseService {
             totalPages: Math.ceil(total / pagination.limit)
         };
     }
+    async getEmailById(id) {
+        return await this.db.prepare(`
+      SELECT * FROM emails WHERE id = ?
+    `).bind(id).first();
+    }
     async deleteEmail(id) {
         const result = await this.db.prepare(`
       DELETE FROM emails WHERE id = ?

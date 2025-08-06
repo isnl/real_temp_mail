@@ -121,12 +121,31 @@ export class EmailService {
     return await this.dbService.getEmailsForTempEmail(tempEmailId, pagination)
   }
 
+  async getEmailDetail(userId: number, emailId: number): Promise<Email> {
+    // 获取邮件详情
+    const email = await this.dbService.getEmailById(emailId)
+    if (!email) {
+      throw new NotFoundError('邮件不存在')
+    }
+
+    // 验证邮件是否属于用户的临时邮箱
+    const tempEmails = await this.dbService.getTempEmailsByUserId(userId)
+    const tempEmail = tempEmails.find(te => te.id === email.temp_email_id)
+
+    if (!tempEmail) {
+      throw new NotFoundError('邮件不存在或无权限访问')
+    }
+
+    return email
+  }
+
   async deleteEmail(userId: number, emailId: number): Promise<void> {
-    // 这里需要验证邮件是否属于用户的临时邮箱
-    // 为简化，暂时直接删除，实际应用中需要添加权限检查
+    // 先验证邮件是否属于用户
+    await this.getEmailDetail(userId, emailId) // 这会检查权限
+
     const success = await this.dbService.deleteEmail(emailId)
     if (!success) {
-      throw new NotFoundError('邮件不存在')
+      throw new NotFoundError('邮件删除失败')
     }
 
     // 记录日志
@@ -203,33 +222,77 @@ export class EmailService {
     try {
       console.log('Processing incoming email for:', recipientEmail)
 
-      // 1. 查找对应的临时邮箱
-      const tempEmail = await this.dbService.getTempEmailByEmail(recipientEmail)
-      if (!tempEmail || !tempEmail.active) {
-        console.log('Temp email not found or inactive:', recipientEmail)
+      // 1. 验证收件人邮箱格式
+      if (!recipientEmail || !recipientEmail.includes('@')) {
+        console.error('Invalid recipient email format:', recipientEmail)
         return
       }
 
-      // 2. 解析邮件内容
-      const parsedEmail = await this.parserService.parseEmail(rawEmail)
+      // 2. 查找对应的临时邮箱
+      const tempEmail = await this.dbService.getTempEmailByEmail(recipientEmail)
+      if (!tempEmail) {
+        console.log('Temp email not found:', recipientEmail)
+        return
+      }
 
-      // 3. 存储邮件到数据库
+      if (!tempEmail.active) {
+        console.log('Temp email is inactive:', recipientEmail)
+        return
+      }
+
+      console.log('Found temp email:', tempEmail.id, 'for user:', tempEmail.user_id)
+
+      // 3. 解析邮件内容
+      const parsedEmail = await this.parserService.parseEmail(rawEmail)
+      console.log('Email parsed successfully. From:', parsedEmail.from.address, 'Subject:', parsedEmail.subject)
+
+      // 4. 验证解析结果
+      if (!parsedEmail.from.address) {
+        console.error('Failed to parse sender address from email')
+        // 仍然尝试存储，使用默认值
+        parsedEmail.from.address = 'unknown@unknown.com'
+      }
+
+      // 5. 存储邮件到数据库
       const email = await this.dbService.createEmail({
         tempEmailId: tempEmail.id,
         sender: parsedEmail.from.address,
-        subject: parsedEmail.subject,
+        subject: parsedEmail.subject || '无主题',
         content: parsedEmail.text,
         htmlContent: parsedEmail.html,
         verificationCode: parsedEmail.verificationCode
       })
 
-      console.log('Email stored successfully:', email.id)
+      console.log('Email stored successfully:', {
+        emailId: email.id,
+        tempEmailId: tempEmail.id,
+        sender: parsedEmail.from.address,
+        subject: parsedEmail.subject,
+        hasContent: !!parsedEmail.text,
+        hasHtml: !!parsedEmail.html,
+        hasVerificationCode: !!parsedEmail.verificationCode
+      })
 
-      // 4. 这里可以添加实时推送逻辑（WebSocket等）
+      // 6. 记录邮件接收日志
+      await this.dbService.createLog({
+        userId: tempEmail.user_id,
+        action: 'RECEIVE_EMAIL',
+        details: `Received email from ${parsedEmail.from.address} to ${recipientEmail}`
+      })
+
+      // 7. 这里可以添加实时推送逻辑（WebSocket等）
       // await this.notifyUser(tempEmail.user_id, email)
 
     } catch (error) {
       console.error('Error handling incoming email:', error)
+      console.error('Error details:', {
+        recipientEmail,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined
+      })
+
+      // 不抛出错误，避免影响Email Routing的正常工作
+      // 但可以考虑记录到错误日志系统
     }
   }
 

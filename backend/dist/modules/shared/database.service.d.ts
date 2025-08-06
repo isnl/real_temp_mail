@@ -21,6 +21,7 @@ export declare class DatabaseService {
         verificationCode?: string;
     }): Promise<Email>;
     getEmailsForTempEmail(tempEmailId: number, pagination: PaginationParams): Promise<PaginatedResponse<Email>>;
+    getEmailById(id: number): Promise<Email | null>;
     deleteEmail(id: number): Promise<boolean>;
     getActiveDomains(): Promise<Domain[]>;
     getDomainById(id: number): Promise<Domain | null>;

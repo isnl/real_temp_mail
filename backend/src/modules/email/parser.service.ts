@@ -31,13 +31,55 @@ export class EmailParserService {
       }
     } catch (error) {
       console.error('Email parsing error:', error)
-      
-      // 返回解析失败的默认结构
+      console.error('Error details:', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        rawEmailType: typeof rawEmail,
+        rawEmailSize: rawEmail instanceof ArrayBuffer ? rawEmail.byteLength :
+                     typeof rawEmail === 'string' ? rawEmail.length : 'unknown'
+      })
+
+      // 尝试从原始邮件中提取基本信息
+      let fallbackFrom = ''
+      let fallbackSubject = '邮件解析失败'
+      let fallbackContent = '邮件内容解析失败，请查看原始邮件'
+
+      try {
+        const emailText = rawEmail instanceof ArrayBuffer ?
+          new TextDecoder().decode(rawEmail) :
+          String(rawEmail)
+
+        // 尝试提取发件人
+        const fromMatch = emailText.match(/^From:\s*(.+)$/m)
+        if (fromMatch && fromMatch[1]) {
+          fallbackFrom = fromMatch[1].trim()
+        }
+
+        // 尝试提取主题
+        const subjectMatch = emailText.match(/^Subject:\s*(.+)$/m)
+        if (subjectMatch && subjectMatch[1]) {
+          fallbackSubject = subjectMatch[1].trim()
+        }
+
+        // 保存原始内容的一部分作为备用
+        if (emailText.length > 100) {
+          fallbackContent = emailText.substring(0, 500) + '...'
+        } else {
+          fallbackContent = emailText
+        }
+      } catch (fallbackError) {
+        console.error('Fallback parsing also failed:', fallbackError)
+      }
+
+      // 返回解析失败的默认结构，但包含尽可能多的信息
       return {
-        from: { address: '', name: '' },
+        from: {
+          address: fallbackFrom || 'unknown@unknown.com',
+          name: ''
+        },
         to: '',
-        subject: '邮件解析失败',
-        text: '邮件内容解析失败，请查看原始邮件',
+        subject: fallbackSubject,
+        text: fallbackContent,
         html: '',
         verificationCode: undefined
       }

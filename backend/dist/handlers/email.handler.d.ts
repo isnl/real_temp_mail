@@ -7,6 +7,7 @@ export declare class EmailHandler {
     getTempEmails: (request: Request) => Promise<Response>;
     deleteTempEmail: (request: Request) => Promise<Response>;
     getEmailsForTempEmail: (request: Request) => Promise<Response>;
+    getEmailDetail: (request: Request) => Promise<Response>;
     deleteEmail: (request: Request) => Promise<Response>;
     redeemCode: (request: Request) => Promise<Response>;
     getQuotaInfo: (request: Request) => Promise<Response>;
@@ -17,6 +18,7 @@ export declare class EmailHandler {
     private handleGetTempEmails;
     private handleDeleteTempEmail;
     private handleGetEmailsForTempEmail;
+    private handleGetEmailDetail;
     private handleDeleteEmail;
     private handleRedeemCode;
     private handleGetQuotaInfo;

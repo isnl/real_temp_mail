@@ -9,6 +9,7 @@ export declare class EmailService {
     getTempEmails(userId: number): Promise<TempEmail[]>;
     deleteTempEmail(userId: number, emailId: number): Promise<void>;
     getEmailsForTempEmail(userId: number, tempEmailId: number, pagination: PaginationParams): Promise<PaginatedResponse<Email>>;
+    getEmailDetail(userId: number, emailId: number): Promise<Email>;
     deleteEmail(userId: number, emailId: number): Promise<void>;
     getActiveDomains(): Promise<Domain[]>;
     redeemCode(userId: number, request: RedeemRequest): Promise<{

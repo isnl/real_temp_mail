@@ -33,6 +33,19 @@ TURNSTILE_SECRET_KEY = "dev-turnstile-secret"
 TURNSTILE_SITE_KEY = "dev-turnstile-site"
 
 
+# Cloudflare Send Email API 配置
+[[send_email]]
+name = "SEND_EMAIL"
+
+
+
+
+# 日志分析配置
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+
 # 构建配置
 [build]
 command = "npm run build"
