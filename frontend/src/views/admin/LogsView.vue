@@ -1,5 +1,9 @@
 <script lang="ts" setup>
 import LogAudit from '@/components/admin/LogAudit.vue'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 </script>
 
 <template>

@@ -60,14 +60,22 @@ const handleCommand = (command: string) => {
       <div class="flex items-center justify-between h-16">
         <!-- Logo -->
         <div class="flex items-center space-x-4">
-          <router-link to="/" class="flex items-center space-x-2">
-            <font-awesome-icon 
-              :icon="['fas', 'envelope']" 
-              class="text-2xl text-blue-500 dark:text-blue-400"
-            />
-            <span class="text-xl font-bold text-gray-900 dark:text-gray-100">
-              临时邮箱
-            </span>
+          <router-link
+            to="/"
+            class="flex items-center space-x-3 no-underline hover:no-underline focus:no-underline p-2 rounded-xl bg-gradient-to-br from-blue-50/30 to-purple-50/30 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+          >
+            <img class="w-50px" src="@/assets/logo.png" />
+            <div class="flex flex-col justify-center">
+              <h1
+                class="text-lg m0 font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400"
+              >
+                5o临时邮箱
+              </h1>
+              <div>
+                <span class="text-sm font-bold text-green-500 font-italic">ooooo</span>
+                <span class="text-sm font-bold font-italic text-orange-500">.icu</span>
+              </div>
+            </div>
           </router-link>
         </div>
 
@@ -88,25 +96,20 @@ const handleCommand = (command: string) => {
 
           <!-- User Menu -->
           <div v-if="isLoggedIn" class="flex items-center space-x-4">
-
             <!-- User Dropdown -->
             <el-dropdown @command="handleCommand">
-              <div class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <div
+                class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
                 <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <font-awesome-icon 
-                    :icon="['fas', 'user']" 
-                    class="text-white text-sm"
-                  />
+                  <font-awesome-icon :icon="['fas', 'user']" class="text-white text-sm" />
                 </div>
                 <span class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">
                   {{ user?.email }}
                 </span>
-                <font-awesome-icon 
-                  :icon="['fas', 'chevron-down']" 
-                  class="text-gray-400 text-xs"
-                />
+                <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-gray-400 text-xs" />
               </div>
-              
+
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="profile">

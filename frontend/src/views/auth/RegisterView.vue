@@ -5,6 +5,10 @@ import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { RegisterRequest } from '@/types'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const router = useRouter()
 const authStore = useAuthStore()

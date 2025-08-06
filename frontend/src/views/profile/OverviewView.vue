@@ -3,6 +3,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEmailStore } from '@/stores/email'
 import { ElMessage } from 'element-plus'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const authStore = useAuthStore()
 const emailStore = useEmailStore()

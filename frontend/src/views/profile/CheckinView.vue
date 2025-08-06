@@ -5,6 +5,10 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { checkinApi, type CheckinHistory, type CheckinStats } from '@/api/checkin'
 import dayjs from 'dayjs'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const authStore = useAuthStore()
 

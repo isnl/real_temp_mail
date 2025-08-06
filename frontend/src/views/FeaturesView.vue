@@ -1,5 +1,8 @@
 <script lang="ts" setup>
-// Features page
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 </script>
 
 <template>

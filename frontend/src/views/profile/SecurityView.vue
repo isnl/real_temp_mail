@@ -3,6 +3,10 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { authApi } from '@/api/auth'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 // 修改密码表单
 const passwordForm = ref({

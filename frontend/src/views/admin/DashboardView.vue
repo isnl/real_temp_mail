@@ -3,6 +3,10 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getDashboardStats } from '@/api/admin'
 import type { AdminDashboardStats } from '@/api/admin'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const loading = ref(false)
 const stats = ref<AdminDashboardStats | null>(null)

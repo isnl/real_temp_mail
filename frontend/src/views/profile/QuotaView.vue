@@ -5,6 +5,10 @@ import { useEmailStore } from '@/stores/email'
 import { ElMessage } from 'element-plus'
 import { checkinApi, formatQuotaSource, formatQuotaType, getQuotaSourceIcon } from '@/api/checkin'
 import type { QuotaLog } from '@/types'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const authStore = useAuthStore()
 const emailStore = useEmailStore()

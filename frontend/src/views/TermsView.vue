@@ -1,5 +1,8 @@
 <script lang="ts" setup>
-// Terms of Service page
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 </script>
 
 <template>

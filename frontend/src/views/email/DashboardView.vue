@@ -6,10 +6,13 @@ import { useUserQueries } from '@/composables/useUserQueries'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
-
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
 import { checkinApi } from '@/api/checkin'
 import type { CreateEmailRequest, CheckinStatus } from '@/types'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const emailStore = useEmailStore()
 const authStore = useAuthStore()

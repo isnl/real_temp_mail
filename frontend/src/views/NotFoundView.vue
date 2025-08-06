@@ -1,5 +1,9 @@
 <script lang="ts" setup>
 import { useRouter } from 'vue-router'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 
 const router = useRouter()
 

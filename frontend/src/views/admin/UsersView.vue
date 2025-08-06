@@ -1,5 +1,9 @@
 <script lang="ts" setup>
 import UserManagement from '@/components/admin/UserManagement.vue'
+import { usePageTitle } from '@/composables/usePageTitle'
+
+// 设置页面标题
+usePageTitle()
 </script>
 
 <template>
