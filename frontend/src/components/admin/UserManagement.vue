@@ -1,14 +1,15 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  getUsers, 
-  updateUser, 
+import {
+  getUsers,
+  updateUser,
   deleteUser,
   formatUserStatus,
   formatUserRole,
   formatNumber
 } from '@/api/admin'
+import { apiClient } from '@/api/request'
 import type { 
   AdminUserDetails, 
   AdminUserListParams, 
@@ -255,7 +256,7 @@ onMounted(() => {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="quota" label="配额" width="80" />
+        <el-table-column prop="quota" label="剩余配额" width="100" />
         <el-table-column label="临时邮箱" width="100">
           <template #default="{ row }">
             {{ formatNumber(row.tempEmailCount) }}
@@ -323,7 +324,7 @@ onMounted(() => {
         label-width="80px"
         label-position="left"
       >
-        <el-form-item label="配额">
+        <el-form-item label="剩余配额">
           <el-input-number
             v-model="editForm.quota"
             :min="0"
@@ -370,7 +371,7 @@ onMounted(() => {
       <div v-if="quotaUser" class="space-y-4">
         <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            <strong>当前配额:</strong> {{ quotaUser.quota }}
+            <strong>剩余配额:</strong> {{ quotaUser.quota }}
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-400">
             <strong>用户邮箱:</strong> {{ quotaUser.email }}

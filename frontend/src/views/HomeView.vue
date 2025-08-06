@@ -24,6 +24,10 @@ const goToDashboard = () => {
   router.push('/dashboard')
 }
 
+const goToPricing = () => {
+  router.push('/pricing')
+}
+
 // 功能特性数据
 const features = [
   {
@@ -52,9 +56,9 @@ const features = [
     description: '每日签到获得配额奖励，连续签到获得更多邮箱额度'
   },
   {
-    icon: 'cogs',
-    title: '高级管理',
-    description: '批量操作、邮件导出、转发功能，满足各种使用需求'
+    icon: 'brain',
+    title: '智能解析',
+    description: '自动识别验证码、邮件类型检测、链接提取，智能化处理邮件内容'
   }
 ]
 
@@ -92,7 +96,7 @@ const stats = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-white dark:bg-gray-900">
+  <div class="h-full overflow-y-auto bg-white dark:bg-gray-900">
     <!-- Hero Section -->
     <section class="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
       <!-- 背景装饰 -->
@@ -115,7 +119,7 @@ const stats = [
 
           <!-- Title -->
           <h1 class="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-6">
-            临时邮箱管理系统
+            四欧临时邮箱管理系统
           </h1>
 
           <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed">
@@ -159,6 +163,15 @@ const stats = [
               <font-awesome-icon :icon="['fas', 'sign-in-alt']" class="mr-2" />
               已有账号登录
             </el-button>
+
+            <el-button
+              @click="goToPricing"
+              size="large"
+              class="px-10 py-4 text-lg font-semibold border-2 border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300"
+            >
+              <font-awesome-icon :icon="['fas', 'chart-pie']" class="mr-2" />
+              配额购买
+            </el-button>
           </div>
 
           <!-- 统计数据 -->
@@ -184,7 +197,7 @@ const stats = [
             强大功能特性
           </h2>
           <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            基于现代化技术栈打造，提供完整的临时邮箱解决方案
+            提供完整的临时邮箱解决方案，满足各种使用需求
           </p>
         </div>
 
@@ -246,85 +259,7 @@ const stats = [
       </div>
     </section>
 
-    <!-- 技术架构 -->
-    <section class="py-20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            现代化技术架构
-          </h2>
-          <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            基于 Cloudflare 全家桶，提供全球低延迟、高可用的服务
-          </p>
-        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <!-- 前端技术栈 -->
-          <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl">
-            <div class="flex items-center mb-6">
-              <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mr-4">
-                <font-awesome-icon :icon="['fas', 'code']" class="text-white text-xl" />
-              </div>
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">前端技术栈</h3>
-            </div>
-            <div class="space-y-4">
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Vue 3</strong> + Composition API + TypeScript</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>UnoCSS</strong> 原子化CSS框架</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Element Plus</strong> UI组件库</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Pinia</strong> 状态管理 + 持久化</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Vite</strong> 快速构建工具</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 后端技术栈 -->
-          <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl">
-            <div class="flex items-center mb-6">
-              <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
-                <font-awesome-icon :icon="['fas', 'server']" class="text-white text-xl" />
-              </div>
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">后端技术栈</h3>
-            </div>
-            <div class="space-y-4">
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Cloudflare Workers</strong> 边缘计算</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>D1 数据库</strong> SQLite兼容</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Email Routing</strong> 邮件路由</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>JWT认证</strong> 双Token机制</span>
-              </div>
-              <div class="flex items-center">
-                <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                <span class="text-gray-700 dark:text-gray-300"><strong>Turnstile</strong> 人机验证</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- 系统特色 -->
     <section class="py-20 bg-white dark:bg-gray-900">
@@ -345,13 +280,13 @@ const stats = [
               <font-awesome-icon :icon="['fas', 'envelope-open-text']" class="text-white text-2xl" />
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">智能邮箱管理</h3>
-            <ul class="text-gray-600 dark:text-gray-400 space-y-2 text-left">
-              <li>• 一键创建临时邮箱</li>
-              <li>• 多域名后缀选择</li>
-              <li>• 实时邮件接收</li>
-              <li>• 验证码智能识别</li>
-              <li>• 邮件导出和转发</li>
-            </ul>
+            <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
+              <div>一键创建临时邮箱</div>
+              <div>多域名后缀选择</div>
+              <div>实时邮件接收</div>
+              <div>验证码智能识别</div>
+              <div>邮件导出和转发</div>
+            </div>
           </div>
 
           <!-- 配额系统 -->
@@ -360,28 +295,28 @@ const stats = [
               <font-awesome-icon :icon="['fas', 'chart-pie']" class="text-white text-2xl" />
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">配额管理系统</h3>
-            <ul class="text-gray-600 dark:text-gray-400 space-y-2 text-left">
-              <li>• 每日签到获得配额</li>
-              <li>• 兑换码充值系统</li>
-              <li>• 配额使用记录</li>
-              <li>• 连续签到奖励</li>
-              <li>• 灵活的配额策略</li>
-            </ul>
+            <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
+              <div>每日签到获得配额</div>
+              <div>兑换码充值系统</div>
+              <div>配额使用记录</div>
+              <div>连续签到奖励</div>
+              <div>灵活的配额策略</div>
+            </div>
           </div>
 
-          <!-- 管理后台 -->
+          <!-- 用户体验 -->
           <div class="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
             <div class="w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <font-awesome-icon :icon="['fas', 'cogs']" class="text-white text-2xl" />
+              <font-awesome-icon :icon="['fas', 'user-check']" class="text-white text-2xl" />
             </div>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">完整管理后台</h3>
-            <ul class="text-gray-600 dark:text-gray-400 space-y-2 text-left">
-              <li>• 用户管理和权限控制</li>
-              <li>• 域名管理和配置</li>
-              <li>• 邮件审查和监控</li>
-              <li>• 系统日志和统计</li>
-              <li>• 兑换码批量生成</li>
-            </ul>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">贴心服务</h3>
+            <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
+              <div>免费注册送配额</div>
+              <div>每日签到领奖励</div>
+              <div>兑换码快速充值</div>
+              <div>暗色模式切换</div>
+              <div>响应式界面设计</div>
+            </div>
           </div>
         </div>
       </div>
@@ -434,37 +369,38 @@ const stats = [
               <span class="text-xl font-bold">临时邮箱管理系统</span>
             </div>
             <p class="text-gray-400 mb-4 max-w-md">
-              基于 Cloudflare 全家桶的现代化临时邮箱服务，保护您的隐私，提供安全可靠的邮件接收体验。
+              现代化临时邮箱服务，保护您的隐私，提供安全可靠的邮件接收体验。
             </p>
           </div>
 
           <!-- 功能特性 -->
           <div>
             <h3 class="text-lg font-semibold mb-4">核心功能</h3>
-            <ul class="space-y-2 text-gray-400">
-              <li>临时邮箱创建</li>
-              <li>实时邮件接收</li>
-              <li>验证码识别</li>
-              <li>配额管理</li>
-              <li>签到奖励</li>
-            </ul>
+            <div class="space-y-2 text-gray-400">
+              <div>临时邮箱创建</div>
+              <div>实时邮件接收</div>
+              <div>验证码识别</div>
+              <div>配额管理</div>
+              <div>签到奖励</div>
+            </div>
           </div>
 
-          <!-- 技术支持 -->
+          <!-- 联系方式 -->
           <div>
-            <h3 class="text-lg font-semibold mb-4">技术架构</h3>
-            <ul class="space-y-2 text-gray-400">
-              <li>Vue 3 + TypeScript</li>
-              <li>Cloudflare Workers</li>
-              <li>D1 数据库</li>
-              <li>Email Routing</li>
-              <li>UnoCSS + Element Plus</li>
-            </ul>
+            <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+            <div class="space-y-3 text-gray-400">
+              <div class="flex items-center">
+                <font-awesome-icon :icon="['fas', 'envelope']" class="mr-2 text-blue-500" />
+                <a href="mailto:admin@oooo.icu" class="hover:text-white transition-colors">
+                  admin@oooo.icu
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 临时邮箱管理系统. 基于现代化技术栈构建.</p>
+          <p>&copy; 2025 临时邮箱管理系统. 保护隐私，安全可靠.</p>
         </div>
       </div>
     </footer>

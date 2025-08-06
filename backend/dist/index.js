@@ -310,6 +310,11 @@ async function handleQuotaRoutes(pathname, method, request, handler) {
         if (method === 'GET')
             return await handler.getQuotaLogs(request);
     }
+    // 获取配额信息
+    if (pathname === '/api/quota/info') {
+        if (method === 'GET')
+            return await handler.getQuotaInfo(request);
+    }
     return new Response(JSON.stringify({
         success: false,
         error: 'Method Not Allowed'

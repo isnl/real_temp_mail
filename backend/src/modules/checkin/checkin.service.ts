@@ -40,12 +40,12 @@ export class CheckinService {
     const setting = await this.dbService.getSystemSetting('daily_checkin_quota')
     const quotaReward = parseInt(setting?.setting_value || '1')
 
-    // 4. 开始事务：创建签到记录、更新用户配额、创建配额记录
+    // 4. 开始事务：创建签到记录、更新用户剩余配额、创建配额记录
     try {
       // 创建签到记录
       const checkinRecord = await this.dbService.createCheckin(userId, quotaReward)
 
-      // 更新用户配额
+      // 更新用户剩余配额（增加剩余配额）
       const newQuota = user.quota + quotaReward
       await this.dbService.updateUserQuota(userId, newQuota)
 
@@ -69,7 +69,7 @@ export class CheckinService {
       return {
         success: true,
         quota_reward: quotaReward,
-        total_quota: newQuota,
+        total_quota: newQuota, // 返回新的剩余配额
         message: `签到成功！获得 ${quotaReward} 个配额`
       }
     } catch (error) {

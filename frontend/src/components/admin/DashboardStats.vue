@@ -187,7 +187,7 @@ onMounted(() => {
                 <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {{ formatNumber(stats.quotaDistribution.totalQuota) }}
                 </p>
-                <p class="text-xs text-gray-500 dark:text-gray-500">总配额</p>
+                <p class="text-xs text-gray-500 dark:text-gray-500">剩余配额</p>
               </div>
               <div>
                 <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">

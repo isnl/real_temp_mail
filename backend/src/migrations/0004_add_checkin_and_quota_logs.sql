@@ -11,8 +11,8 @@ CREATE TABLE system_settings (
 );
 
 -- 插入默认签到配额设置
-INSERT INTO system_settings (setting_key, setting_value, description) 
-VALUES ('daily_checkin_quota', '1', '每日签到奖励配额数量');
+INSERT INTO system_settings (setting_key, setting_value, description)
+VALUES ('daily_checkin_quota', '2', '每日签到奖励配额数量');
 
 -- 2. 用户签到记录表
 CREATE TABLE user_checkins (

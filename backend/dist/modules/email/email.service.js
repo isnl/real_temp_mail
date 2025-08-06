@@ -10,13 +10,15 @@ export class EmailService {
         this.parserService = new EmailParserService();
     }
     async createTempEmail(userId, request) {
-        // 1. 检查用户配额
+        // 1. 检查用户剩余配额
         const user = await this.dbService.getUserById(userId);
         if (!user) {
             throw new NotFoundError('用户不存在');
         }
+        console.log(`用户 ${userId} 当前剩余配额: ${user.quota}`);
         if (user.quota <= 0) {
-            throw new ValidationError('配额不足，无法创建临时邮箱');
+            console.log(`用户 ${userId} 配额不足，当前剩余: ${user.quota}`);
+            throw new ValidationError('剩余配额不足，无法创建临时邮箱');
         }
         // 2. 验证域名
         const domain = await this.dbService.getDomainById(request.domainId);
@@ -32,10 +34,10 @@ export class EmailService {
             // 如果存在，重新生成
             return this.createTempEmail(userId, request);
         }
-        // 5. 原子操作：扣除配额并创建邮箱
+        // 5. 原子操作：扣除剩余配额并创建邮箱
         const success = await this.dbService.decrementUserQuota(userId);
         if (!success) {
-            throw new ValidationError('配额不足，无法创建临时邮箱');
+            throw new ValidationError('剩余配额不足，无法创建临时邮箱');
         }
         try {
             const tempEmail = await this.dbService.createTempEmail(userId, email, request.domainId);
@@ -57,7 +59,7 @@ export class EmailService {
             return tempEmail;
         }
         catch (error) {
-            // 如果创建失败，恢复配额
+            // 如果创建失败，恢复剩余配额（加回被扣除的1个配额）
             await this.dbService.updateUserQuota(userId, user.quota);
             throw error;
         }
@@ -192,10 +194,10 @@ export class EmailService {
         if (!user) {
             throw new NotFoundError('用户不存在');
         }
-        const tempEmails = await this.dbService.getTempEmailsByUserId(userId);
-        const used = tempEmails.filter(email => email.active).length;
+        // 基于 quota_logs 计算已使用配额
+        const used = await this.dbService.getUsedQuotaFromLogs(userId);
         return {
-            quota: user.quota,
+            quota: user.quota, // 现在 quota 字段表示剩余配额
             used
         };
     }

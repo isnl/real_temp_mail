@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useEmailStore } from '@/stores/email'
 import { useAuthStore } from '@/stores/auth'
 import { useUserQueries } from '@/composables/useUserQueries'
+import { useQuota } from '@/composables/useQuota'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
@@ -17,6 +18,7 @@ usePageTitle()
 const emailStore = useEmailStore()
 const authStore = useAuthStore()
 const { updateUserQuotaOptimistic } = useUserQueries()
+const { quotaInfo, fetchQuotaInfo } = useQuota()
 
 const loading = ref(false)
 
@@ -28,18 +30,13 @@ const selectedDomainId = ref(0)
 const checkinLoading = ref(false)
 const checkinStatus = ref<CheckinStatus | null>(null)
 
-const quotaInfo = computed(() => ({
-  total: authStore.userQuota,
-  used: emailStore.emailCount,
-  remaining: authStore.userQuota - emailStore.emailCount,
-}))
-
 const selectedTempEmail = computed(() => emailStore.selectedTempEmail)
 const currentEmails = computed(() => emailStore.currentEmails)
 
 onMounted(async () => {
   await loadData()
   await loadCheckinStatus()
+  await fetchQuotaInfo() // 获取准确的配额信息
   // 设置默认选中的域名
   if (emailStore.availableDomains.length > 0) {
     selectedDomainId.value = emailStore.availableDomains[0].id
@@ -184,8 +181,9 @@ const handleInlineCreateEmail = async (domainId?: number) => {
       updateUserQuotaOptimistic(response.data.userQuota)
     }
 
-    // 只需要刷新邮箱数据，配额已经通过乐观更新了
+    // 刷新邮箱数据和配额信息
     await loadData()
+    await fetchQuotaInfo() // 确保配额信息是最新的
 
     // 🎯 新增功能：自动选中新创建的邮箱并复制地址
     if (response.data?.tempEmail) {

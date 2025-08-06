@@ -63,39 +63,42 @@ const toggleSidebar = () => {
 <template>
   <div class="flex h-full bg-gray-50 dark:bg-gray-900">
     <!-- 侧边栏 -->
-    <div 
+    <div
       :class="[
-        'bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300',
+        'bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col',
         sidebarCollapsed ? 'w-16' : 'w-64'
       ]"
     >
-      <!-- 侧边栏头部 -->
+      <!-- 侧边栏头部 - Logo区域 -->
       <div class="p-4 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
           <div v-if="!sidebarCollapsed" class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <font-awesome-icon 
-                :icon="['fas', 'user']" 
-                class="text-white text-lg"
-              />
-            </div>
-            <div>
-              <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {{ user?.email }}
-              </h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                {{ user?.role === 'admin' ? '管理员' : '普通用户' }}
-              </p>
-            </div>
+            <router-link
+              to="/"
+              class="flex items-center space-x-2 no-underline hover:no-underline focus:no-underline"
+            >
+              <img class="w-60px" src="@/assets/logo.png" />
+              <div class="flex flex-col justify-center">
+                <h1
+                  class="text-sm m0 font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400"
+                >
+                  四欧临时邮箱
+                </h1>
+                <div>
+                  <span class="text-xs font-bold text-green-500 font-italic">OOOO</span>
+                  <span class="text-xs font-bold font-italic text-orange-500">.ICU</span>
+                </div>
+              </div>
+            </router-link>
           </div>
-          <el-button 
+          <el-button
             @click="toggleSidebar"
             size="small"
             text
             class="!p-1"
           >
-            <font-awesome-icon 
-              :icon="['fas', sidebarCollapsed ? 'chevron-right' : 'chevron-left']" 
+            <font-awesome-icon
+              :icon="['fas', sidebarCollapsed ? 'chevron-right' : 'chevron-left']"
               class="text-gray-500"
             />
           </el-button>
@@ -103,7 +106,7 @@ const toggleSidebar = () => {
       </div>
 
       <!-- 菜单列表 -->
-      <nav class="p-2">
+      <nav class="flex-1 p-2">
         <!-- 返回首页按钮 -->
         <router-link
           to="/dashboard"
@@ -152,6 +155,37 @@ const toggleSidebar = () => {
           </div>
         </router-link>
       </nav>
+
+      <!-- 侧边栏底部 - 用户信息区域 -->
+      <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+        <!-- 展开状态下的用户信息 -->
+        <div v-if="!sidebarCollapsed" class="flex items-center space-x-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+          <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+            <font-awesome-icon
+              :icon="['fas', 'user']"
+              class="text-white text-xs"
+            />
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+              {{ user?.email }}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              {{ user?.role === 'admin' ? '管理员' : '普通用户' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 折叠状态下的用户信息 -->
+        <div v-else class="flex flex-col items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+          <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+            <font-awesome-icon
+              :icon="['fas', 'user']"
+              class="text-white text-xs"
+            />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 主内容区域 -->

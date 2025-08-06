@@ -3,11 +3,16 @@ export declare class QuotaHandler {
     private env;
     private dbService;
     getQuotaLogs: (request: Request) => Promise<Response>;
+    getQuotaInfo: (request: Request) => Promise<Response>;
     constructor(env: Env);
     /**
      * 获取用户配额记录
      */
     private handleGetQuotaLogs;
+    /**
+     * 获取用户配额信息
+     */
+    private handleGetQuotaInfo;
     /**
      * 成功响应
      */

@@ -896,8 +896,14 @@ export class AdminService {
       throw new NotFoundError('用户不存在')
     }
 
-    // 2. 更新用户配额
+    // 2. 更新用户剩余配额
     const newQuota = Number(user.quota) + amount
+
+    // 防止剩余配额变为负数
+    if (newQuota < 0) {
+      throw new ValidationError('操作后剩余配额不能为负数')
+    }
+
     await this.env.DB.prepare(`
       UPDATE users SET quota = ? WHERE id = ?
     `).bind(newQuota, userId).run()

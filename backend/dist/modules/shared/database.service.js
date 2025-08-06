@@ -235,6 +235,16 @@ export class DatabaseService {
             total: countResult?.total || 0
         };
     }
+    // 基于 quota_logs 计算用户已使用的配额
+    async getUsedQuotaFromLogs(userId) {
+        const result = await this.db.prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN type = 'consume' THEN amount ELSE 0 END), 0) as consumed
+      FROM quota_logs
+      WHERE user_id = ?
+    `).bind(userId).first();
+        return result?.consumed || 0;
+    }
     // 限流相关操作
     async getRateLimit(identifier, endpoint) {
         return await this.db.prepare(`

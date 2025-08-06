@@ -53,6 +53,7 @@ export declare class DatabaseService {
         logs: QuotaLog[];
         total: number;
     }>;
+    getUsedQuotaFromLogs(userId: number): Promise<number>;
     getRateLimit(identifier: string, endpoint: string): Promise<RateLimit | null>;
     createOrUpdateRateLimit(identifier: string, endpoint: string): Promise<number>;
 }

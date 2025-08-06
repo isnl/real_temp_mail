@@ -57,6 +57,12 @@ export interface QuotaLogsResponse {
   total: number
 }
 
+export interface QuotaInfo {
+  remaining: number // 剩余配额
+  used: number // 已使用配额
+  total: number // 总配额
+}
+
 export const checkinApi = {
   // 用户签到
   async checkin(data: CheckinRequest): Promise<ApiResponse<CheckinResponse>> {
@@ -81,6 +87,11 @@ export const checkinApi = {
   // 获取配额记录
   async getQuotaLogs(page: number = 1, limit: number = 20): Promise<ApiResponse<QuotaLogsResponse>> {
     return apiClient.get<QuotaLogsResponse>(`/api/quota/logs?page=${page}&limit=${limit}`)
+  },
+
+  // 获取配额信息
+  async getQuotaInfo(): Promise<ApiResponse<QuotaInfo>> {
+    return apiClient.get<QuotaInfo>('/api/quota/info')
   }
 }
 

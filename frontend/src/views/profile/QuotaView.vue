@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useEmailStore } from '@/stores/email'
+import { useQuota } from '@/composables/useQuota'
 import { ElMessage } from 'element-plus'
 import { checkinApi, formatQuotaSource, formatQuotaType, getQuotaSourceIcon } from '@/api/checkin'
 import type { QuotaLog } from '@/types'
@@ -11,14 +11,9 @@ import { usePageTitle } from '@/composables/usePageTitle'
 usePageTitle()
 
 const authStore = useAuthStore()
-const emailStore = useEmailStore()
+const { quotaInfo, fetchQuotaInfo, usagePercentage } = useQuota()
 
 const user = computed(() => authStore.user)
-const quotaInfo = computed(() => ({
-  total: authStore.userQuota,
-  used: emailStore.emailCount,
-  remaining: authStore.userQuota - emailStore.emailCount
-}))
 
 // 配额记录相关状态
 const quotaLogs = ref<QuotaLog[]>([])
@@ -32,6 +27,7 @@ const redeemCode = ref('')
 const redeemLoading = ref(false)
 
 onMounted(async () => {
+  await fetchQuotaInfo()
   await loadQuotaLogs()
 })
 
@@ -83,7 +79,8 @@ const redeemQuota = async () => {
     redeemCode.value = ''
     
     // 刷新数据
-    await authStore.fetchUserInfo()
+    await authStore.fetchCurrentUser()
+    await fetchQuotaInfo()
     await loadQuotaLogs()
   } catch (error) {
     console.error('Redeem quota error:', error)
@@ -93,11 +90,7 @@ const redeemQuota = async () => {
   }
 }
 
-// 计算使用率百分比
-const usagePercentage = computed(() => {
-  if (quotaInfo.value.total === 0) return 0
-  return Math.round((quotaInfo.value.used / quotaInfo.value.total) * 100)
-})
+// usagePercentage 已经从 useQuota composable 中获取，无需重复定义
 
 // 获取配额类型统计
 const quotaStats = computed(() => {
@@ -143,19 +136,19 @@ const sourceStats = computed(() => {
   <div class="space-y-6">
     <!-- 配额概览 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- 总配额 -->
+      <!-- 剩余配额 -->
       <div class="card-base p-6">
         <div class="flex items-center space-x-4">
           <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon 
-              :icon="['fas', 'envelope']" 
+            <font-awesome-icon
+              :icon="['fas', 'envelope']"
               class="text-blue-600 dark:text-blue-400 text-xl"
             />
           </div>
           <div class="flex-1">
-            <p class="text-sm text-gray-600 dark:text-gray-400">总配额</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">剩余配额</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.total }}
+              {{ quotaInfo.remaining }}
             </p>
           </div>
         </div>

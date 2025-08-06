@@ -32,7 +32,7 @@ const themeIcon = computed(() => themeStore.getThemeIcon())
 const themeDisplayName = computed(() => themeStore.getThemeDisplayName())
 
 const goToProfile = () => {
-  window.open('/profile', '_blank')
+  router.push('/profile')
 }
 
 const goToAdmin = () => {
@@ -62,25 +62,36 @@ const handleCommand = (command: string) => {
         <div class="flex items-center space-x-4">
           <router-link
             to="/"
-            class="flex items-center space-x-3 no-underline hover:no-underline focus:no-underline p-2 rounded-xl bg-gradient-to-br from-blue-50/30 to-purple-50/30 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+            class="flex items-center space-x-3 no-underline hover:no-underline focus:no-underline p-2 rounded-xl bg-gradient-to-br backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
           >
-            <img class="w-50px" src="@/assets/logo.png" />
+            <img class="w-60px" src="@/assets/logo.png" />
             <div class="flex flex-col justify-center">
               <h1
                 class="text-lg m0 font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400"
               >
-                5o临时邮箱
+                四欧临时邮箱
               </h1>
               <div>
-                <span class="text-sm font-bold text-green-500 font-italic">ooooo</span>
-                <span class="text-sm font-bold font-italic text-orange-500">.icu</span>
+                <span class="text-sm font-bold text-green-500 font-italic">OOOO</span>
+                <span class="text-sm font-bold font-italic text-orange-500">.ICU</span>
               </div>
             </div>
           </router-link>
         </div>
 
-        <!-- User Actions -->
+        <!-- Navigation & User Actions -->
         <div class="flex items-center space-x-4">
+          <!-- Navigation Links -->
+          <nav class="hidden md:flex items-center space-x-6">
+            <router-link
+              to="/pricing"
+              class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+            >
+              <font-awesome-icon :icon="['fas', 'chart-pie']" class="mr-1" />
+              配额购买
+            </router-link>
+          </nav>
+
           <!-- Theme Toggle -->
           <el-button
             @click="toggleTheme"

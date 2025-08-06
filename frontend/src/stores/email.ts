@@ -15,7 +15,7 @@ export const useEmailStore = defineStore('email', {
   getters: {
     activeTempEmails: (state) => state.tempEmails.filter(email => email.active),
     availableDomains: (state) => state.domains.filter(domain => domain.status === 1),
-    emailCount: (state) => state.tempEmails.length,
+    emailCount: (state) => state.tempEmails.filter(email => email.active).length,
     unreadEmailCount: (state) => {
       // 这里可以添加未读邮件计数逻辑
       return state.currentEmails.length
