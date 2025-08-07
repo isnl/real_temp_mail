@@ -176,19 +176,11 @@ export class AuthService {
     }
 
     this.validatePassword(data.password)
-
-    if (!data.turnstileToken) {
-      throw new ValidationError('请完成人机验证')
-    }
   }
 
   private validateLoginData(data: LoginRequest): void {
     if (!data.email || !data.password) {
       throw new ValidationError('邮箱和密码不能为空')
-    }
-
-    if (!data.turnstileToken) {
-      throw new ValidationError('请完成人机验证')
     }
   }
 

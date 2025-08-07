@@ -19,7 +19,6 @@ type: "always_apply"
 - **Cloudflare Workers** + **TypeScript**
 - **D1 数据库** (SQLite兼容)
 - **Email Routing** 邮件路由
-- **Turnstile** 人机验证
 
 ## 二、前端编码规范
 
@@ -283,13 +282,11 @@ export interface RegisterRequest {
   email: string
   password: string
   confirmPassword: string
-  turnstileToken: string
 }
 
 export interface LoginRequest {
   email: string
   password: string
-  turnstileToken: string
 }
 
 export interface TokenPair {

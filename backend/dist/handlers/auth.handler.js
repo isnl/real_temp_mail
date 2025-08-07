@@ -1,18 +1,15 @@
 import { AuthService } from '@/modules/auth/auth.service';
 import { DatabaseService } from '@/modules/shared/database.service';
-import { TurnstileService } from '@/middleware/turnstile.middleware';
 import { withAuth } from '@/middleware/auth.middleware';
 export class AuthHandler {
     env;
     authService;
-    turnstileService;
     getCurrentUser;
     changePassword;
     constructor(env) {
         this.env = env;
         const dbService = new DatabaseService(env.DB);
         this.authService = new AuthService(env, dbService);
-        this.turnstileService = new TurnstileService(env);
         // 初始化需要认证的方法
         this.getCurrentUser = withAuth(this.env)((request, user) => {
             return this.handleGetCurrentUser(request, user);
@@ -24,13 +21,6 @@ export class AuthHandler {
     async register(request) {
         try {
             const data = await request.json();
-            // 验证Turnstile
-            const clientIP = request.headers.get('CF-Connecting-IP') ||
-                request.headers.get('X-Forwarded-For');
-            const isTurnstileValid = await this.turnstileService.verifyToken(data.turnstileToken, clientIP || undefined);
-            if (!isTurnstileValid) {
-                return this.errorResponse('人机验证失败', 400);
-            }
             // 注册用户
             const result = await this.authService.register(data);
             return this.successResponse(result, '注册成功');
@@ -43,13 +33,6 @@ export class AuthHandler {
     async login(request) {
         try {
             const data = await request.json();
-            // 验证Turnstile
-            const clientIP = request.headers.get('CF-Connecting-IP') ||
-                request.headers.get('X-Forwarded-For');
-            const isTurnstileValid = await this.turnstileService.verifyToken(data.turnstileToken, clientIP || undefined);
-            if (!isTurnstileValid) {
-                return this.errorResponse('人机验证失败', 400);
-            }
             // 用户登录
             const result = await this.authService.login(data);
             return this.successResponse(result, '登录成功');

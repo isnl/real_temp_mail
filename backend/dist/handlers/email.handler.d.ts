@@ -2,7 +2,6 @@ import type { Env } from '@/types';
 export declare class EmailHandler {
     private env;
     private emailService;
-    private turnstileService;
     createTempEmail: (request: Request) => Promise<Response>;
     getTempEmails: (request: Request) => Promise<Response>;
     deleteTempEmail: (request: Request) => Promise<Response>;

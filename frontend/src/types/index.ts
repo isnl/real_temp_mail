@@ -43,7 +43,7 @@ export interface Domain {
 
 // 签到相关类型
 export interface CheckinRequest {
-  turnstileToken: string
+  // 签到不需要额外参数
 }
 
 export interface CheckinResponse {
@@ -121,14 +121,12 @@ export interface ApiResponse<T = any> {
 export interface LoginRequest {
   email: string
   password: string
-  turnstileToken: string
 }
 
 export interface RegisterRequest {
   email: string
   password: string
   confirmPassword: string
-  turnstileToken: string
 }
 
 export interface TokenPair {
@@ -180,7 +178,6 @@ export interface ValidationRule {
 // 邮件创建请求
 export interface CreateEmailRequest {
   domainId: number
-  turnstileToken: string
 }
 
 // 邮件创建响应
@@ -192,5 +189,4 @@ export interface CreateEmailResponse {
 // 兑换码使用请求
 export interface RedeemRequest {
   code: string
-  turnstileToken: string
 }

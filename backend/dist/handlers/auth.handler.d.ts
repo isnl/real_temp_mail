@@ -2,7 +2,6 @@ import type { Env } from '@/types';
 export declare class AuthHandler {
     private env;
     private authService;
-    private turnstileService;
     getCurrentUser: (request: Request) => Promise<Response>;
     changePassword: (request: Request) => Promise<Response>;
     constructor(env: Env);

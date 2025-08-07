@@ -4,7 +4,6 @@ import { useEmailStore } from '@/stores/email'
 import { ElMessage } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import type { RedeemRequest } from '@/types'
-import TurnstileWidget from '@/components/common/TurnstileWidget.vue'
 
 interface Props {
   modelValue: boolean
@@ -21,13 +20,10 @@ const emit = defineEmits<Emits>()
 const emailStore = useEmailStore()
 
 const formRef = ref<FormInstance>()
-const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
 const loading = ref(false)
-const turnstileVerified = ref(false)
 
 const form = ref<RedeemRequest>({
-  code: '',
-  turnstileToken: ''
+  code: ''
 })
 
 const visible = computed({
@@ -35,36 +31,11 @@ const visible = computed({
   set: (value) => emit('update:modelValue', value)
 })
 
-// Turnstile 回调函数
-const onTurnstileSuccess = (token: string) => {
-  form.value.turnstileToken = token
-  turnstileVerified.value = true
-}
-
-const onTurnstileError = (error: string) => {
-  console.error('Turnstile error:', error)
-  ElMessage.error('人机验证失败，请刷新页面重试')
-  turnstileVerified.value = false
-  form.value.turnstileToken = ''
-}
-
-const onTurnstileExpired = () => {
-  ElMessage.warning('人机验证已过期，请重新验证')
-  turnstileVerified.value = false
-  form.value.turnstileToken = ''
-}
-
 const handleSubmit = async () => {
   if (!formRef.value) return
 
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
-
-  // 检查人机验证
-  if (!turnstileVerified.value || !form.value.turnstileToken) {
-    ElMessage.error('请完成人机验证')
-    return
-  }
 
   loading.value = true
 
@@ -80,13 +51,6 @@ const handleSubmit = async () => {
   } catch (error: any) {
     console.error('Redeem code error:', error)
     ElMessage.error(error.message || '兑换失败')
-
-    // 兑换失败后重置人机验证
-    if (turnstileRef.value) {
-      turnstileRef.value.reset()
-      turnstileVerified.value = false
-      form.value.turnstileToken = ''
-    }
   } finally {
     loading.value = false
   }
@@ -94,11 +58,6 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   form.value.code = ''
-  form.value.turnstileToken = ''
-  turnstileVerified.value = false
-  if (turnstileRef.value) {
-    turnstileRef.value.reset()
-  }
 }
 
 const handleClose = () => {
@@ -174,15 +133,7 @@ const handleClose = () => {
           </div>
         </el-form-item>
 
-        <!-- 人机验证 -->
-        <el-form-item label="人机验证" class="mb-6">
-          <TurnstileWidget
-            ref="turnstileRef"
-            @success="onTurnstileSuccess"
-            @error="onTurnstileError"
-            @expired="onTurnstileExpired"
-          />
-        </el-form-item>
+
 
         <!-- Security Notice -->
         <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
@@ -218,7 +169,6 @@ const handleClose = () => {
             type="primary"
             @click="handleSubmit"
             :loading="loading"
-            :disabled="!turnstileVerified"
             size="large"
             class="redeem-button"
           >

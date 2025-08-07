@@ -6,7 +6,6 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { LoginRequest } from '@/types'
 import { usePageTitle } from '@/composables/usePageTitle'
-import TurnstileWidget from '@/components/common/TurnstileWidget.vue'
 
 // 设置页面标题
 usePageTitle()
@@ -15,14 +14,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const loginFormRef = ref<FormInstance>()
-const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
 const loading = ref(false)
-const turnstileVerified = ref(false)
 
 const loginForm = reactive<LoginRequest>({
   email: '',
-  password: '',
-  turnstileToken: ''
+  password: ''
 })
 
 const rules: FormRules = {
@@ -36,36 +32,11 @@ const rules: FormRules = {
   ]
 }
 
-// Turnstile 回调函数
-const onTurnstileSuccess = (token: string) => {
-  loginForm.turnstileToken = token
-  turnstileVerified.value = true
-}
-
-const onTurnstileError = (error: string) => {
-  console.error('Turnstile error:', error)
-  ElMessage.error('人机验证失败，请刷新页面重试')
-  turnstileVerified.value = false
-  loginForm.turnstileToken = ''
-}
-
-const onTurnstileExpired = () => {
-  ElMessage.warning('人机验证已过期，请重新验证')
-  turnstileVerified.value = false
-  loginForm.turnstileToken = ''
-}
-
 const handleLogin = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
 
   const valid = await formEl.validate().catch(() => false)
   if (!valid) return
-
-  // 检查人机验证
-  if (!turnstileVerified.value || !loginForm.turnstileToken) {
-    ElMessage.error('请完成人机验证')
-    return
-  }
 
   loading.value = true
 
@@ -79,13 +50,6 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
   } catch (error: any) {
     console.error('Login error:', error)
     ElMessage.error(error.message || '登录失败')
-
-    // 登录失败后重置人机验证
-    if (turnstileRef.value) {
-      turnstileRef.value.reset()
-      turnstileVerified.value = false
-      loginForm.turnstileToken = ''
-    }
   } finally {
     loading.value = false
   }
@@ -156,22 +120,11 @@ const goToRegister = () => {
             </router-link>
           </div>
 
-          <!-- 人机验证 -->
-          <el-form-item label="人机验证" class="mb-6">
-            <TurnstileWidget
-              ref="turnstileRef"
-              @success="onTurnstileSuccess"
-              @error="onTurnstileError"
-              @expired="onTurnstileExpired"
-            />
-          </el-form-item>
-
           <el-form-item>
             <el-button
               type="primary"
               size="large"
               :loading="loading"
-              :disabled="!turnstileVerified"
               @click="handleLogin(loginFormRef)"
               class="w-full"
             >

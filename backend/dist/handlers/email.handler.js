@@ -1,11 +1,9 @@
 import { EmailService } from '@/modules/email/email.service';
 import { DatabaseService } from '@/modules/shared/database.service';
-import { TurnstileService } from '@/middleware/turnstile.middleware';
 import { withAuth } from '@/middleware/auth.middleware';
 export class EmailHandler {
     env;
     emailService;
-    turnstileService;
     createTempEmail;
     getTempEmails;
     deleteTempEmail;
@@ -18,7 +16,6 @@ export class EmailHandler {
         this.env = env;
         const dbService = new DatabaseService(env.DB);
         this.emailService = new EmailService(env, dbService);
-        this.turnstileService = new TurnstileService(env);
         // 初始化需要认证的方法
         this.createTempEmail = withAuth(this.env)((request, user) => {
             return this.handleCreateTempEmail(request, user);
@@ -77,13 +74,6 @@ export class EmailHandler {
     async handleCreateTempEmail(request, user) {
         try {
             const data = await request.json();
-            // 验证Turnstile
-            const clientIP = request.headers.get('CF-Connecting-IP') ||
-                request.headers.get('X-Forwarded-For');
-            const isTurnstileValid = await this.turnstileService.verifyToken(data.turnstileToken, clientIP || undefined);
-            if (!isTurnstileValid) {
-                return this.errorResponse('人机验证失败', 400);
-            }
             const tempEmail = await this.emailService.createTempEmail(user.userId, data);
             // 获取用户最新配额信息
             const updatedUser = await this.emailService.getUserById(user.userId);
@@ -176,13 +166,6 @@ export class EmailHandler {
     async handleRedeemCode(request, user) {
         try {
             const data = await request.json();
-            // 验证Turnstile
-            const clientIP = request.headers.get('CF-Connecting-IP') ||
-                request.headers.get('X-Forwarded-For');
-            const isTurnstileValid = await this.turnstileService.verifyToken(data.turnstileToken, clientIP || undefined);
-            if (!isTurnstileValid) {
-                return this.errorResponse('人机验证失败', 400);
-            }
             const result = await this.emailService.redeemCode(user.userId, data);
             return this.successResponse(result, '兑换码使用成功');
         }

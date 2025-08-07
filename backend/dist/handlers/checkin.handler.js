@@ -1,10 +1,8 @@
 import { CheckinService } from '@/modules/checkin/checkin.service';
-import { TurnstileService } from '@/modules/shared/turnstile.service';
 import { withAuth } from '@/middleware/auth.middleware';
 export class CheckinHandler {
     env;
     checkinService;
-    turnstileService;
     checkin;
     getCheckinStatus;
     getCheckinHistory;
@@ -12,7 +10,6 @@ export class CheckinHandler {
     constructor(env) {
         this.env = env;
         this.checkinService = new CheckinService(env);
-        this.turnstileService = new TurnstileService(env);
         // 初始化需要认证的方法
         this.checkin = withAuth(this.env)((request, user) => {
             return this.handleCheckin(request, user);
@@ -32,14 +29,7 @@ export class CheckinHandler {
      */
     async handleCheckin(request, user) {
         try {
-            const data = await request.json();
-            // 验证Turnstile
-            const clientIP = request.headers.get('CF-Connecting-IP') ||
-                request.headers.get('X-Forwarded-For');
-            const isTurnstileValid = await this.turnstileService.verifyToken(data.turnstileToken, clientIP || undefined);
-            if (!isTurnstileValid) {
-                return this.errorResponse('人机验证失败', 400);
-            }
+            // 签到不需要额外的请求数据
             const result = await this.checkinService.checkin(user.userId);
             return this.successResponse(result, result.message);
         }

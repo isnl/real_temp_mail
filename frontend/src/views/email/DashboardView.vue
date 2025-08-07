@@ -8,7 +8,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
-import TurnstileWidget from '@/components/common/TurnstileWidget.vue'
 import { checkinApi } from '@/api/checkin'
 import type { CreateEmailRequest, CheckinStatus } from '@/types'
 import { usePageTitle } from '@/composables/usePageTitle'
@@ -31,13 +30,7 @@ const selectedDomainId = ref(0)
 const checkinLoading = ref(false)
 const checkinStatus = ref<CheckinStatus | null>(null)
 
-// Turnstile 相关状态
-const showTurnstileDialog = ref(false)
-const turnstileAction = ref<'checkin' | 'create'>('checkin')
-const turnstileVerified = ref(false)
-const turnstileToken = ref('')
-const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
-const pendingCreateDomainId = ref(0)
+
 
 const selectedTempEmail = computed(() => emailStore.selectedTempEmail)
 const currentEmails = computed(() => emailStore.currentEmails)
@@ -112,17 +105,9 @@ const handleCheckin = async () => {
     return
   }
 
-  // 显示人机验证对话框
-  turnstileAction.value = 'checkin'
-  showTurnstileDialog.value = true
-}
-
-const executeCheckin = async () => {
   checkinLoading.value = true
   try {
-    const response = await checkinApi.checkin({
-      turnstileToken: turnstileToken.value
-    })
+    const response = await checkinApi.checkin({})
 
     if (response.success && response.data) {
       // 更新签到状态
@@ -132,7 +117,6 @@ const executeCheckin = async () => {
       updateUserQuotaOptimistic(response.data.total_quota)
 
       ElMessage.success(response.data.message)
-      showTurnstileDialog.value = false
     } else {
       ElMessage.error(response.error || '签到失败')
     }
@@ -181,19 +165,12 @@ const handleInlineCreateEmail = async (domainId?: number) => {
 
   console.log('Creating email with domain ID:', targetDomainId)
 
-  // 显示人机验证对话框
-  pendingCreateDomainId.value = targetDomainId
-  turnstileAction.value = 'create'
-  showTurnstileDialog.value = true
-}
-
-const executeCreateEmail = async () => {
+  // 直接创建邮箱
   isCreatingInline.value = true
 
   try {
     const request: CreateEmailRequest = {
-      domainId: pendingCreateDomainId.value,
-      turnstileToken: turnstileToken.value,
+      domainId: targetDomainId
     }
 
     console.log('Sending create email request:', request)
@@ -246,7 +223,6 @@ const executeCreateEmail = async () => {
     }
 
     // 成功后重置状态
-    showTurnstileDialog.value = false
     isCreatingInline.value = false
   } catch (error: any) {
     console.error('Create email error:', error)
@@ -272,46 +248,7 @@ const executeCreateEmail = async () => {
   }
 }
 
-// Turnstile 回调函数
-const onTurnstileSuccess = (token: string) => {
-  turnstileToken.value = token
-  turnstileVerified.value = true
-}
 
-const onTurnstileError = (error: string) => {
-  console.error('Turnstile error:', error)
-  ElMessage.error('人机验证失败，请刷新页面重试')
-  turnstileVerified.value = false
-  turnstileToken.value = ''
-}
-
-const onTurnstileExpired = () => {
-  ElMessage.warning('人机验证已过期，请重新验证')
-  turnstileVerified.value = false
-  turnstileToken.value = ''
-}
-
-const handleTurnstileConfirm = async () => {
-  if (!turnstileVerified.value || !turnstileToken.value) {
-    ElMessage.error('请完成人机验证')
-    return
-  }
-
-  if (turnstileAction.value === 'checkin') {
-    await executeCheckin()
-  } else if (turnstileAction.value === 'create') {
-    await executeCreateEmail()
-  }
-}
-
-const handleTurnstileCancel = () => {
-  showTurnstileDialog.value = false
-  turnstileVerified.value = false
-  turnstileToken.value = ''
-  if (turnstileRef.value) {
-    turnstileRef.value.reset()
-  }
-}
 </script>
 
 <template>
@@ -563,54 +500,6 @@ const handleTurnstileCancel = () => {
     <!-- Dialogs -->
     <RedeemCodeDialog v-model="showRedeemDialog" @success="handleRedeemSuccess" />
 
-    <!-- Turnstile 验证对话框 -->
-    <el-dialog
-      v-model="showTurnstileDialog"
-      :title="turnstileAction === 'checkin' ? '签到验证' : '创建邮箱验证'"
-      width="500px"
-      :close-on-click-modal="false"
-      :show-close="false"
-      align-center
-    >
-      <div class="text-center py-4">
-        <div class="mb-6">
-          <font-awesome-icon
-            :icon="['fas', turnstileAction === 'checkin' ? 'calendar-check' : 'envelope-plus']"
-            class="text-4xl text-blue-500 mb-4"
-          />
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            {{ turnstileAction === 'checkin' ? '完成签到验证' : '完成创建验证' }}
-          </h3>
-          <p class="text-gray-600 dark:text-gray-400">
-            {{ turnstileAction === 'checkin' ? '请完成人机验证以继续签到' : '请完成人机验证以创建临时邮箱' }}
-          </p>
-        </div>
 
-        <div class="flex justify-center mb-6">
-          <TurnstileWidget
-            ref="turnstileRef"
-            @success="onTurnstileSuccess"
-            @error="onTurnstileError"
-            @expired="onTurnstileExpired"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <el-button @click="handleTurnstileCancel">
-            取消
-          </el-button>
-          <el-button
-            type="primary"
-            :disabled="!turnstileVerified"
-            :loading="turnstileAction === 'checkin' ? checkinLoading : isCreatingInline"
-            @click="handleTurnstileConfirm"
-          >
-            {{ turnstileAction === 'checkin' ? '确认签到' : '确认创建' }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>

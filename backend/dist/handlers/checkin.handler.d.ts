@@ -2,7 +2,6 @@ import type { Env } from '@/types';
 export declare class CheckinHandler {
     private env;
     private checkinService;
-    private turnstileService;
     checkin: (request: Request) => Promise<Response>;
     getCheckinStatus: (request: Request) => Promise<Response>;
     getCheckinHistory: (request: Request) => Promise<Response>;

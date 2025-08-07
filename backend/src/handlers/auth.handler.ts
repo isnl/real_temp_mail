@@ -1,20 +1,17 @@
 import type { Env, LoginRequest, RegisterRequest, ApiResponse } from '@/types'
 import { AuthService } from '@/modules/auth/auth.service'
 import { DatabaseService } from '@/modules/shared/database.service'
-import { TurnstileService } from '@/middleware/turnstile.middleware'
 import { withAuth, type AuthenticatedRequest } from '@/middleware/auth.middleware'
 import type { JWTPayload } from '@/types'
 
 export class AuthHandler {
   private authService: AuthService
-  private turnstileService: TurnstileService
   public getCurrentUser: (request: Request) => Promise<Response>
   public changePassword: (request: Request) => Promise<Response>
 
   constructor(private env: Env) {
     const dbService = new DatabaseService(env.DB)
     this.authService = new AuthService(env, dbService)
-    this.turnstileService = new TurnstileService(env)
 
     // 初始化需要认证的方法
     this.getCurrentUser = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
@@ -30,19 +27,6 @@ export class AuthHandler {
     try {
       const data: RegisterRequest = await request.json()
 
-      // 验证Turnstile
-      const clientIP = request.headers.get('CF-Connecting-IP') || 
-                      request.headers.get('X-Forwarded-For')
-      
-      const isTurnstileValid = await this.turnstileService.verifyToken(
-        data.turnstileToken, 
-        clientIP || undefined
-      )
-
-      if (!isTurnstileValid) {
-        return this.errorResponse('人机验证失败', 400)
-      }
-
       // 注册用户
       const result = await this.authService.register(data)
 
@@ -56,19 +40,6 @@ export class AuthHandler {
   async login(request: Request): Promise<Response> {
     try {
       const data: LoginRequest = await request.json()
-
-      // 验证Turnstile
-      const clientIP = request.headers.get('CF-Connecting-IP') || 
-                      request.headers.get('X-Forwarded-For')
-      
-      const isTurnstileValid = await this.turnstileService.verifyToken(
-        data.turnstileToken, 
-        clientIP || undefined
-      )
-
-      if (!isTurnstileValid) {
-        return this.errorResponse('人机验证失败', 400)
-      }
 
       // 用户登录
       const result = await this.authService.login(data)

@@ -3,8 +3,6 @@ export interface Env {
   DB: D1Database
   JWT_SECRET: string
   BASE_DOMAIN: string
-  TURNSTILE_SECRET_KEY: string
-  TURNSTILE_SITE_KEY: string
   ENVIRONMENT: 'development' | 'production'
 }
 
@@ -83,7 +81,7 @@ export interface QuotaLog {
 
 // 签到请求类型
 export interface CheckinRequest {
-  turnstileToken: string
+  // 签到不需要额外参数
 }
 
 // 签到响应类型
@@ -162,24 +160,20 @@ export interface ApiResponse<T = any> {
 export interface LoginRequest {
   email: string
   password: string
-  turnstileToken: string
 }
 
 export interface RegisterRequest {
   email: string
   password: string
   confirmPassword: string
-  turnstileToken: string
 }
 
 export interface CreateEmailRequest {
   domainId: number
-  turnstileToken: string
 }
 
 export interface RedeemRequest {
   code: string
-  turnstileToken: string
 }
 
 // 分页类型
@@ -222,7 +216,6 @@ export interface RateLimitRule {
   windowMs: number
   maxRequests: number
   requireAuth: boolean
-  requireTurnstile: boolean
 }
 
 // 邮件解析类型
@@ -280,13 +273,7 @@ export class RateLimitError extends AppError {
   }
 }
 
-// Turnstile验证响应类型
-export interface TurnstileResponse {
-  success: boolean
-  'error-codes'?: string[]
-  challenge_ts?: string
-  hostname?: string
-}
+
 
 // 管理员相关类型
 export interface AdminUserListParams {

@@ -134,16 +134,10 @@ export class AuthService {
             throw new ValidationError('邮箱格式不正确');
         }
         this.validatePassword(data.password);
-        if (!data.turnstileToken) {
-            throw new ValidationError('请完成人机验证');
-        }
     }
     validateLoginData(data) {
         if (!data.email || !data.password) {
             throw new ValidationError('邮箱和密码不能为空');
-        }
-        if (!data.turnstileToken) {
-            throw new ValidationError('请完成人机验证');
         }
     }
     validatePassword(password) {

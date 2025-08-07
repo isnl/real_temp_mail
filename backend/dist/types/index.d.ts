@@ -2,8 +2,6 @@ export interface Env {
     DB: D1Database;
     JWT_SECRET: string;
     BASE_DOMAIN: string;
-    TURNSTILE_SECRET_KEY: string;
-    TURNSTILE_SITE_KEY: string;
     ENVIRONMENT: 'development' | 'production';
 }
 export interface User {
@@ -67,7 +65,6 @@ export interface QuotaLog {
     created_at: string;
 }
 export interface CheckinRequest {
-    turnstileToken: string;
 }
 export interface CheckinResponse {
     success: boolean;
@@ -129,21 +126,17 @@ export interface ApiResponse<T = any> {
 export interface LoginRequest {
     email: string;
     password: string;
-    turnstileToken: string;
 }
 export interface RegisterRequest {
     email: string;
     password: string;
     confirmPassword: string;
-    turnstileToken: string;
 }
 export interface CreateEmailRequest {
     domainId: number;
-    turnstileToken: string;
 }
 export interface RedeemRequest {
     code: string;
-    turnstileToken: string;
 }
 export interface PaginationParams {
     page: number;
@@ -178,7 +171,6 @@ export interface RateLimitRule {
     windowMs: number;
     maxRequests: number;
     requireAuth: boolean;
-    requireTurnstile: boolean;
 }
 export interface ParsedEmail {
     from: {
@@ -211,12 +203,6 @@ export declare class NotFoundError extends AppError {
 }
 export declare class RateLimitError extends AppError {
     constructor(message?: string);
-}
-export interface TurnstileResponse {
-    success: boolean;
-    'error-codes'?: string[];
-    challenge_ts?: string;
-    hostname?: string;
 }
 export interface AdminUserListParams {
     page?: number;

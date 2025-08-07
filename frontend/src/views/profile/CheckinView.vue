@@ -7,7 +7,6 @@ import { checkinApi, type CheckinHistory, type CheckinStats } from '@/api/checki
 import type { CheckinStatus } from '@/types'
 import dayjs from 'dayjs'
 import { usePageTitle } from '@/composables/usePageTitle'
-import TurnstileWidget from '@/components/common/TurnstileWidget.vue'
 
 // 设置页面标题
 usePageTitle()
@@ -33,11 +32,7 @@ const checkinStats = ref<CheckinStats>({
   thisMonthCheckins: 0,
 })
 
-// Turnstile 相关状态
-const showTurnstileDialog = ref(false)
-const turnstileVerified = ref(false)
-const turnstileToken = ref('')
-const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
+
 
 // 签到历史
 const checkinHistory = ref<CheckinHistory[]>([])
@@ -184,17 +179,9 @@ const doCheckin = async () => {
     return
   }
 
-  // 显示人机验证对话框
-  showTurnstileDialog.value = true
-}
-
-// 执行签到
-const executeCheckin = async () => {
   checkinLoading.value = true
   try {
-    const response = await checkinApi.checkin({
-      turnstileToken: turnstileToken.value
-    })
+    const response = await checkinApi.checkin({})
 
     if (response.success && response.data) {
       ElMessage.success(response.data.message)
@@ -204,9 +191,6 @@ const executeCheckin = async () => {
 
       // 刷新用户信息
       await authStore.fetchCurrentUser()
-
-      // 关闭对话框
-      showTurnstileDialog.value = false
     } else {
       ElMessage.error(response.error || '签到失败')
     }
@@ -218,41 +202,7 @@ const executeCheckin = async () => {
   }
 }
 
-// Turnstile 回调函数
-const onTurnstileSuccess = (token: string) => {
-  turnstileToken.value = token
-  turnstileVerified.value = true
-}
 
-const onTurnstileError = (error: string) => {
-  console.error('Turnstile error:', error)
-  ElMessage.error('人机验证失败，请刷新页面重试')
-  turnstileVerified.value = false
-  turnstileToken.value = ''
-}
-
-const onTurnstileExpired = () => {
-  ElMessage.warning('人机验证已过期，请重新验证')
-  turnstileVerified.value = false
-  turnstileToken.value = ''
-}
-
-const handleTurnstileConfirm = async () => {
-  if (!turnstileVerified.value || !turnstileToken.value) {
-    ElMessage.error('请完成人机验证')
-    return
-  }
-  await executeCheckin()
-}
-
-const handleTurnstileCancel = () => {
-  showTurnstileDialog.value = false
-  turnstileVerified.value = false
-  turnstileToken.value = ''
-  if (turnstileRef.value) {
-    turnstileRef.value.reset()
-  }
-}
 
 // 格式化日期
 const formatDate = (dateStr: string) => {
@@ -445,54 +395,6 @@ const getWeekdays = () => {
       </div>
     </div>
 
-    <!-- Turnstile 验证对话框 -->
-    <el-dialog
-      v-model="showTurnstileDialog"
-      title="签到验证"
-      width="500px"
-      :close-on-click-modal="false"
-      :show-close="false"
-      align-center
-    >
-      <div class="text-center py-4">
-        <div class="mb-6">
-          <font-awesome-icon
-            :icon="['fas', 'calendar-check']"
-            class="text-4xl text-blue-500 mb-4"
-          />
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            完成签到验证
-          </h3>
-          <p class="text-gray-600 dark:text-gray-400">
-            请完成人机验证以继续签到
-          </p>
-        </div>
 
-        <div class="flex justify-center mb-6">
-          <TurnstileWidget
-            ref="turnstileRef"
-            @success="onTurnstileSuccess"
-            @error="onTurnstileError"
-            @expired="onTurnstileExpired"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <el-button @click="handleTurnstileCancel">
-            取消
-          </el-button>
-          <el-button
-            type="primary"
-            :disabled="!turnstileVerified"
-            :loading="checkinLoading"
-            @click="handleTurnstileConfirm"
-          >
-            确认签到
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>

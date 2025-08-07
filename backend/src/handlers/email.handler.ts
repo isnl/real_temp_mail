@@ -7,13 +7,11 @@ import type {
 } from '@/types'
 import { EmailService } from '@/modules/email/email.service'
 import { DatabaseService } from '@/modules/shared/database.service'
-import { TurnstileService } from '@/middleware/turnstile.middleware'
 import { withAuth, type AuthenticatedRequest } from '@/middleware/auth.middleware'
 import type { JWTPayload } from '@/types'
 
 export class EmailHandler {
   private emailService: EmailService
-  private turnstileService: TurnstileService
   public createTempEmail: (request: Request) => Promise<Response>
   public getTempEmails: (request: Request) => Promise<Response>
   public deleteTempEmail: (request: Request) => Promise<Response>
@@ -26,7 +24,6 @@ export class EmailHandler {
   constructor(private env: Env) {
     const dbService = new DatabaseService(env.DB)
     this.emailService = new EmailService(env, dbService)
-    this.turnstileService = new TurnstileService(env)
 
     // 初始化需要认证的方法
     this.createTempEmail = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
@@ -98,19 +95,6 @@ export class EmailHandler {
   private async handleCreateTempEmail(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
     try {
       const data: CreateEmailRequest = await request.json()
-
-      // 验证Turnstile
-      const clientIP = request.headers.get('CF-Connecting-IP') || 
-                      request.headers.get('X-Forwarded-For')
-      
-      const isTurnstileValid = await this.turnstileService.verifyToken(
-        data.turnstileToken, 
-        clientIP || undefined
-      )
-
-      if (!isTurnstileValid) {
-        return this.errorResponse('人机验证失败', 400)
-      }
 
       const tempEmail = await this.emailService.createTempEmail(user.userId, data)
 
@@ -216,19 +200,6 @@ export class EmailHandler {
   private async handleRedeemCode(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
     try {
       const data: RedeemRequest = await request.json()
-
-      // 验证Turnstile
-      const clientIP = request.headers.get('CF-Connecting-IP') || 
-                      request.headers.get('X-Forwarded-For')
-      
-      const isTurnstileValid = await this.turnstileService.verifyToken(
-        data.turnstileToken, 
-        clientIP || undefined
-      )
-
-      if (!isTurnstileValid) {
-        return this.errorResponse('人机验证失败', 400)
-      }
 
       const result = await this.emailService.redeemCode(user.userId, data)
       return this.successResponse(result, '兑换码使用成功')

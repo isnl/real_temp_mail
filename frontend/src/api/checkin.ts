@@ -3,7 +3,7 @@ import type { ApiResponse } from '@/types'
 
 // 签到相关类型
 export interface CheckinRequest {
-  turnstileToken: string
+  // 签到不需要额外参数
 }
 
 export interface CheckinResponse {
