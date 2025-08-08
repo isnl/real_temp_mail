@@ -63,6 +63,7 @@ const handleClose = () => {
     :title="props.email?.subject || '邮件详情'"
     width="800px"
     @close="handleClose"
+    append-to-body
   >
     <div v-if="props.email" class="flex flex-col gap-6">
       <!-- Email Header -->
