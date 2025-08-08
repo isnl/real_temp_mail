@@ -4,7 +4,7 @@ import { useEmailStore } from '@/stores/email'
 import { useAuthStore } from '@/stores/auth'
 import { useUserQueries } from '@/composables/useUserQueries'
 import { useQuota } from '@/composables/useQuota'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
@@ -18,7 +18,7 @@ usePageTitle()
 const emailStore = useEmailStore()
 const authStore = useAuthStore()
 const { updateUserQuotaOptimistic } = useUserQueries()
-const { quotaInfo, fetchQuotaInfo } = useQuota()
+const { quotaInfo, fetchQuotaInfo, refreshQuotaInfo } = useQuota()
 
 const loading = ref(false)
 
@@ -66,6 +66,7 @@ const handleSelectEmail = async (tempEmail: any) => {
   }
 }
 
+// 🔥 全局刷新方法（保留以备后用）
 const handleRefresh = async () => {
   await loadData()
   if (selectedTempEmail.value) {
@@ -74,15 +75,31 @@ const handleRefresh = async () => {
   ElMessage.success('刷新成功')
 }
 
+// 🎯 新增：只刷新邮件列表的方法
+const handleEmailRefresh = async () => {
+  if (selectedTempEmail.value) {
+    try {
+      await emailStore.fetchEmailsForTempEmail(selectedTempEmail.value.id)
+      ElMessage.success('邮件列表刷新成功')
+    } catch (error: any) {
+      console.error('Refresh emails error:', error)
+      ElMessage.error('刷新邮件列表失败')
+    }
+  }
+}
+
 const handleRedeemSuccess = async (data?: { quota: number }) => {
   showRedeemDialog.value = false
 
   // 如果有返回配额信息，直接更新；否则刷新用户信息
   if (data?.quota !== undefined) {
     updateUserQuotaOptimistic(data.quota)
+    // 🎯 刷新配额信息缓存，确保数据同步
+    await refreshQuotaInfo()
     ElMessage.success('兑换码使用成功')
   } else {
     await authStore.fetchCurrentUser() // 刷新用户信息以更新配额
+    await refreshQuotaInfo() // 同时刷新配额缓存
     ElMessage.success('兑换码使用成功')
   }
 }
@@ -113,8 +130,11 @@ const handleCheckin = async () => {
       // 更新签到状态
       await loadCheckinStatus()
 
-      // 更新用户配额
+      // 🔥 更新用户配额（乐观更新）
       updateUserQuotaOptimistic(response.data.total_quota)
+
+      // 🎯 刷新配额信息缓存，确保数据同步
+      await refreshQuotaInfo()
 
       ElMessage.success(response.data.message)
     } else {
@@ -180,6 +200,8 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     // 🔥 使用后端返回的最新配额信息更新前端
     if (response.data?.userQuota !== undefined) {
       updateUserQuotaOptimistic(response.data.userQuota)
+      // 🎯 刷新配额信息缓存，确保数据同步
+      await refreshQuotaInfo()
     }
 
     // 刷新邮箱数据和配额信息
@@ -447,15 +469,16 @@ const handleInlineCreateEmail = async (domainId?: number) => {
                 <!-- 刷新按钮 - 只在选中临时邮箱时显示 -->
                 <div v-if="selectedTempEmail" class="flex items-center gap-2">
                   <el-button
-                    @click="handleRefresh"
-                    :disabled="loading"
+                    @click="handleEmailRefresh"
+                    :disabled="emailStore.isLoading"
                     size="default"
                     circle
                     class="shadow-md hover:shadow-lg transition-shadow"
+                    title="刷新邮件列表"
                   >
                     <font-awesome-icon
                       :icon="['fas', 'refresh']"
-                      :class="{ 'animate-spin': loading }"
+                      :class="{ 'animate-spin': emailStore.isLoading }"
                     />
                   </el-button>
                 </div>
