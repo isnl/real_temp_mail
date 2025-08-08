@@ -3,6 +3,8 @@ export interface Env {
     JWT_SECRET: string;
     BASE_DOMAIN: string;
     ENVIRONMENT: 'development' | 'production';
+    TURNSTILE_SECRET_KEY: string;
+    TURNSTILE_SITE_KEY: string;
 }
 export interface User {
     id: number;
@@ -126,17 +128,20 @@ export interface ApiResponse<T = any> {
 export interface LoginRequest {
     email: string;
     password: string;
+    turnstileToken?: string;
 }
 export interface RegisterRequest {
     email: string;
     password: string;
     confirmPassword: string;
+    turnstileToken?: string;
 }
 export interface CreateEmailRequest {
     domainId: number;
 }
 export interface RedeemRequest {
     code: string;
+    turnstileToken?: string;
 }
 export interface PaginationParams {
     page: number;

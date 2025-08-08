@@ -4,6 +4,8 @@ export interface Env {
   JWT_SECRET: string
   BASE_DOMAIN: string
   ENVIRONMENT: 'development' | 'production'
+  TURNSTILE_SECRET_KEY: string
+  TURNSTILE_SITE_KEY: string
 }
 
 // 用户相关类型
@@ -160,12 +162,14 @@ export interface ApiResponse<T = any> {
 export interface LoginRequest {
   email: string
   password: string
+  turnstileToken?: string
 }
 
 export interface RegisterRequest {
   email: string
   password: string
   confirmPassword: string
+  turnstileToken?: string
 }
 
 export interface CreateEmailRequest {
@@ -174,6 +178,7 @@ export interface CreateEmailRequest {
 
 export interface RedeemRequest {
   code: string
+  turnstileToken?: string
 }
 
 // 分页类型

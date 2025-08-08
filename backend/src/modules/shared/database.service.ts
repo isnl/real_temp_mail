@@ -450,26 +450,29 @@ export class DatabaseService {
   }
 
   // 限流相关操作
-  async getRateLimit(identifier: string, endpoint: string): Promise<RateLimit | null> {
+  async getRateLimit(identifier: string, endpoint: string, windowMs: number): Promise<RateLimit | null> {
+    const windowMinutes = Math.ceil(windowMs / (60 * 1000))
     return await this.db.prepare(`
       SELECT * FROM rate_limits
       WHERE identifier = ? AND endpoint = ?
-      AND datetime(window_start, '+1 hour') > datetime('now', '+8 hours')
+      AND datetime(window_start, '+${windowMinutes} minutes') > datetime('now', '+8 hours')
     `).bind(identifier, endpoint).first<RateLimit>()
   }
 
-  async createOrUpdateRateLimit(identifier: string, endpoint: string): Promise<number> {
+  async createOrUpdateRateLimit(identifier: string, endpoint: string, windowMs: number): Promise<number> {
+    const windowMinutes = Math.ceil(windowMs / (60 * 1000))
+
     // 尝试更新现有记录
     const updateResult = await this.db.prepare(`
       UPDATE rate_limits
       SET request_count = request_count + 1
       WHERE identifier = ? AND endpoint = ?
-      AND datetime(window_start, '+1 hour') > datetime('now', '+8 hours')
+      AND datetime(window_start, '+${windowMinutes} minutes') > datetime('now', '+8 hours')
     `).bind(identifier, endpoint).run()
 
     if ((updateResult.meta?.changes ?? 0) > 0) {
       // 获取更新后的计数
-      const result = await this.getRateLimit(identifier, endpoint)
+      const result = await this.getRateLimit(identifier, endpoint, windowMs)
       return result?.request_count || 1
     } else {
       // 创建新记录

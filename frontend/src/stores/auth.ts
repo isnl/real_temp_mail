@@ -23,9 +23,7 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       try {
         const response = await authApi.login(loginData)
-        if (!response.success) {
-          throw new Error(response.error || '登录失败')
-        }
+        // API 客户端现在在错误时会抛出异常，所以这里只处理成功的情况
         this.setAuthData(response.data!.user, response.data!.tokens)
         return response
       } catch (error) {
@@ -39,9 +37,7 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       try {
         const response = await authApi.register(registerData)
-        if (!response.success) {
-          throw new Error(response.error || '注册失败')
-        }
+        // API 客户端现在在错误时会抛出异常，所以这里只处理成功的情况
         this.setAuthData(response.data!.user, response.data!.tokens)
         return response
       } catch (error) {
@@ -59,10 +55,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await authApi.refreshToken(this.refreshToken)
-        if (!response.success) {
-          this.logout()
-          throw new Error(response.error || 'Token刷新失败')
-        }
+        // API 客户端现在在错误时会抛出异常，所以这里只处理成功的情况
         this.setTokens(response.data!)
         return response
       } catch (error) {

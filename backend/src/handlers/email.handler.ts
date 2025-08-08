@@ -8,6 +8,7 @@ import type {
 import { EmailService } from '@/modules/email/email.service'
 import { DatabaseService } from '@/modules/shared/database.service'
 import { withAuth, type AuthenticatedRequest } from '@/middleware/auth.middleware'
+import { withRateLimit } from '@/middleware/ratelimit.middleware'
 import type { JWTPayload } from '@/types'
 
 export class EmailHandler {
@@ -50,9 +51,9 @@ export class EmailHandler {
       return this.handleDeleteEmail(request, user)
     })
 
-    this.redeemCode = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
+    this.redeemCode = withAuth(this.env)(withRateLimit(this.env, '/api/email/redeem')((request: AuthenticatedRequest, user: JWTPayload) => {
       return this.handleRedeemCode(request, user)
-    })
+    }))
 
     this.getQuotaInfo = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
       return this.handleGetQuotaInfo(request, user)

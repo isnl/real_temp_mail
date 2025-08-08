@@ -1,6 +1,7 @@
 import { EmailService } from '@/modules/email/email.service';
 import { DatabaseService } from '@/modules/shared/database.service';
 import { withAuth } from '@/middleware/auth.middleware';
+import { withRateLimit } from '@/middleware/ratelimit.middleware';
 export class EmailHandler {
     env;
     emailService;
@@ -35,9 +36,9 @@ export class EmailHandler {
         this.deleteEmail = withAuth(this.env)((request, user) => {
             return this.handleDeleteEmail(request, user);
         });
-        this.redeemCode = withAuth(this.env)((request, user) => {
+        this.redeemCode = withAuth(this.env)(withRateLimit(this.env, '/api/email/redeem')((request, user) => {
             return this.handleRedeemCode(request, user);
-        });
+        }));
         this.getQuotaInfo = withAuth(this.env)((request, user) => {
             return this.handleGetQuotaInfo(request, user);
         });

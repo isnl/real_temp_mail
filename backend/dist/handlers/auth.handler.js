@@ -1,11 +1,14 @@
 import { AuthService } from '@/modules/auth/auth.service';
 import { DatabaseService } from '@/modules/shared/database.service';
 import { withAuth } from '@/middleware/auth.middleware';
+import { withRateLimit } from '@/middleware/ratelimit.middleware';
 export class AuthHandler {
     env;
     authService;
     getCurrentUser;
     changePassword;
+    register;
+    login;
     constructor(env) {
         this.env = env;
         const dbService = new DatabaseService(env.DB);
@@ -14,11 +17,18 @@ export class AuthHandler {
         this.getCurrentUser = withAuth(this.env)((request, user) => {
             return this.handleGetCurrentUser(request, user);
         });
-        this.changePassword = withAuth(this.env)((request, user) => {
+        this.changePassword = withAuth(this.env)(withRateLimit(this.env, '/api/auth/change-password')((request, user) => {
             return this.handleChangePassword(request, user);
+        }));
+        // 初始化需要限流的公开方法
+        this.register = withRateLimit(this.env, '/api/auth/register')((request) => {
+            return this.handleRegister(request);
+        });
+        this.login = withRateLimit(this.env, '/api/auth/login')((request) => {
+            return this.handleLogin(request);
         });
     }
-    async register(request) {
+    async handleRegister(request) {
         try {
             const data = await request.json();
             // 注册用户
@@ -30,7 +40,7 @@ export class AuthHandler {
             return this.errorResponse(error.message || '注册失败', error.statusCode || 500);
         }
     }
-    async login(request) {
+    async handleLogin(request) {
         try {
             const data = await request.json();
             // 用户登录

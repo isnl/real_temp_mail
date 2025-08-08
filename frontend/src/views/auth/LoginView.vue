@@ -6,19 +6,24 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { LoginRequest } from '@/types'
 import { usePageTitle } from '@/composables/usePageTitle'
+import { useTurnstile } from '@/composables/useTurnstile'
+import TurnstileWidget from '@/components/TurnstileWidget.vue'
 
 // 设置页面标题
 usePageTitle()
 
 const router = useRouter()
 const authStore = useAuthStore()
+const turnstile = useTurnstile()
 
 const loginFormRef = ref<FormInstance>()
+const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
 const loading = ref(false)
 
 const loginForm = reactive<LoginRequest>({
   email: '',
-  password: ''
+  password: '',
+  turnstileToken: ''
 })
 
 const rules: FormRules = {
@@ -38,9 +43,18 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
   const valid = await formEl.validate().catch(() => false)
   if (!valid) return
 
+  // 检查 Turnstile 验证
+  if (!turnstile.isVerified.value) {
+    ElMessage.warning('请完成人机验证')
+    return
+  }
+
   loading.value = true
 
   try {
+    // 设置 Turnstile token
+    loginForm.turnstileToken = turnstile.turnstileToken.value
+
     await authStore.login(loginForm)
     ElMessage.success('登录成功')
 
@@ -50,9 +64,25 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
   } catch (error: any) {
     console.error('Login error:', error)
     ElMessage.error(error.message || '登录失败')
+
+    // 重置 Turnstile
+    turnstileRef.value?.reset()
+    turnstile.reset()
   } finally {
     loading.value = false
   }
+}
+
+// 处理 Turnstile 验证成功
+const handleTurnstileSuccess = (token: string) => {
+  turnstile.handleSuccess(token)
+  loginForm.turnstileToken = token
+}
+
+// 处理 Turnstile 验证失败
+const handleTurnstileError = (error: string) => {
+  turnstile.handleError(error)
+  loginForm.turnstileToken = ''
 }
 
 const goToRegister = () => {
@@ -119,6 +149,46 @@ const goToRegister = () => {
               忘记密码？
             </router-link>
           </div>
+
+          <!-- Turnstile 人机验证 -->
+          <el-form-item label="人机验证" required>
+            <div class="w-full">
+              <TurnstileWidget
+                ref="turnstileRef"
+                :site-key="turnstile.siteKey"
+                :theme="turnstile.theme.value"
+                @success="handleTurnstileSuccess"
+                @error="handleTurnstileError"
+                @expired="turnstile.handleExpired"
+                @timeout="turnstile.handleTimeout"
+                @before-interactive="turnstile.handleBeforeInteractive"
+                @after-interactive="turnstile.handleAfterInteractive"
+                @unsupported="turnstile.handleUnsupported"
+              />
+
+              <!-- 验证状态显示 -->
+              <div class="mt-2">
+                <div v-if="turnstile.isLoading.value" class="text-blue-500 text-sm">
+                  <i class="fas fa-spinner fa-spin mr-1"></i>
+                  正在加载人机验证...
+                </div>
+                <div v-else-if="turnstile.isVerified.value" class="text-green-500 text-sm">
+                  <i class="fas fa-check-circle mr-1"></i>
+                  人机验证已完成
+                </div>
+                <div v-else class="text-gray-500 text-sm">
+                  <i class="fas fa-shield-alt mr-1"></i>
+                  请完成人机验证
+                </div>
+              </div>
+
+              <!-- 错误信息显示 -->
+              <div v-if="turnstile.error.value" class="text-red-500 text-sm mt-2">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                {{ turnstile.error.value }}
+              </div>
+            </div>
+          </el-form-item>
 
           <el-form-item>
             <el-button

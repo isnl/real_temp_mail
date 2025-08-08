@@ -121,12 +121,14 @@ export interface ApiResponse<T = any> {
 export interface LoginRequest {
   email: string
   password: string
+  turnstileToken?: string
 }
 
 export interface RegisterRequest {
   email: string
   password: string
   confirmPassword: string
+  turnstileToken?: string
 }
 
 export interface TokenPair {
@@ -189,4 +191,5 @@ export interface CreateEmailResponse {
 // 兑换码使用请求
 export interface RedeemRequest {
   code: string
+  turnstileToken?: string
 }

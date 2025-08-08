@@ -2,12 +2,15 @@ import type { Env, LoginRequest, RegisterRequest, ApiResponse } from '@/types'
 import { AuthService } from '@/modules/auth/auth.service'
 import { DatabaseService } from '@/modules/shared/database.service'
 import { withAuth, type AuthenticatedRequest } from '@/middleware/auth.middleware'
+import { withRateLimit } from '@/middleware/ratelimit.middleware'
 import type { JWTPayload } from '@/types'
 
 export class AuthHandler {
   private authService: AuthService
   public getCurrentUser: (request: Request) => Promise<Response>
   public changePassword: (request: Request) => Promise<Response>
+  public register: (request: Request) => Promise<Response>
+  public login: (request: Request) => Promise<Response>
 
   constructor(private env: Env) {
     const dbService = new DatabaseService(env.DB)
@@ -18,12 +21,21 @@ export class AuthHandler {
       return this.handleGetCurrentUser(request, user)
     })
 
-    this.changePassword = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
+    this.changePassword = withAuth(this.env)(withRateLimit(this.env, '/api/auth/change-password')((request: AuthenticatedRequest, user: JWTPayload) => {
       return this.handleChangePassword(request, user)
+    }))
+
+    // 初始化需要限流的公开方法
+    this.register = withRateLimit(this.env, '/api/auth/register')((request: Request) => {
+      return this.handleRegister(request)
+    })
+
+    this.login = withRateLimit(this.env, '/api/auth/login')((request: Request) => {
+      return this.handleLogin(request)
     })
   }
 
-  async register(request: Request): Promise<Response> {
+  private async handleRegister(request: Request): Promise<Response> {
     try {
       const data: RegisterRequest = await request.json()
 
@@ -37,7 +49,7 @@ export class AuthHandler {
     }
   }
 
-  async login(request: Request): Promise<Response> {
+  private async handleLogin(request: Request): Promise<Response> {
     try {
       const data: LoginRequest = await request.json()
 

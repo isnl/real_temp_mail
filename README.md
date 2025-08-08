@@ -738,6 +738,6 @@ export default defineConfig({
 ```
 
 
-wrangler pages deploy dist --project-name tempmail-mail-frontend
+wrangler pages deploy dist --project-name temp-mail-frontend
 
 wrangler deploy --config wrangler.toml

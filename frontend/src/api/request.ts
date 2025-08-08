@@ -85,28 +85,21 @@ class ApiClient {
           if (retryResponse.ok) {
             return await retryResponse.json()
           } else {
-            // 重试后仍然失败，返回错误信息
+            // 重试后仍然失败，抛出异常
             const retryErrorData = await retryResponse.json().catch(() => ({}))
-            return {
-              success: false,
-              error: retryErrorData.error || retryErrorData.message || `HTTP ${retryResponse.status}: ${retryResponse.statusText}`
-            } as ApiResponse<T>
+            const errorMessage = retryErrorData.error || retryErrorData.message || `HTTP ${retryResponse.status}: ${retryResponse.statusText}`
+            throw new Error(errorMessage)
           }
         } catch (error) {
           // 刷新失败，清除认证状态
           authStore.logout()
-          return {
-            success: false,
-            error: '认证失败，请重新登录'
-          } as ApiResponse<T>
+          throw new Error('认证失败，请重新登录')
         }
       }
 
-      // 对于其他错误（包括密码错误），直接返回错误信息而不抛出异常
-      return {
-        success: false,
-        error: errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
-      } as ApiResponse<T>
+      // 对于其他错误，抛出异常
+      const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      throw new Error(errorMessage)
     }
 
     return await response.json()

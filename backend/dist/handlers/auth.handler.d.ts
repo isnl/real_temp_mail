@@ -4,9 +4,11 @@ export declare class AuthHandler {
     private authService;
     getCurrentUser: (request: Request) => Promise<Response>;
     changePassword: (request: Request) => Promise<Response>;
+    register: (request: Request) => Promise<Response>;
+    login: (request: Request) => Promise<Response>;
     constructor(env: Env);
-    register(request: Request): Promise<Response>;
-    login(request: Request): Promise<Response>;
+    private handleRegister;
+    private handleLogin;
     refreshToken(request: Request): Promise<Response>;
     logout(request: Request): Promise<Response>;
     private handleGetCurrentUser;
