@@ -40,7 +40,6 @@ const loadTurnstileScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     // 检查是否已经加载
     if (checkTurnstileLoaded()) {
-      console.log('Turnstile script already loaded')
       isScriptLoaded.value = true
       resolve()
       return
@@ -49,7 +48,6 @@ const loadTurnstileScript = (): Promise<void> => {
     // 检查是否已经有脚本标签在加载
     const existingScript = document.querySelector('script[src*="turnstile"]')
     if (existingScript) {
-      console.log('Turnstile script is loading...')
       existingScript.addEventListener('load', () => {
         isScriptLoaded.value = true
         resolve()
@@ -60,20 +58,17 @@ const loadTurnstileScript = (): Promise<void> => {
       return
     }
 
-    console.log('Loading Turnstile script...')
     const script = document.createElement('script')
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
     script.async = true
     script.defer = true
 
     script.onload = () => {
-      console.log('Turnstile script loaded successfully')
       isScriptLoaded.value = true
       resolve()
     }
 
     script.onerror = () => {
-      console.error('Failed to load Turnstile script')
       reject(new Error('Failed to load Turnstile script'))
     }
 
@@ -84,17 +79,14 @@ const loadTurnstileScript = (): Promise<void> => {
 // 渲染 Turnstile 组件
 const renderTurnstile = async () => {
   if (!widgetRef.value) {
-    console.error('Widget ref not available')
     return
   }
 
   if (!isScriptLoaded.value || !checkTurnstileLoaded()) {
-    console.error('Turnstile script not loaded')
     return
   }
 
   try {
-    console.log('Rendering Turnstile with siteKey:', props.siteKey)
     const turnstile = (window as any).turnstile
 
     // 清除之前的内容
@@ -105,40 +97,31 @@ const renderTurnstile = async () => {
       theme: props.theme,
       size: props.size,
       callback: (token: string) => {
-        console.log('Turnstile success callback:', token)
         emit('success', token)
       },
       'error-callback': (error: string) => {
-        console.error('Turnstile error callback:', error)
         emit('error', error)
       },
       'expired-callback': () => {
-        console.log('Turnstile expired callback')
         emit('expired')
       },
       'timeout-callback': () => {
-        console.log('Turnstile timeout callback')
         emit('timeout')
       },
       'after-interactive-callback': () => {
-        console.log('Turnstile after interactive callback')
         emit('afterInteractive')
       },
       'before-interactive-callback': () => {
-        console.log('Turnstile before interactive callback')
         emit('beforeInteractive')
       },
       'unsupported-callback': () => {
-        console.log('Turnstile unsupported callback')
         emit('unsupported')
       }
     })
 
-    console.log('Turnstile rendered with ID:', widgetId.value)
     isLoaded.value = true
     loadingError.value = ''
   } catch (error) {
-    console.error('Failed to render Turnstile:', error)
     loadingError.value = `渲染失败: ${error}`
     emit('error', 'Failed to render Turnstile widget')
   }
@@ -151,7 +134,7 @@ const reset = () => {
       const turnstile = (window as any).turnstile
       turnstile.reset(widgetId.value)
     } catch (error) {
-      console.error('Failed to reset Turnstile:', error)
+      // 静默处理重置错误
     }
   }
 }
@@ -165,7 +148,7 @@ const remove = () => {
       isLoaded.value = false
       widgetId.value = undefined
     } catch (error) {
-      console.error('Failed to remove Turnstile:', error)
+      // 静默处理移除错误
     }
   }
 }
@@ -177,7 +160,7 @@ const getResponse = (): string | undefined => {
       const turnstile = (window as any).turnstile
       return turnstile.getResponse(widgetId.value)
     } catch (error) {
-      console.error('Failed to get Turnstile response:', error)
+      // 静默处理获取响应错误
     }
   }
   return undefined
@@ -192,8 +175,6 @@ watch(() => props.theme, () => {
 })
 
 onMounted(async () => {
-  console.log('TurnstileWidget mounted')
-
   try {
     // 通知父组件开始加载
     emit('beforeInteractive')
@@ -213,7 +194,6 @@ onMounted(async () => {
     // 通知父组件加载完成
     emit('afterInteractive')
   } catch (error) {
-    console.error('Failed to initialize Turnstile:', error)
     loadingError.value = `初始化失败: ${error}`
     emit('error', 'Failed to load Turnstile')
   }
@@ -233,15 +213,6 @@ defineExpose({
 
 <template>
   <div class="turnstile-container">
-    <!-- 调试信息 -->
-    <div v-if="loadingError || !isLoaded" class="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-      <div>Site Key: {{ props.siteKey }}</div>
-      <div>Script Loaded: {{ isScriptLoaded }}</div>
-      <div>Widget Loaded: {{ isLoaded }}</div>
-      <div>Widget ID: {{ widgetId || 'None' }}</div>
-      <div v-if="loadingError" class="text-red-500">Error: {{ loadingError }}</div>
-    </div>
-
     <!-- Turnstile Widget 容器 -->
     <div
       ref="widgetRef"
@@ -272,22 +243,12 @@ defineExpose({
 
 <style scoped>
 .turnstile-widget {
-  min-height: 65px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.turnstile-loading {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-}
 
-.dark .turnstile-loading {
-  background-color: #1f2937;
-  border-color: #374151;
-}
 
 .turnstile-loaded {
   min-height: auto;

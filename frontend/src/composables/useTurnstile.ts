@@ -8,7 +8,7 @@ export function useTurnstile() {
   const themeStore = useThemeStore()
   const turnstileToken = ref<string>('')
   const isVerified = ref(false)
-  const isLoading = ref(true) // 初始状态为加载中
+  const isLoading = ref(false) // 初始状态为未加载
   const error = ref<string>('')
 
   // 根据当前主题设置 Turnstile 主题
@@ -25,7 +25,6 @@ export function useTurnstile() {
     isVerified.value = true
     isLoading.value = false
     error.value = ''
-    console.log('Turnstile verification successful')
   }
 
   // 处理验证失败
@@ -34,7 +33,6 @@ export function useTurnstile() {
     isVerified.value = false
     isLoading.value = false
     error.value = errorMessage || '人机验证失败'
-    console.error('Turnstile verification failed:', errorMessage)
   }
 
   // 处理验证过期
@@ -43,7 +41,6 @@ export function useTurnstile() {
     isVerified.value = false
     isLoading.value = false
     error.value = '验证已过期，请重新验证'
-    console.warn('Turnstile verification expired')
   }
 
   // 处理验证超时
@@ -52,7 +49,6 @@ export function useTurnstile() {
     isVerified.value = false
     isLoading.value = false
     error.value = '验证超时，请重新尝试'
-    console.warn('Turnstile verification timeout')
   }
 
   // 处理交互前回调
@@ -72,7 +68,6 @@ export function useTurnstile() {
     isVerified.value = false
     isLoading.value = false
     error.value = '您的浏览器不支持人机验证'
-    console.error('Turnstile not supported')
   }
 
   // 重置验证状态

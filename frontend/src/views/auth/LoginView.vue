@@ -23,18 +23,18 @@ const loading = ref(false)
 const loginForm = reactive<LoginRequest>({
   email: '',
   password: '',
-  turnstileToken: ''
+  turnstileToken: '',
 })
 
 const rules: FormRules = {
   email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度至少6位', trigger: 'blur' }
-  ]
+    { min: 6, message: '密码长度至少6位', trigger: 'blur' },
+  ],
 }
 
 const handleLogin = async (formEl: FormInstance | undefined) => {
@@ -91,26 +91,26 @@ const goToRegister = () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8">
+  <div
+    class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8"
+  >
     <div class="max-w-md w-full flex flex-col gap-8">
       <!-- Header -->
       <div class="text-center">
         <div class="flex justify-center">
-          <font-awesome-icon 
-            :icon="['fas', 'envelope']" 
+          <font-awesome-icon
+            :icon="['fas', 'envelope']"
             class="text-6xl text-blue-500 dark:text-blue-400"
           />
         </div>
-        <h2 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
-          登录账户
-        </h2>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          使用您的邮箱和密码登录
-        </p>
+        <h2 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">登录账户</h2>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">使用您的邮箱和密码登录</p>
       </div>
 
       <!-- Login Form -->
-      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-8">
+      <div
+        class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-8"
+      >
         <el-form
           ref="loginFormRef"
           :model="loginForm"
@@ -151,50 +151,33 @@ const goToRegister = () => {
           </div>
 
           <!-- Turnstile 人机验证 -->
-          <el-form-item label="人机验证" required>
-            <div class="w-full">
-              <TurnstileWidget
-                ref="turnstileRef"
-                :site-key="turnstile.siteKey"
-                :theme="turnstile.theme.value"
-                @success="handleTurnstileSuccess"
-                @error="handleTurnstileError"
-                @expired="turnstile.handleExpired"
-                @timeout="turnstile.handleTimeout"
-                @before-interactive="turnstile.handleBeforeInteractive"
-                @after-interactive="turnstile.handleAfterInteractive"
-                @unsupported="turnstile.handleUnsupported"
-              />
+          <div class="w-full">
+            <TurnstileWidget
+              ref="turnstileRef"
+              :site-key="turnstile.siteKey"
+              :theme="turnstile.theme.value"
+              @success="handleTurnstileSuccess"
+              @error="handleTurnstileError"
+              @expired="turnstile.handleExpired"
+              @timeout="turnstile.handleTimeout"
+              @before-interactive="turnstile.handleBeforeInteractive"
+              @after-interactive="turnstile.handleAfterInteractive"
+              @unsupported="turnstile.handleUnsupported"
+            />
 
-              <!-- 验证状态显示 -->
-              <div class="mt-2">
-                <div v-if="turnstile.isLoading.value" class="text-blue-500 text-sm">
-                  <i class="fas fa-spinner fa-spin mr-1"></i>
-                  正在加载人机验证...
-                </div>
-                <div v-else-if="turnstile.isVerified.value" class="text-green-500 text-sm">
-                  <i class="fas fa-check-circle mr-1"></i>
-                  人机验证已完成
-                </div>
-                <div v-else class="text-gray-500 text-sm">
-                  <i class="fas fa-shield-alt mr-1"></i>
-                  请完成人机验证
-                </div>
-              </div>
-
-              <!-- 错误信息显示 -->
-              <div v-if="turnstile.error.value" class="text-red-500 text-sm mt-2">
-                <i class="fas fa-exclamation-triangle mr-1"></i>
-                {{ turnstile.error.value }}
-              </div>
+            <!-- 仅显示错误信息 -->
+            <div v-if="turnstile.error.value" class="text-red-500 text-sm mt-2">
+              <i class="fas fa-exclamation-triangle mr-1"></i>
+              {{ turnstile.error.value }}
             </div>
-          </el-form-item>
+          </div>
 
           <el-form-item>
             <el-button
               type="primary"
               size="large"
               :loading="loading"
+              :disabled="!turnstile.isVerified.value || loading"
               @click="handleLogin(loginFormRef)"
               class="w-full"
             >
@@ -208,12 +191,7 @@ const goToRegister = () => {
         <div class="text-center mt-6">
           <p class="text-sm text-gray-600 dark:text-gray-400">
             还没有账户？
-            <el-button
-              @click="goToRegister"
-              type="primary"
-              link
-              class="font-medium"
-            >
+            <el-button @click="goToRegister" type="primary" link class="font-medium">
               立即注册
             </el-button>
           </p>
@@ -222,29 +200,18 @@ const goToRegister = () => {
 
       <!-- Features -->
       <div class="text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          安全 • 快速 • 免费的临时邮箱服务
-        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">安全 • 快速 • 免费的临时邮箱服务</p>
         <div class="flex justify-center space-x-6 mt-4">
           <div class="flex items-center space-x-1">
-            <font-awesome-icon 
-              :icon="['fas', 'shield-alt']" 
-              class="text-green-500 text-sm"
-            />
+            <font-awesome-icon :icon="['fas', 'shield-alt']" class="text-green-500 text-sm" />
             <span class="text-xs text-gray-600 dark:text-gray-400">安全加密</span>
           </div>
           <div class="flex items-center space-x-1">
-            <font-awesome-icon 
-              :icon="['fas', 'clock']" 
-              class="text-blue-500 text-sm"
-            />
+            <font-awesome-icon :icon="['fas', 'clock']" class="text-blue-500 text-sm" />
             <span class="text-xs text-gray-600 dark:text-gray-400">实时接收</span>
           </div>
           <div class="flex items-center space-x-1">
-            <font-awesome-icon 
-              :icon="['fas', 'globe']" 
-              class="text-purple-500 text-sm"
-            />
+            <font-awesome-icon :icon="['fas', 'globe']" class="text-purple-500 text-sm" />
             <span class="text-xs text-gray-600 dark:text-gray-400">多域名支持</span>
           </div>
         </div>
@@ -259,7 +226,7 @@ import { Message as ElIconMessage, Lock as ElIconLock } from '@element-plus/icon
 export default {
   components: {
     ElIconMessage,
-    ElIconLock
-  }
+    ElIconLock,
+  },
 }
 </script>

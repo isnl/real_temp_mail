@@ -187,23 +187,7 @@ const goToLogin = () => {
                 @unsupported="turnstile.handleUnsupported"
               />
 
-              <!-- 验证状态显示 -->
-              <div class="mt-2">
-                <div v-if="turnstile.isLoading.value" class="text-blue-500 text-sm">
-                  <i class="fas fa-spinner fa-spin mr-1"></i>
-                  正在加载人机验证...
-                </div>
-                <div v-else-if="turnstile.isVerified.value" class="text-green-500 text-sm">
-                  <i class="fas fa-check-circle mr-1"></i>
-                  人机验证已完成
-                </div>
-                <div v-else class="text-gray-500 text-sm">
-                  <i class="fas fa-shield-alt mr-1"></i>
-                  请完成人机验证
-                </div>
-              </div>
-
-              <!-- 错误信息显示 -->
+              <!-- 仅显示错误信息 -->
               <div v-if="turnstile.error.value" class="text-red-500 text-sm mt-2">
                 <i class="fas fa-exclamation-triangle mr-1"></i>
                 {{ turnstile.error.value }}
@@ -236,6 +220,7 @@ const goToLogin = () => {
               type="primary"
               size="large"
               :loading="loading"
+              :disabled="!turnstile.isVerified.value || loading"
               @click="handleRegister(registerFormRef)"
               class="w-full"
             >
