@@ -47,7 +47,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="text-editor-wrapper">
+  <div>
     <el-input
       ref="textareaRef"
       :model-value="modelValue"
@@ -55,10 +55,8 @@ defineExpose({
       :placeholder="placeholder"
       :readonly="readonly"
       :rows="rows"
-      :style="{ height: height }"
       resize="vertical"
       @input="handleInput"
-      class="text-editor"
     />
   </div>
 </template>

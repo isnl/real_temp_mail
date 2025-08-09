@@ -21,7 +21,7 @@ const plans = [
     quota: 0,
     price: '免费',
     originalPrice: null,
-    popular: false,
+    popular: false, 
     description: '新用户专享',
     features: [
       '注册送5个配额',
