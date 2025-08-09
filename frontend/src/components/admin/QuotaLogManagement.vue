@@ -237,13 +237,24 @@ onMounted(() => {
     </div>
 
     <!-- Quota Logs Table -->
-    <div class="card-base">
-      <el-table
-        :data="quotaLogs"
-        v-loading="loading"
-        stripe
-        style="width: 100%"
-      >
+    <div class="card-base flex flex-col h-[calc(100vh-500px)]">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          配额记录列表
+        </h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          共 {{ formatNumber(total) }} 条记录
+        </p>
+      </div>
+
+      <div class="flex-1 overflow-hidden">
+        <el-table
+          :data="quotaLogs"
+          v-loading="loading"
+          stripe
+          style="width: 100%"
+          height="100%"
+        >
         <el-table-column prop="id" label="ID" width="80" />
         
         <el-table-column label="用户" width="200">
@@ -290,10 +301,11 @@ onMounted(() => {
             {{ new Date(row.created_at).toLocaleString('zh-CN') }}
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <!-- Pagination -->
-      <div class="flex justify-center mt-4">
+      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"

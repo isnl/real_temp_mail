@@ -193,3 +193,12 @@ export interface RedeemRequest {
   code: string
   turnstileToken?: string
 }
+
+// 全局类型声明
+declare global {
+  interface Window {
+    toastui?: {
+      Editor: any
+    }
+  }
+}

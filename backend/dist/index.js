@@ -3,6 +3,7 @@ import { EmailHandler } from '@/handlers/email.handler';
 import { AdminHandler } from '@/handlers/admin.handler';
 import { CheckinHandler } from '@/handlers/checkin.handler';
 import { QuotaHandler } from '@/handlers/quota.handler';
+import { AnnouncementHandler } from '@/handlers/announcement.handler';
 import { handleEmailProcessing } from '@/modules/email/email-processor';
 // 添加CORS头的工具函数
 function addCorsHeaders(response) {
@@ -41,6 +42,7 @@ export default {
             const adminHandler = new AdminHandler(env);
             const checkinHandler = new CheckinHandler(env);
             const quotaHandler = new QuotaHandler(env);
+            const announcementHandler = new AnnouncementHandler(env);
             // 路由匹配
             let response;
             if (pathname.startsWith('/api/auth/')) {
@@ -51,6 +53,9 @@ export default {
             }
             else if (pathname.startsWith('/api/admin/')) {
                 response = await handleAdminRoutes(pathname, method, request, adminHandler);
+            }
+            else if (pathname.startsWith('/api/announcements/')) {
+                response = await handleAnnouncementRoutes(pathname, method, request, announcementHandler);
             }
             else if (pathname.startsWith('/api/checkin/')) {
                 response = await handleCheckinRoutes(pathname, method, request, checkinHandler);
@@ -317,6 +322,42 @@ async function handleQuotaRoutes(pathname, method, request, handler) {
     if (pathname === '/api/quota/info') {
         if (method === 'GET')
             return await handler.getQuotaInfo(request);
+    }
+    return new Response(JSON.stringify({
+        success: false,
+        error: 'Method Not Allowed'
+    }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+// 公告路由处理
+async function handleAnnouncementRoutes(pathname, method, request, handler) {
+    // 获取活跃公告列表（用户端）
+    if (pathname === '/api/announcements/active') {
+        if (method === 'GET')
+            return await handler.getActiveAnnouncements(request);
+    }
+    // 管理员公告管理
+    if (pathname === '/api/announcements/admin') {
+        if (method === 'GET')
+            return await handler.getAnnouncements(request);
+        if (method === 'POST')
+            return await handler.createAnnouncement(request);
+    }
+    // 单个公告操作
+    if (pathname.match(/^\/api\/announcements\/admin\/\d+$/)) {
+        if (method === 'GET')
+            return await handler.getAnnouncementById(request);
+        if (method === 'PUT')
+            return await handler.updateAnnouncement(request);
+        if (method === 'DELETE')
+            return await handler.deleteAnnouncement(request);
+    }
+    // 切换公告状态
+    if (pathname.match(/^\/api\/announcements\/admin\/\d+\/toggle$/)) {
+        if (method === 'POST')
+            return await handler.toggleAnnouncementStatus(request);
     }
     return new Response(JSON.stringify({
         success: false,

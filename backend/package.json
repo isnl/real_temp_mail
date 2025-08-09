@@ -4,8 +4,9 @@
   "description": "Cloudflare Workers backend for temp mail system",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "dev": "wrangler dev --env development",
+    "deploy": "wrangler deploy --env production",
+    "deploy:dev": "wrangler deploy --env development",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:migrate": "wrangler d1 migrations apply email-db",

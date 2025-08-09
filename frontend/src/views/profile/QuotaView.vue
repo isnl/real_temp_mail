@@ -62,34 +62,6 @@ const loadMoreQuotaLogs = async () => {
   quotaPage.value++
   await loadQuotaLogs(false)
 }
-
-// 兑换配额
-const redeemQuota = async () => {
-  if (!redeemCode.value.trim()) {
-    ElMessage.warning('请输入兑换码')
-    return
-  }
-
-  redeemLoading.value = true
-  try {
-    // TODO: 调用兑换API
-    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
-    
-    ElMessage.success('兑换成功！配额已增加')
-    redeemCode.value = ''
-    
-    // 刷新数据
-    await authStore.fetchCurrentUser()
-    await fetchQuotaInfo()
-    await loadQuotaLogs()
-  } catch (error) {
-    console.error('Redeem quota error:', error)
-    ElMessage.error('兑换失败，请检查兑换码是否正确')
-  } finally {
-    redeemLoading.value = false
-  }
-}
-
 // usagePercentage 已经从 useQuota composable 中获取，无需重复定义
 
 // 获取配额类型统计
@@ -261,38 +233,6 @@ const sourceStats = computed(() => {
         </div>
       </div>
     </div>
-
-    <!-- 兑换配额 -->
-    <div class="card-base p-6">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-        兑换配额
-      </h3>
-      
-      <div class="max-w-md">
-        <div class="flex space-x-3">
-          <el-input
-            v-model="redeemCode"
-            placeholder="请输入兑换码"
-            class="flex-1"
-          >
-            <template #prefix>
-              <font-awesome-icon :icon="['fas', 'gift']" class="text-gray-400" />
-            </template>
-          </el-input>
-          <el-button 
-            type="primary" 
-            @click="redeemQuota"
-            :loading="redeemLoading"
-          >
-            兑换
-          </el-button>
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          输入有效的兑换码可以增加您的邮箱配额
-        </p>
-      </div>
-    </div>
-
     <!-- 配额来源统计 -->
     <div class="card-base p-6" v-if="sourceStats.length > 0">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">

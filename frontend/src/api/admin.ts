@@ -312,3 +312,64 @@ export const getSystemSettings = async (): Promise<ApiResponse<SystemSetting[]>>
 export const updateSystemSetting = async (key: string, value: string): Promise<ApiResponse<void>> => {
   return apiClient.put<void>(`/api/admin/settings/${key}`, { value })
 }
+
+// ==================== 公告管理 ====================
+
+// 公告相关类型
+export interface Announcement {
+  id: number
+  title: string
+  content: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateAnnouncementData {
+  title: string
+  content: string
+  is_active?: boolean
+}
+
+export interface UpdateAnnouncementData {
+  title?: string
+  content?: string
+  is_active?: boolean
+}
+
+export interface AdminAnnouncementListParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: 'active' | 'inactive'
+}
+
+// 公告API
+export const getAnnouncements = (params: AdminAnnouncementListParams): Promise<ApiResponse<PaginatedResponse<Announcement>>> => {
+  return apiClient.get('/api/announcements/admin', params)
+}
+
+export const getAnnouncementById = (id: number): Promise<ApiResponse<Announcement>> => {
+  return apiClient.get(`/api/announcements/admin/${id}`)
+}
+
+export const createAnnouncement = (data: CreateAnnouncementData): Promise<ApiResponse<Announcement>> => {
+  return apiClient.post('/api/announcements/admin', data)
+}
+
+export const updateAnnouncement = (id: number, data: UpdateAnnouncementData): Promise<ApiResponse<void>> => {
+  return apiClient.put(`/api/announcements/admin/${id}`, data)
+}
+
+export const deleteAnnouncement = (id: number): Promise<ApiResponse<void>> => {
+  return apiClient.delete(`/api/announcements/admin/${id}`)
+}
+
+export const toggleAnnouncementStatus = (id: number): Promise<ApiResponse<void>> => {
+  return apiClient.post(`/api/announcements/admin/${id}/toggle`)
+}
+
+// 获取活跃公告（用户端）
+export const getActiveAnnouncements = (): Promise<ApiResponse<Announcement[]>> => {
+  return apiClient.get('/api/announcements/active')
+}

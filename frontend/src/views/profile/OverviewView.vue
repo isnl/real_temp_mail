@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEmailStore } from '@/stores/email'
+import { useQuota } from '@/composables/useQuota'
 import { ElMessage } from 'element-plus'
 import { usePageTitle } from '@/composables/usePageTitle'
 
@@ -10,33 +11,25 @@ usePageTitle()
 
 const authStore = useAuthStore()
 const emailStore = useEmailStore()
+const { quotaInfo, loading: quotaLoading, usagePercentage, fetchQuotaInfo } = useQuota()
 
 const user = computed(() => authStore.user)
-const quotaInfo = computed(() => ({
-  total: authStore.userQuota,
-  used: emailStore.emailCount,
-  remaining: authStore.userQuota - emailStore.emailCount
-}))
-
 const loading = ref(false)
 
 onMounted(async () => {
   // 加载用户数据
   try {
     loading.value = true
-    await emailStore.fetchTempEmails()
+    await Promise.all([
+      emailStore.fetchTempEmails(),
+      fetchQuotaInfo()
+    ])
   } catch (error) {
     console.error('Load profile data error:', error)
     ElMessage.error('加载数据失败')
   } finally {
     loading.value = false
   }
-})
-
-// 计算使用率百分比
-const usagePercentage = computed(() => {
-  if (quotaInfo.value.total === 0) return 0
-  return Math.round((quotaInfo.value.used / quotaInfo.value.total) * 100)
 })
 
 // 获取使用率颜色
@@ -102,7 +95,7 @@ const getUsageBgColor = (percentage: number) => {
           <div class="flex-1">
             <p class="text-sm text-gray-600 dark:text-gray-400">总配额</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.total }}
+              {{ quotaInfo?.total || 0 }}
             </p>
           </div>
         </div>
@@ -112,15 +105,15 @@ const getUsageBgColor = (percentage: number) => {
       <div class="card-base p-6">
         <div class="flex items-center space-x-4">
           <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon 
-              :icon="['fas', 'check-circle']" 
+            <font-awesome-icon
+              :icon="['fas', 'check-circle']"
               class="text-green-600 dark:text-green-400 text-xl"
             />
           </div>
           <div class="flex-1">
             <p class="text-sm text-gray-600 dark:text-gray-400">已使用</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.used }}
+              {{ quotaInfo?.used || 0 }}
             </p>
           </div>
         </div>
@@ -130,15 +123,15 @@ const getUsageBgColor = (percentage: number) => {
       <div class="card-base p-6">
         <div class="flex items-center space-x-4">
           <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon 
-              :icon="['fas', 'clock']" 
+            <font-awesome-icon
+              :icon="['fas', 'clock']"
               class="text-orange-600 dark:text-orange-400 text-xl"
             />
           </div>
           <div class="flex-1">
             <p class="text-sm text-gray-600 dark:text-gray-400">剩余配额</p>
             <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.remaining }}
+              {{ quotaInfo?.remaining || 0 }}
             </p>
           </div>
         </div>
@@ -167,7 +160,7 @@ const getUsageBgColor = (percentage: number) => {
             ></div>
           </div>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {{ quotaInfo.used }} / {{ quotaInfo.total }} 个邮箱
+            {{ quotaInfo?.used || 0 }} / {{ quotaInfo?.total || 0 }} 个邮箱
           </p>
         </div>
 
@@ -176,7 +169,7 @@ const getUsageBgColor = (percentage: number) => {
           <div class="flex items-center space-x-2">
             <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="text-red-600 dark:text-red-400" />
             <p class="text-sm text-red-800 dark:text-red-200">
-              配额即将用完，请及时清理不需要的邮箱或联系管理员增加配额。
+              配额即将用完。
             </p>
           </div>
         </div>

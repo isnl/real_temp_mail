@@ -34,18 +34,29 @@ const loadLogs = async () => {
       page: currentPage.value,
       limit: pageSize.value
     }
-    
+
+    // 清空搜索参数中的空值
+    Object.keys(params).forEach(key => {
+      if (params[key as keyof typeof params] === '' || params[key as keyof typeof params] === null) {
+        delete params[key as keyof typeof params]
+      }
+    })
+
     const response = await getLogs(params)
-    if (response.success) {
+    if (response.success && response.data) {
       const data = response.data as PaginatedResponse<AdminLogDetails>
-      logs.value = data.data
-      total.value = data.total
+      logs.value = data.data || []
+      total.value = data.total || 0
     } else {
+      logs.value = []
+      total.value = 0
       ElMessage.error(response.error || '获取日志列表失败')
     }
   } catch (error) {
     console.error('获取日志列表失败:', error)
-    ElMessage.error('获取日志列表失败')
+    logs.value = []
+    total.value = 0
+    ElMessage.error('网络错误，获取日志列表失败')
   } finally {
     loading.value = false
   }
@@ -78,6 +89,12 @@ const handleReset = () => {
 
 const handlePageChange = (page: number) => {
   currentPage.value = page
+  loadLogs()
+}
+
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
   loadLogs()
 }
 
@@ -122,55 +139,78 @@ onMounted(() => {
   <div class="flex flex-col gap-6">
     <!-- 搜索表单 -->
     <div class="card-base p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <el-input
-          v-model="searchForm.search"
-          placeholder="搜索用户邮箱或IP"
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <font-awesome-icon icon="search" />
-          </template>
-        </el-input>
-        
-        <el-select
-          v-model="searchForm.action"
-          placeholder="选择操作类型"
-          clearable
-        >
-          <el-option
-            v-for="action in actions"
-            :key="action"
-            :label="formatAction(action)"
-            :value="action"
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            搜索关键词
+          </label>
+          <el-input
+            v-model="searchForm.search"
+            placeholder="搜索用户邮箱或IP地址"
+            clearable
+            @keyup.enter="handleSearch"
+          >
+            <template #prefix>
+              <font-awesome-icon icon="search" class="text-gray-400" />
+            </template>
+          </el-input>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            操作类型
+          </label>
+          <el-select
+            v-model="searchForm.action"
+            placeholder="选择操作类型"
+            clearable
+            class="w-full"
+          >
+            <el-option
+              v-for="action in actions"
+              :key="action"
+              :label="formatAction(action)"
+              :value="action"
+            />
+          </el-select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            开始日期
+          </label>
+          <el-date-picker
+            v-model="searchForm.startDate"
+            type="date"
+            placeholder="选择开始日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+            class="w-full"
           />
-        </el-select>
-        
-        <el-date-picker
-          v-model="searchForm.startDate"
-          type="date"
-          placeholder="开始日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          clearable
-        />
-        
-        <el-date-picker
-          v-model="searchForm.endDate"
-          type="date"
-          placeholder="结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          clearable
-        />
-        
-        <div class="flex space-x-2">
-          <el-button type="primary" @click="handleSearch" class="btn-primary">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            结束日期
+          </label>
+          <el-date-picker
+            v-model="searchForm.endDate"
+            type="date"
+            placeholder="选择结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+            class="w-full"
+          />
+        </div>
+
+        <div class="flex gap-2">
+          <el-button type="primary" @click="handleSearch" :loading="loading">
             <font-awesome-icon icon="search" class="mr-2" />
             搜索
           </el-button>
-          <el-button @click="handleReset">
+          <el-button @click="handleReset" :disabled="loading">
             <font-awesome-icon icon="refresh" class="mr-2" />
             重置
           </el-button>
@@ -179,8 +219,8 @@ onMounted(() => {
     </div>
 
     <!-- 日志列表 -->
-    <div class="card-base">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+    <div class="card-base flex flex-col h-[calc(100vh-400px)]">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
           操作日志
         </h3>
@@ -189,20 +229,22 @@ onMounted(() => {
         </p>
       </div>
       
-      <el-table
-        :data="logs"
-        :loading="loading"
-        stripe
-        class="w-full"
-      >
+      <div class="flex-1 overflow-hidden">
+        <el-table
+          :data="logs"
+          :loading="loading"
+          stripe
+          class="w-full"
+          height="100%"
+        >
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="用户" min-width="150">
+        <el-table-column label="用户" min-width="180">
           <template #default="{ row }">
             <div v-if="row.userEmail" class="flex items-center">
-              <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
-              <span class="text-sm">{{ row.userEmail }}</span>
+              <font-awesome-icon icon="user" class="mr-2 text-gray-500 text-xs" />
+              <span class="text-sm font-medium">{{ row.userEmail }}</span>
             </div>
-            <span v-else class="text-gray-400 text-sm">系统操作</span>
+            <span v-else class="text-gray-400 text-sm italic">系统操作</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120">
@@ -212,46 +254,56 @@ onMounted(() => {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="IP地址" width="140">
+        <el-table-column label="IP地址" width="160">
           <template #default="{ row }">
             <div v-if="row.ip_address" class="flex items-center">
-              <font-awesome-icon icon="globe" class="mr-2 text-gray-500" />
-              <span class="font-mono text-sm">{{ row.ip_address }}</span>
+              <font-awesome-icon icon="globe" class="mr-2 text-gray-500 text-xs" />
+              <span class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ row.ip_address }}</span>
             </div>
             <span v-else class="text-gray-400 text-sm">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="用户代理" min-width="200">
+        <el-table-column label="用户代理" min-width="250">
           <template #default="{ row }">
-            <span v-if="row.user_agent" class="text-xs text-gray-600 dark:text-gray-400">
-              {{ truncateText(row.user_agent, 50) }}
-            </span>
+            <div v-if="row.user_agent" class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+              <el-tooltip :content="row.user_agent" placement="top" :show-after="500">
+                <span class="cursor-help">{{ truncateText(row.user_agent, 60) }}</span>
+              </el-tooltip>
+            </div>
             <span v-else class="text-gray-400 text-sm">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="详情" min-width="200">
+        <el-table-column label="详情" min-width="220">
           <template #default="{ row }">
-            <span v-if="row.details" class="text-sm">
-              {{ truncateText(row.details, 40) }}
-            </span>
+            <div v-if="row.details" class="text-sm">
+              <el-tooltip :content="row.details" placement="top" :show-after="500">
+                <span class="cursor-help text-gray-700 dark:text-gray-300">{{ truncateText(row.details, 45) }}</span>
+              </el-tooltip>
+            </div>
             <span v-else class="text-gray-400 text-sm">-</span>
           </template>
         </el-table-column>
         <el-table-column label="时间" width="180">
           <template #default="{ row }">
-            {{ new Date(row.timestamp).toLocaleString() }}
+            <div class="text-sm">
+              <div class="font-medium">{{ new Date(row.timestamp).toLocaleDateString() }}</div>
+              <div class="text-xs text-gray-500">{{ new Date(row.timestamp).toLocaleTimeString() }}</div>
+            </div>
           </template>
         </el-table-column>
-      </el-table>
-      
+        </el-table>
+      </div>
+
       <!-- 分页 -->
-      <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <el-pagination
           v-model:current-page="currentPage"
-          :page-size="pageSize"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
           :total="total"
-          layout="total, prev, pager, next, jumper"
+          layout="total, sizes, prev, pager, next, jumper"
           @current-change="handlePageChange"
+          @size-change="handleSizeChange"
         />
       </div>
     </div>
@@ -271,10 +323,59 @@ onMounted(() => {
 
 <style scoped>
 .card-base {
-  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dark .card-base {
+  background-color: #1f2937;
+  border-color: #374151;
 }
 
 .btn-primary {
-  @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+/* 表格样式优化 */
+:deep(.el-table) {
+  background-color: transparent;
+  font-size: 14px;
+}
+
+:deep(.el-table tr) {
+  background-color: transparent;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: var(--el-table-row-hover-bg-color);
+}
+
+:deep(.el-table th) {
+  background-color: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+
+:deep(.el-table td) {
+  color: var(--el-text-color-primary);
+}
+
+/* 分页样式 */
+:deep(.el-pagination) {
+  justify-content: center;
+}
+
+:deep(.el-pagination .el-pagination__total) {
+  color: var(--el-text-color-regular);
 }
 </style>

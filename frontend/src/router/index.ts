@@ -126,6 +126,11 @@ const router = createRouter({
           component: () => import('@/views/admin/EmailsView.vue'),
         },
         {
+          path: 'announcements',
+          name: 'admin-announcements',
+          component: () => import('@/views/admin/AnnouncementsView.vue'),
+        },
+        {
           path: 'logs',
           name: 'admin-logs',
           component: () => import('@/views/admin/LogsView.vue'),

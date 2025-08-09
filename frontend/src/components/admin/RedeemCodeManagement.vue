@@ -253,8 +253,8 @@ onMounted(() => {
     </div>
 
     <!-- 兑换码列表 -->
-    <div class="card-base">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+    <div class="card-base flex flex-col h-[calc(100vh-400px)]">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
           兑换码列表
         </h3>
@@ -262,13 +262,15 @@ onMounted(() => {
           共 {{ formatNumber(total) }} 个兑换码
         </p>
       </div>
-      
-      <el-table
-        :data="codes"
-        :loading="loading"
-        stripe
-        class="w-full"
-      >
+
+      <div class="flex-1 overflow-hidden">
+        <el-table
+          :data="codes"
+          :loading="loading"
+          stripe
+          class="w-full"
+          height="100%"
+        >
         <el-table-column label="兑换码" min-width="150">
           <template #default="{ row }">
             <div class="flex items-center space-x-2">
@@ -357,10 +359,11 @@ onMounted(() => {
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-      
+        </el-table>
+      </div>
+
       <!-- 分页 -->
-      <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <el-pagination
           v-model:current-page="currentPage"
           :page-size="pageSize"

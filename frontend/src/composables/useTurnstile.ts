@@ -2,7 +2,10 @@ import { ref, computed, readonly } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 
 // Turnstile 配置
-const TURNSTILE_SITE_KEY = '0x4AAAAAABo_hK-8xkK5jEPM' // 从后端 wrangler.toml 获取
+const isDev = import.meta.env.DEV
+const TURNSTILE_SITE_KEY = isDev
+  ? '1x00000000000000000000AA' // 开发环境测试密钥
+  : '0x4AAAAAABo_hK-8xkK5jEPM' // 生产环境密钥
 
 export function useTurnstile() {
   const themeStore = useThemeStore()
@@ -21,7 +24,8 @@ export function useTurnstile() {
 
   // 处理验证成功
   const handleSuccess = (token: string) => {
-    turnstileToken.value = token
+    // 开发环境使用虚拟token
+    turnstileToken.value = isDev ? 'XXXX.DUMMY.TOKEN.XXXX' : token
     isVerified.value = true
     isLoading.value = false
     error.value = ''

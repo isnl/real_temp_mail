@@ -111,6 +111,14 @@ export function createRateLimitMiddleware(env: Env) {
           })
         }
 
+        // 开发环境跳过验证或使用测试密钥
+        const isDevelopment = env.ENVIRONMENT === 'development'
+
+        if (isDevelopment && turnstileToken === 'XXXX.DUMMY.TOKEN.XXXX') {
+          // 开发环境允许使用虚拟token
+          return
+        }
+
         // 验证 Turnstile token
         const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
           method: 'POST',

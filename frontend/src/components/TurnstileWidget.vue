@@ -29,6 +29,7 @@ const widgetId = ref<string>()
 const isLoaded = ref(false)
 const isScriptLoaded = ref(false)
 const loadingError = ref<string>('')
+const isDev = import.meta.env.DEV
 
 // 检查 Turnstile 脚本是否已加载
 const checkTurnstileLoaded = (): boolean => {
@@ -179,6 +180,18 @@ onMounted(async () => {
     // 通知父组件开始加载
     emit('beforeInteractive')
 
+    // 开发环境直接模拟成功
+    if (import.meta.env.DEV) {
+      await nextTick()
+      isLoaded.value = true
+      emit('afterInteractive')
+      // 延迟一点时间模拟真实验证过程
+      setTimeout(() => {
+        emit('success', 'XXXX.DUMMY.TOKEN.XXXX')
+      }, 1000)
+      return
+    }
+
     // 等待 DOM 完全渲染
     await nextTick()
 
@@ -226,7 +239,17 @@ defineExpose({
       <div v-if="!isLoaded && !loadingError" class="flex items-center justify-center p-4">
         <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
           <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
-          <span class="text-sm">加载人机验证...</span>
+          <span class="text-sm">
+            {{ isDev ? '开发环境模拟验证...' : '加载人机验证...' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 开发环境成功状态 -->
+      <div v-if="isLoaded && isDev" class="flex items-center justify-center p-4">
+        <div class="flex items-center space-x-2 text-green-500">
+          <i class="fas fa-check-circle"></i>
+          <span class="text-sm">开发环境 - 验证已通过</span>
         </div>
       </div>
 

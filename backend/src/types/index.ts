@@ -338,3 +338,32 @@ export interface AdminStatsData {
   totalRedeemCodes: number
   usedRedeemCodes: number
 }
+
+// 公告相关类型
+export interface Announcement {
+  id: number
+  title: string
+  content: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateAnnouncementData {
+  title: string
+  content: string
+  is_active?: boolean
+}
+
+export interface UpdateAnnouncementData {
+  title?: string
+  content?: string
+  is_active?: boolean
+}
+
+export interface AdminAnnouncementListParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: 'active' | 'inactive'
+}

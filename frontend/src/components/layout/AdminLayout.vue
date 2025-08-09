@@ -49,6 +49,12 @@ const menuItems = [
     path: '/admin/emails',
   },
   {
+    key: 'announcements',
+    title: '公告管理',
+    icon: 'bullhorn',
+    path: '/admin/announcements',
+  },
+  {
     key: 'logs',
     title: '日志审计',
     icon: 'file-alt',
