@@ -270,6 +270,54 @@ const handleInlineCreateEmail = async (domainId?: number) => {
   }
 }
 
+// 随机创建邮箱（随机选择域名）
+const handleRandomCreateEmail = async () => {
+  if (quotaInfo.value.remaining <= 0) {
+    ElMessage.warning('配额不足，请先兑换配额码')
+    showRedeemDialog.value = true
+    return
+  }
+
+  // 确保域名数据已加载
+  if (emailStore.availableDomains.length === 0) {
+    try {
+      await emailStore.fetchDomains()
+    } catch (error) {
+      console.error('Failed to fetch domains:', error)
+      ElMessage.error('获取域名列表失败，请刷新页面重试')
+      return
+    }
+  }
+
+  if (emailStore.availableDomains.length === 0) {
+    ElMessage.error('暂无可用域名')
+    return
+  }
+
+  // 随机选择一个域名
+  const randomIndex = Math.floor(Math.random() * emailStore.availableDomains.length)
+  const randomDomainId = emailStore.availableDomains[randomIndex].id
+
+  console.log('Creating random email with domain ID:', randomDomainId)
+
+  // 调用创建邮箱方法
+  await handleInlineCreateEmail(randomDomainId)
+}
+
+// 处理下拉菜单命令
+const handleCreateCommand = (command: string) => {
+  switch (command) {
+    case 'selected':
+      handleInlineCreateEmail()
+      break
+    case 'random':
+      handleRandomCreateEmail()
+      break
+    default:
+      console.warn('Unknown command:', command)
+  }
+}
+
 
 </script>
 
@@ -400,20 +448,45 @@ const handleInlineCreateEmail = async (domainId?: number) => {
                     />
                   </el-select>
 
-                  <el-button
-                    @click="handleInlineCreateEmail()"
-                    type="primary"
-                    :loading="isCreatingInline"
-                    :disabled="quotaInfo.remaining <= 0 || !selectedDomainId"
+                  <el-dropdown
+                    @command="handleCreateCommand"
+                    :disabled="quotaInfo.remaining <= 0"
                     class="flex-1"
                   >
-                    <font-awesome-icon
-                      v-if="!isCreatingInline"
-                      :icon="['fas', 'plus']"
-                      class="mr-2"
-                    />
-                    {{ isCreatingInline ? '创建中...' : '快速创建' }}
-                  </el-button>
+                    <el-button
+                      type="primary"
+                      :loading="isCreatingInline"
+                      :disabled="quotaInfo.remaining <= 0"
+                      class="w-full"
+                    >
+                      <font-awesome-icon
+                        v-if="!isCreatingInline"
+                        :icon="['fas', 'plus']"
+                        class="mr-2"
+                      />
+                      {{ isCreatingInline ? '创建中...' : '快速创建' }}
+                      <font-awesome-icon
+                        v-if="!isCreatingInline"
+                        :icon="['fas', 'chevron-down']"
+                        class="ml-2"
+                      />
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item
+                          command="selected"
+                          :disabled="!selectedDomainId"
+                        >
+                          <font-awesome-icon :icon="['fas', 'at']" class="mr-2" />
+                          使用选中域名创建
+                        </el-dropdown-item>
+                        <el-dropdown-item command="random">
+                          <font-awesome-icon :icon="['fas', 'dice']" class="mr-2" />
+                          随机域名创建
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </div>
               </div>
             </div>

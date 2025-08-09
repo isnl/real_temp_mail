@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { apiClient } from '@/api/request'
 import { formatQuotaSource, formatQuotaType, getQuotaTypeColor, getQuotaSourceIcon } from '@/api/checkin'
+import { formatNumber } from '@/api/admin'
 import type { ApiResponse, PaginatedResponse } from '@/types'
 
 // 配额记录类型

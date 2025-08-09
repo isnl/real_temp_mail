@@ -69,13 +69,17 @@ export class CheckinService {
                 checkinRecord: todayCheckin
             };
         }
-        // 计算下次签到时间（明天0点）
-        const tomorrow = new Date();
+        // 计算下次签到时间（北京时间明天0点）
+        const now = new Date();
+        const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+        const tomorrow = new Date(beijingTime);
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(0, 0, 0, 0);
+        // 转换回UTC时间用于前端显示
+        const tomorrowUTC = new Date(tomorrow.getTime() - 8 * 60 * 60 * 1000);
         return {
             hasCheckedIn: false,
-            nextCheckinTime: tomorrow.toISOString()
+            nextCheckinTime: tomorrowUTC.toISOString()
         };
     }
     /**

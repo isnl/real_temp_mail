@@ -244,14 +244,20 @@ export class DatabaseService {
     }
     // ==================== 签到相关操作 ====================
     async getTodayCheckin(userId) {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD格式
+        // 使用北京时间（UTC+8）获取今天的日期
+        const now = new Date();
+        const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+        const today = beijingTime.toISOString().split('T')[0]; // YYYY-MM-DD格式
         return await this.db.prepare(`
       SELECT * FROM user_checkins
       WHERE user_id = ? AND checkin_date = ?
     `).bind(userId, today).first();
     }
     async createCheckin(userId, quotaReward) {
-        const today = new Date().toISOString().split('T')[0];
+        // 使用北京时间（UTC+8）获取今天的日期
+        const now = new Date();
+        const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+        const today = beijingTime.toISOString().split('T')[0];
         const result = await this.db.prepare(`
       INSERT INTO user_checkins (user_id, checkin_date, quota_reward)
       VALUES (?, ?, ?)
