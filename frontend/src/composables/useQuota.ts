@@ -22,7 +22,9 @@ export function useQuota() {
     },
     enabled: computed(() => authStore.isAuthenticated),
     staleTime: 30000, // 30秒内不重新获取
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 3, // 🎯 增加重试次数
+    retryDelay: 1000 // 🎯 重试延迟
   })
 
   // 🎯 监听 authStore 的用户配额变化，同步更新 vue-query 缓存
@@ -68,11 +70,14 @@ export function useQuota() {
       return quotaQueryData.value
     }
 
-    // 如果没有从 API 获取到数据，使用旧的计算方式作为后备
+    // 🔥 修复：如果没有从 API 获取到数据，使用正确的后备逻辑
+    // authStore.userQuota 实际上是剩余配额，不是总配额
+    const remaining = authStore.userQuota || 0
+
     return {
-      remaining: authStore.userQuota,
+      remaining, // 剩余配额
       used: 0, // 暂时设为 0，因为我们无法准确计算
-      total: authStore.userQuota
+      total: remaining // 🎯 修复：当无法获取已用配额时，总配额等于剩余配额
     }
   })
 

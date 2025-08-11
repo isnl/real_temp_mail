@@ -22,10 +22,6 @@ const quotaTotal = ref(0)
 const quotaPage = ref(1)
 const quotaPageSize = ref(10)
 
-// 兑换码相关
-const redeemCode = ref('')
-const redeemLoading = ref(false)
-
 onMounted(async () => {
   await fetchQuotaInfo()
   await loadQuotaLogs()

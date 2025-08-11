@@ -36,9 +36,13 @@ const selectedTempEmail = computed(() => emailStore.selectedTempEmail)
 const currentEmails = computed(() => emailStore.currentEmails)
 
 onMounted(async () => {
-  await loadData()
-  await loadCheckinStatus()
-  await fetchQuotaInfo() // 获取准确的配额信息
+  // 🎯 优化：并行加载数据，提高页面加载速度
+  await Promise.all([
+    loadData(),
+    loadCheckinStatus(),
+    fetchQuotaInfo() // 确保配额信息被正确获取
+  ])
+
   // 设置默认选中的域名
   if (emailStore.availableDomains.length > 0) {
     selectedDomainId.value = emailStore.availableDomains[0].id
