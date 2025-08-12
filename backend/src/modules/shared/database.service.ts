@@ -13,7 +13,8 @@ import type {
   PaginatedResponse,
   SystemSetting,
   UserCheckin,
-  QuotaLog
+  QuotaLog,
+  UserQuotaBalance
 } from '@/types'
 
 export class DatabaseService {
@@ -58,12 +59,19 @@ export class DatabaseService {
   }
 
   async decrementUserQuota(userId: number): Promise<boolean> {
-    const result = await this.db.prepare(`
-      UPDATE users SET quota = quota - 1, updated_at = datetime('now', '+8 hours')
-      WHERE id = ? AND quota > 0
-    `).bind(userId).run()
+    // 使用新的配额消费逻辑
+    const success = await this.consumeQuota(userId, 1)
 
-    return (result.meta?.changes ?? 0) > 0
+    if (success) {
+      // 同时更新 users 表的 quota 字段（保持向后兼容）
+      const totalQuota = await this.getUserTotalQuota(userId)
+      await this.db.prepare(`
+        UPDATE users SET quota = ?, updated_at = datetime('now', '+8 hours')
+        WHERE id = ?
+      `).bind(totalQuota.available, userId).run()
+    }
+
+    return success
   }
 
   async updateUserPassword(userId: number, passwordHash: string): Promise<boolean> {
@@ -233,8 +241,8 @@ export class DatabaseService {
       return false // 已达到最大使用次数
     }
 
-    // 检查兑换码是否过期
-    if (new Date(redeemCode.valid_until) < new Date()) {
+    // 检查兑换码是否过期（如果不是永不过期）
+    if (!redeemCode.never_expires && new Date(redeemCode.valid_until) < new Date()) {
       return false
     }
 
@@ -397,10 +405,12 @@ export class DatabaseService {
     source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email'
     description?: string
     relatedId?: number
+    expiresAt?: string | null
+    quotaType?: 'permanent' | 'daily' | 'custom'
   }): Promise<QuotaLog> {
     const result = await this.db.prepare(`
-      INSERT INTO quota_logs (user_id, type, amount, source, description, related_id)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO quota_logs (user_id, type, amount, source, description, related_id, expires_at, quota_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `).bind(
       data.userId,
@@ -408,7 +418,9 @@ export class DatabaseService {
       data.amount,
       data.source,
       data.description || null,
-      data.relatedId || null
+      data.relatedId || null,
+      data.expiresAt || null,
+      data.quotaType || 'permanent'
     ).first<QuotaLog>()
 
     if (!result) {
@@ -453,6 +465,156 @@ export class DatabaseService {
     `).bind(userId).first<{ consumed: number }>()
 
     return result?.consumed || 0
+  }
+
+  // ==================== 配额余额相关操作 ====================
+
+  // 创建配额余额记录
+  async createQuotaBalance(data: {
+    userId: number
+    quotaType: 'permanent' | 'daily' | 'custom'
+    amount: number
+    expiresAt?: string | null
+    source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust'
+    sourceId?: number | null
+  }): Promise<UserQuotaBalance> {
+    const result = await this.db.prepare(`
+      INSERT INTO user_quota_balances (user_id, quota_type, amount, expires_at, source, source_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+      RETURNING *
+    `).bind(
+      data.userId,
+      data.quotaType,
+      data.amount,
+      data.expiresAt || null,
+      data.source,
+      data.sourceId || null
+    ).first<UserQuotaBalance>()
+
+    if (!result) {
+      throw new Error('Failed to create quota balance')
+    }
+
+    return result
+  }
+
+  // 获取用户有效配额余额（按过期时间排序，即将过期的在前）
+  async getUserQuotaBalances(userId: number): Promise<UserQuotaBalance[]> {
+    const now = new Date().toISOString()
+
+    return await this.db.prepare(`
+      SELECT * FROM user_quota_balances
+      WHERE user_id = ?
+        AND amount > 0
+        AND (expires_at IS NULL OR expires_at > ?)
+      ORDER BY
+        CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END,
+        expires_at ASC
+    `).bind(userId, now).all<UserQuotaBalance>().then(result => result.results || [])
+  }
+
+  // 获取用户总配额（包括已过期的）
+  async getUserTotalQuota(userId: number): Promise<{
+    total: number
+    available: number
+    expired: number
+  }> {
+    const now = new Date().toISOString()
+
+    const result = await this.db.prepare(`
+      SELECT
+        COALESCE(SUM(amount), 0) as total,
+        COALESCE(SUM(CASE WHEN expires_at IS NULL OR expires_at > ? THEN amount ELSE 0 END), 0) as available,
+        COALESCE(SUM(CASE WHEN expires_at IS NOT NULL AND expires_at <= ? THEN amount ELSE 0 END), 0) as expired
+      FROM user_quota_balances
+      WHERE user_id = ?
+    `).bind(now, now, userId).first<{
+      total: number
+      available: number
+      expired: number
+    }>()
+
+    return result || { total: 0, available: 0, expired: 0 }
+  }
+
+  // 消费配额（优先消费即将过期的配额）
+  async consumeQuota(userId: number, amount: number): Promise<boolean> {
+    const balances = await this.getUserQuotaBalances(userId)
+
+    let remainingToConsume = amount
+    const consumedBalances: { id: number, consumed: number }[] = []
+
+    // 按过期时间优先消费配额
+    for (const balance of balances) {
+      if (remainingToConsume <= 0) break
+
+      const consumeFromThis = Math.min(balance.amount, remainingToConsume)
+      consumedBalances.push({ id: balance.id, consumed: consumeFromThis })
+      remainingToConsume -= consumeFromThis
+    }
+
+    // 如果配额不足
+    if (remainingToConsume > 0) {
+      return false
+    }
+
+    // 更新配额余额
+    for (const { id, consumed } of consumedBalances) {
+      await this.db.prepare(`
+        UPDATE user_quota_balances
+        SET amount = amount - ?, updated_at = datetime('now', '+8 hours')
+        WHERE id = ?
+      `).bind(consumed, id).run()
+    }
+
+    return true
+  }
+
+  // 清理过期配额
+  async cleanupExpiredQuotas(): Promise<number> {
+    const now = new Date().toISOString()
+
+    const result = await this.db.prepare(`
+      DELETE FROM user_quota_balances
+      WHERE expires_at IS NOT NULL AND expires_at <= ?
+    `).bind(now).run()
+
+    // 同时更新用户表中的配额字段
+    await this.db.prepare(`
+      UPDATE users SET quota = (
+        SELECT COALESCE(SUM(amount), 0)
+        FROM user_quota_balances
+        WHERE user_quota_balances.user_id = users.id
+          AND (expires_at IS NULL OR expires_at > ?)
+      )
+    `).bind(now).run()
+
+    return result.meta?.changes || 0
+  }
+
+  // 获取即将过期的配额（24小时内过期）
+  async getExpiringQuotas(userId?: number): Promise<UserQuotaBalance[]> {
+    const now = new Date()
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+    const nowISO = now.toISOString()
+
+    let query = `
+      SELECT * FROM user_quota_balances
+      WHERE expires_at IS NOT NULL
+        AND expires_at > ?
+        AND expires_at <= ?
+        AND amount > 0
+    `
+    const params = [nowISO, tomorrow]
+
+    if (userId) {
+      query += ` AND user_id = ?`
+      params.push(userId.toString())
+    }
+
+    query += ` ORDER BY expires_at ASC`
+
+    return await this.db.prepare(query).bind(...params).all<UserQuotaBalance>().then(result => result.results || [])
   }
 
   // 限流相关操作

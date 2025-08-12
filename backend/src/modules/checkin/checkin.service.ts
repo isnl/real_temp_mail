@@ -40,14 +40,26 @@ export class CheckinService {
     const setting = await this.dbService.getSystemSetting('daily_checkin_quota')
     const quotaReward = parseInt(setting?.setting_value || '1')
 
-    // 4. 开始事务：创建签到记录、更新用户剩余配额、创建配额记录
+    // 4. 开始事务：创建签到记录、创建配额余额、创建配额记录
     try {
       // 创建签到记录
       const checkinRecord = await this.dbService.createCheckin(userId, quotaReward)
 
-      // 更新用户剩余配额（增加剩余配额）
-      const newQuota = user.quota + quotaReward
-      await this.dbService.updateUserQuota(userId, newQuota)
+      // 计算当天24点过期时间（中国时区）
+      const now = new Date()
+      const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+      const endOfDay = new Date(beijingTime.getFullYear(), beijingTime.getMonth(), beijingTime.getDate(), 23, 59, 59, 999)
+      const expiresAt = new Date(endOfDay.getTime() - 8 * 60 * 60 * 1000).toISOString() // 转回UTC时间
+
+      // 创建配额余额记录（当天24点过期）
+      await this.dbService.createQuotaBalance({
+        userId,
+        quotaType: 'daily',
+        amount: quotaReward,
+        expiresAt,
+        source: 'checkin',
+        sourceId: checkinRecord.id
+      })
 
       // 创建配额获得记录
       await this.dbService.createQuotaLog({
@@ -56,21 +68,27 @@ export class CheckinService {
         amount: quotaReward,
         source: 'checkin',
         description: `每日签到奖励 +${quotaReward} 配额`,
-        relatedId: checkinRecord.id
+        relatedId: checkinRecord.id,
+        expiresAt,
+        quotaType: 'daily'
       })
+
+      // 更新用户剩余配额（保持向后兼容）
+      const totalQuota = await this.dbService.getUserTotalQuota(userId)
+      await this.dbService.updateUserQuota(userId, totalQuota.available)
 
       // 记录操作日志
       await this.dbService.createLog({
         userId,
         action: 'CHECKIN',
-        details: `Daily checkin completed, reward: ${quotaReward} quota`
+        details: `Daily checkin completed, reward: ${quotaReward} quota, expires at: ${expiresAt}`
       })
 
       return {
         success: true,
         quota_reward: quotaReward,
-        total_quota: newQuota, // 返回新的剩余配额
-        message: `签到成功！获得 ${quotaReward} 个配额`
+        total_quota: totalQuota.available, // 返回新的剩余配额
+        message: `签到成功！获得 ${quotaReward} 个配额（当天24点过期）`
       }
     } catch (error) {
       console.error('Checkin error:', error)

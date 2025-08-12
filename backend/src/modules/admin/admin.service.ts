@@ -18,6 +18,8 @@ import type {
   SystemSetting
 } from '@/types'
 
+import { DatabaseService } from '@/modules/shared/database.service'
+
 import {
   ValidationError,
   NotFoundError,
@@ -36,8 +38,6 @@ import type {
   SystemHealth,
   QuotaLogWithUser
 } from './types'
-
-import { DatabaseService } from '@/modules/shared/database.service'
 import { generateRandomString } from '@/utils/crypto'
 
 export class AdminService {
@@ -695,13 +695,13 @@ export class AdminService {
   }
 
   async createRedeemCode(data: AdminRedeemCodeCreateData): Promise<RedeemCode> {
-    const { quota, validUntil, maxUses = 1 } = data
+    const { quota, validUntil, maxUses = 1, neverExpires = false } = data
     const code = generateRandomString(12).toUpperCase()
 
     const result = await this.env.DB.prepare(`
-      INSERT INTO redeem_codes (code, quota, valid_until, max_uses, created_at)
-      VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
-    `).bind(code, quota, validUntil, maxUses).run()
+      INSERT INTO redeem_codes (code, quota, valid_until, max_uses, never_expires, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
+    `).bind(code, quota, validUntil, maxUses, neverExpires ? 1 : 0).run()
 
     const newCode = await this.env.DB.prepare(`
       SELECT * FROM redeem_codes WHERE code = ?
@@ -711,16 +711,16 @@ export class AdminService {
   }
 
   async createBatchRedeemCodes(data: BatchRedeemCodeCreate): Promise<RedeemCode[]> {
-    const { quota, validUntil, count, prefix = '', maxUses = 1 } = data
+    const { quota, validUntil, count, prefix = '', maxUses = 1, neverExpires = false } = data
     const codes: RedeemCode[] = []
 
     for (let i = 0; i < count; i++) {
       const code = prefix + generateRandomString(12 - prefix.length).toUpperCase()
 
       await this.env.DB.prepare(`
-        INSERT INTO redeem_codes (code, quota, valid_until, max_uses, created_at)
-        VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
-      `).bind(code, quota, validUntil, maxUses).run()
+        INSERT INTO redeem_codes (code, quota, valid_until, max_uses, never_expires, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
+      `).bind(code, quota, validUntil, maxUses, neverExpires ? 1 : 0).run()
 
       const newCode = await this.env.DB.prepare(`
         SELECT * FROM redeem_codes WHERE code = ?
@@ -923,28 +923,63 @@ export class AdminService {
       throw new NotFoundError('用户不存在')
     }
 
-    // 2. 更新用户剩余配额
-    const newQuota = Number(user.quota) + amount
+    // 2. 如果是负数，需要检查是否有足够的配额可以扣除
+    if (amount < 0) {
+      const dbService = new DatabaseService(this.env.DB)
+      const totalQuota = await dbService.getUserTotalQuota(userId)
 
-    // 防止剩余配额变为负数
-    if (newQuota < 0) {
-      throw new ValidationError('操作后剩余配额不能为负数')
+      if (totalQuota.available + amount < 0) {
+        throw new ValidationError('用户可用配额不足，无法扣除指定数量')
+      }
+
+      // 扣除配额（使用消费逻辑）
+      const success = await dbService.consumeQuota(userId, Math.abs(amount))
+      if (!success) {
+        throw new ValidationError('配额扣除失败')
+      }
+
+      // 更新用户剩余配额
+      const newTotalQuota = await dbService.getUserTotalQuota(userId)
+      await this.env.DB.prepare(`
+        UPDATE users SET quota = ? WHERE id = ?
+      `).bind(newTotalQuota.available, userId).run()
+    } else {
+      // 3. 增加配额（创建永久配额余额）
+      const dbService = new DatabaseService(this.env.DB)
+
+      await dbService.createQuotaBalance({
+        userId,
+        quotaType: 'permanent',
+        amount,
+        expiresAt: null, // 永不过期
+        source: 'admin_adjust',
+        sourceId: null
+      })
+
+      // 更新用户剩余配额
+      const totalQuota = await dbService.getUserTotalQuota(userId)
+      await this.env.DB.prepare(`
+        UPDATE users SET quota = ? WHERE id = ?
+      `).bind(totalQuota.available, userId).run()
     }
 
-    await this.env.DB.prepare(`
-      UPDATE users SET quota = ? WHERE id = ?
-    `).bind(newQuota, userId).run()
-
-    // 3. 创建配额记录
-    await this.env.DB.prepare(`
-      INSERT INTO quota_logs (user_id, type, amount, source, description)
-      VALUES (?, ?, ?, ?, ?)
-    `).bind(
+    // 4. 创建配额记录
+    const dbService = new DatabaseService(this.env.DB)
+    await dbService.createQuotaLog({
       userId,
-      amount > 0 ? 'earn' : 'consume',
-      Math.abs(amount),
-      'admin_adjust',
-      description || `管理员${amount > 0 ? '赠送' : '扣除'}配额`
-    ).run()
+      type: amount > 0 ? 'earn' : 'consume',
+      amount: Math.abs(amount),
+      source: 'admin_adjust',
+      description: description || (amount > 0 ? '管理员增加配额（永不过期）' : '管理员扣除配额'),
+      expiresAt: amount > 0 ? null : undefined, // 增加的配额永不过期
+      quotaType: amount > 0 ? 'permanent' : undefined
+    })
+
+    // 5. 记录操作日志
+    await dbService.createLog({
+      userId,
+      action: 'ADMIN_QUOTA_ADJUST',
+      details: `Admin adjusted quota by ${amount}, description: ${description || 'N/A'}`
+    })
   }
 }

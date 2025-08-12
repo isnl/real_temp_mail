@@ -79,6 +79,8 @@ export interface QuotaLog {
   description: string | null
   related_id: number | null
   created_at: string
+  expires_at: string | null // 配额过期时间，NULL表示永不过期
+  quota_type: 'permanent' | 'daily' | 'custom' // 配额类型
 }
 
 // 签到请求类型
@@ -112,6 +114,7 @@ export interface RedeemCode {
   used_at: string | null
   created_at: string
   max_uses: number
+  never_expires: boolean // 是否永不过期
 }
 
 // 兑换码使用记录类型
@@ -120,6 +123,19 @@ export interface RedeemCodeUsage {
   code: string
   user_id: number
   used_at: string
+}
+
+// 用户配额余额类型
+export interface UserQuotaBalance {
+  id: number
+  user_id: number
+  quota_type: 'permanent' | 'daily' | 'custom'
+  amount: number
+  expires_at: string | null // NULL表示永不过期
+  source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust'
+  source_id: number | null
+  created_at: string
+  updated_at: string
 }
 
 // JWT相关类型
@@ -325,6 +341,7 @@ export interface AdminRedeemCodeCreateData {
   validUntil: string
   count?: number
   maxUses?: number
+  neverExpires?: boolean // 是否永不过期
 }
 
 export interface AdminStatsData {

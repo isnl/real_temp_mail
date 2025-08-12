@@ -94,6 +94,7 @@ export interface BatchRedeemCodeCreate {
     count: number;
     prefix?: string;
     maxUses?: number;
+    neverExpires?: boolean;
 }
 export interface ExportUserData {
     id: number;

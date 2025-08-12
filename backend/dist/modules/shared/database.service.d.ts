@@ -1,4 +1,4 @@
-import type { User, TempEmail, Email, Domain, RedeemCode, RefreshToken, RateLimit, CreateUserData, PaginationParams, PaginatedResponse, SystemSetting, UserCheckin, QuotaLog } from '@/types';
+import type { User, TempEmail, Email, Domain, RedeemCode, RefreshToken, RateLimit, CreateUserData, PaginationParams, PaginatedResponse, SystemSetting, UserCheckin, QuotaLog, UserQuotaBalance } from '@/types';
 export declare class DatabaseService {
     private db;
     constructor(db: D1Database);
@@ -56,12 +56,31 @@ export declare class DatabaseService {
         source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email';
         description?: string;
         relatedId?: number;
+        expiresAt?: string | null;
+        quotaType?: 'permanent' | 'daily' | 'custom';
     }): Promise<QuotaLog>;
     getUserQuotaLogs(userId: number, page?: number, limit?: number): Promise<{
         logs: QuotaLog[];
         total: number;
     }>;
     getUsedQuotaFromLogs(userId: number): Promise<number>;
+    createQuotaBalance(data: {
+        userId: number;
+        quotaType: 'permanent' | 'daily' | 'custom';
+        amount: number;
+        expiresAt?: string | null;
+        source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust';
+        sourceId?: number | null;
+    }): Promise<UserQuotaBalance>;
+    getUserQuotaBalances(userId: number): Promise<UserQuotaBalance[]>;
+    getUserTotalQuota(userId: number): Promise<{
+        total: number;
+        available: number;
+        expired: number;
+    }>;
+    consumeQuota(userId: number, amount: number): Promise<boolean>;
+    cleanupExpiredQuotas(): Promise<number>;
+    getExpiringQuotas(userId?: number): Promise<UserQuotaBalance[]>;
     getRateLimit(identifier: string, endpoint: string, windowMs: number): Promise<RateLimit | null>;
     createOrUpdateRateLimit(identifier: string, endpoint: string, windowMs: number): Promise<number>;
 }

@@ -205,9 +205,18 @@ const toggleSidebar = () => {
       </div>
 
       <!-- 路由内容 -->
-      <main class="flex-1 overflow-y-auto p-6">
-        <router-view />
+      <main class="flex-1 overflow-y-auto px-10 py-8">
+        <div class="max-w-1400px mx-auto">
+          <router-view />
+        </div>
       </main>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 自定义最大宽度类 */
+.max-w-1400px {
+  max-width: 1400px;
+}
+</style>

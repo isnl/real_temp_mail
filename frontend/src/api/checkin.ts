@@ -50,6 +50,8 @@ export interface QuotaLog {
   description: string | null
   related_id: number | null
   created_at: string
+  expires_at: string | null // 配额过期时间，NULL表示永不过期
+  quota_type: 'permanent' | 'daily' | 'custom' // 配额类型
 }
 
 export interface QuotaLogsResponse {
@@ -61,6 +63,8 @@ export interface QuotaInfo {
   remaining: number // 剩余配额
   used: number // 已使用配额
   total: number // 总配额
+  expired?: number // 已过期配额
+  expiring?: number // 即将过期的配额（24小时内）
 }
 
 export const checkinApi = {

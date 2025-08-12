@@ -27,7 +27,8 @@ const batchCreateDialogVisible = ref(false)
 const createForm = reactive<AdminRedeemCodeCreateData>({
   quota: 5,
   validUntil: '',
-  maxUses: 1
+  maxUses: 1,
+  neverExpires: false
 })
 
 const batchCreateForm = reactive<BatchRedeemCodeCreate>({
@@ -35,7 +36,8 @@ const batchCreateForm = reactive<BatchRedeemCodeCreate>({
   validUntil: '',
   count: 10,
   prefix: '',
-  maxUses: 1
+  maxUses: 1,
+  neverExpires: false
 })
 
 const loadCodes = async () => {
@@ -66,6 +68,7 @@ const handleCreate = () => {
   createForm.quota = 5
   createForm.validUntil = ''
   createForm.maxUses = 1
+  createForm.neverExpires = false
   createDialogVisible.value = true
 }
 
@@ -75,15 +78,16 @@ const handleBatchCreate = () => {
   batchCreateForm.count = 10
   batchCreateForm.prefix = ''
   batchCreateForm.maxUses = 1
+  batchCreateForm.neverExpires = false
   batchCreateDialogVisible.value = true
 }
 
 const handleSaveCreate = async () => {
-  if (!createForm.validUntil) {
-    ElMessage.error('请选择有效期')
+  if (!createForm.neverExpires && !createForm.validUntil) {
+    ElMessage.error('请选择有效期或勾选永不过期')
     return
   }
-  
+
   if (createForm.quota <= 0) {
     ElMessage.error('配额必须大于0')
     return
@@ -105,8 +109,8 @@ const handleSaveCreate = async () => {
 }
 
 const handleSaveBatchCreate = async () => {
-  if (!batchCreateForm.validUntil) {
-    ElMessage.error('请选择有效期')
+  if (!batchCreateForm.neverExpires && !batchCreateForm.validUntil) {
+    ElMessage.error('请选择有效期或勾选永不过期')
     return
   }
   
@@ -183,7 +187,8 @@ const getStatusType = (code: AdminRedeemCodeDetails): string => {
   const validUntil = new Date(code.valid_until)
   const currentUses = code.currentUses || 0
 
-  if (validUntil < now) {
+  // 检查是否过期（永不过期的兑换码不会过期）
+  if (!code.never_expires && validUntil < now) {
     return 'danger' // 已过期
   }
 
@@ -204,7 +209,8 @@ const getStatusText = (code: AdminRedeemCodeDetails): string => {
   const validUntil = new Date(code.valid_until)
   const currentUses = code.currentUses || 0
 
-  if (validUntil < now) {
+  // 检查是否过期（永不过期的兑换码不会过期）
+  if (!code.never_expires && validUntil < now) {
     return '已过期'
   }
 
@@ -339,7 +345,12 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="有效期" width="180">
           <template #default="{ row }">
-            <span class="text-sm">{{ new Date(row.valid_until).toLocaleString() }}</span>
+            <span v-if="row.never_expires" class="text-sm text-green-600 font-medium">
+              永不过期
+            </span>
+            <span v-else class="text-sm">
+              {{ new Date(row.valid_until).toLocaleString() }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="创建时间" width="180">
@@ -419,7 +430,16 @@ onMounted(() => {
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
             class="w-full"
+            :disabled="createForm.neverExpires"
           />
+          <div class="mt-2">
+            <el-checkbox v-model="createForm.neverExpires">
+              永不过期
+            </el-checkbox>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            勾选永不过期后，兑换码将不会过期，获得的配额也永不过期
+          </div>
         </el-form-item>
       </el-form>
       
@@ -502,7 +522,16 @@ onMounted(() => {
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
             class="w-full"
+            :disabled="batchCreateForm.neverExpires"
           />
+          <div class="mt-2">
+            <el-checkbox v-model="batchCreateForm.neverExpires">
+              永不过期
+            </el-checkbox>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            勾选永不过期后，兑换码将不会过期，获得的配额也永不过期
+          </div>
         </el-form-item>
       </el-form>
       

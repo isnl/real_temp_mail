@@ -23,8 +23,8 @@ async function hashPassword(password) {
   return btoa(String.fromCharCode(...result))
 }
 
-// 生成密码 "123456" 的哈希
-hashPassword('123456').then(hash => {
-  console.log('Password hash for "123456":')
+// 生成密码 "admin123" 的哈希
+hashPassword('admin123').then(hash => {
+  console.log('Password hash for "admin123":')
   console.log(hash)
 }).catch(console.error)

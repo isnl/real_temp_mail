@@ -47,19 +47,20 @@ export class QuotaHandler {
    */
   private async handleGetQuotaInfo(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
     try {
-      // 获取用户信息
-      const userInfo = await this.dbService.getUserById(user.userId)
-      if (!userInfo) {
-        return this.errorResponse('用户不存在', 404)
-      }
+      // 先清理过期配额
+      await this.dbService.cleanupExpiredQuotas()
 
-      // 获取已使用配额
+      // 使用新的配额系统获取配额信息
+      const quotaData = await this.dbService.getUserTotalQuota(user.userId)
       const usedQuota = await this.dbService.getUsedQuotaFromLogs(user.userId)
+      const expiringQuotas = await this.dbService.getExpiringQuotas(user.userId)
 
       const quotaInfo = {
-        remaining: userInfo.quota, // 剩余配额
+        remaining: quotaData.available, // 可用配额（不包括过期的）
         used: usedQuota, // 已使用配额
-        total: userInfo.quota + usedQuota // 总配额
+        total: quotaData.total, // 总配额（包括过期的）
+        expired: quotaData.expired, // 已过期配额
+        expiring: expiringQuotas.reduce((sum, quota) => sum + quota.amount, 0) // 即将过期的配额总量
       }
 
       return this.successResponse(quotaInfo)

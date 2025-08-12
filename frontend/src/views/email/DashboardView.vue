@@ -308,19 +308,7 @@ const handleRandomCreateEmail = async () => {
   await handleInlineCreateEmail(randomDomainId)
 }
 
-// 处理下拉菜单命令
-const handleCreateCommand = (command: string) => {
-  switch (command) {
-    case 'selected':
-      handleInlineCreateEmail()
-      break
-    case 'random':
-      handleRandomCreateEmail()
-      break
-    default:
-      console.warn('Unknown command:', command)
-  }
-}
+// 删除了 handleCreateCommand 函数，因为现在直接调用对应的方法
 
 
 </script>
@@ -436,61 +424,57 @@ const handleCreateCommand = (command: string) => {
                     <p class="text-sm text-gray-600 dark:text-gray-400">点击邮箱查看收到的邮件</p>
                   </div>
                 </div>
-                <div class="flex items-center gap-4">
-                  <el-select
-                    v-model="selectedDomainId"
-                    placeholder="选择域名"
-                    style="width: 160px"
-                    :disabled="emailStore.availableDomains.length === 0"
-                    size="default"
-                  >
-                    <el-option
-                      v-for="domain in emailStore.availableDomains"
-                      :key="domain.id"
-                      :label="`@${domain.domain}`"
-                      :value="domain.id"
-                    />
-                  </el-select>
-
-                  <el-dropdown
-                    @command="handleCreateCommand"
-                    :disabled="quotaInfo.remaining <= 0"
-                    class="flex-1"
-                  >
+                <div class="flex flex-col gap-4">
+                  <!-- 指定域名创建 -->
+                  <div class="flex items-center gap-3">
+                    <el-select
+                      v-model="selectedDomainId"
+                      placeholder="选择域名"
+                      style="width: 180px"
+                      :disabled="emailStore.availableDomains.length === 0"
+                      size="default"
+                    >
+                      <el-option
+                        v-for="domain in emailStore.availableDomains"
+                        :key="domain.id"
+                        :label="`@${domain.domain}`"
+                        :value="domain.id"
+                      />
+                    </el-select>
                     <el-button
                       type="primary"
                       :loading="isCreatingInline"
-                      :disabled="quotaInfo.remaining <= 0"
-                      class="w-full"
+                      :disabled="quotaInfo.remaining <= 0 || !selectedDomainId"
+                      @click="handleInlineCreateEmail()"
+                      class="flex-1"
                     >
                       <font-awesome-icon
                         v-if="!isCreatingInline"
-                        :icon="['fas', 'plus']"
+                        :icon="['fas', 'at']"
                         class="mr-2"
                       />
-                      {{ isCreatingInline ? '创建中...' : '快速创建' }}
+                      {{ isCreatingInline ? '创建中...' : '使用指定域名创建' }}
+                    </el-button>
+                  </div>
+
+                  <!-- 随机域名创建 -->
+                  <div class="flex items-center">
+                    <el-button
+                      type="success"
+                      :loading="isCreatingInline"
+                      :disabled="quotaInfo.remaining <= 0"
+                      @click="handleRandomCreateEmail()"
+                      class="w-full"
+                      plain
+                    >
                       <font-awesome-icon
                         v-if="!isCreatingInline"
-                        :icon="['fas', 'chevron-down']"
-                        class="ml-2"
+                        :icon="['fas', 'dice']"
+                        class="mr-2"
                       />
+                      {{ isCreatingInline ? '创建中...' : '随机域名创建（推荐）' }}
                     </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item
-                          command="selected"
-                          :disabled="!selectedDomainId"
-                        >
-                          <font-awesome-icon :icon="['fas', 'at']" class="mr-2" />
-                          使用选中域名创建
-                        </el-dropdown-item>
-                        <el-dropdown-item command="random">
-                          <font-awesome-icon :icon="['fas', 'dice']" class="mr-2" />
-                          随机域名创建
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
+                  </div>
                 </div>
               </div>
             </div>

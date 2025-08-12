@@ -65,6 +65,8 @@ export interface QuotaLog {
     description: string | null;
     related_id: number | null;
     created_at: string;
+    expires_at: string | null;
+    quota_type: 'permanent' | 'daily' | 'custom';
 }
 export interface CheckinRequest {
 }
@@ -89,12 +91,24 @@ export interface RedeemCode {
     used_at: string | null;
     created_at: string;
     max_uses: number;
+    never_expires: boolean;
 }
 export interface RedeemCodeUsage {
     id: number;
     code: string;
     user_id: number;
     used_at: string;
+}
+export interface UserQuotaBalance {
+    id: number;
+    user_id: number;
+    quota_type: 'permanent' | 'daily' | 'custom';
+    amount: number;
+    expires_at: string | null;
+    source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust';
+    source_id: number | null;
+    created_at: string;
+    updated_at: string;
 }
 export interface JWTPayload {
     userId: number;
@@ -248,6 +262,7 @@ export interface AdminRedeemCodeCreateData {
     validUntil: string;
     count?: number;
     maxUses?: number;
+    neverExpires?: boolean;
 }
 export interface AdminStatsData {
     totalUsers: number;

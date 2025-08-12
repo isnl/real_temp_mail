@@ -143,6 +143,7 @@ export interface AdminRedeemCodeCreateData {
   quota: number
   validUntil: string
   maxUses?: number
+  neverExpires?: boolean
 }
 
 export interface BatchRedeemCodeCreate {
@@ -151,6 +152,7 @@ export interface BatchRedeemCodeCreate {
   count: number
   prefix?: string
   maxUses?: number
+  neverExpires?: boolean
 }
 
 // ==================== 仪表板统计 ====================

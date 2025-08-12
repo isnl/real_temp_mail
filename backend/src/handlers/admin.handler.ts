@@ -430,8 +430,8 @@ export class AdminHandler {
         throw new ValidationError('配额必须大于0')
       }
 
-      if (!data.validUntil) {
-        throw new ValidationError('有效期不能为空')
+      if (!data.neverExpires && !data.validUntil) {
+        throw new ValidationError('请设置有效期或选择永不过期')
       }
 
       const code = await this.adminService.createRedeemCode(data)
@@ -458,8 +458,8 @@ export class AdminHandler {
         throw new ValidationError('配额必须大于0')
       }
 
-      if (!data.validUntil) {
-        throw new ValidationError('有效期不能为空')
+      if (!data.neverExpires && !data.validUntil) {
+        throw new ValidationError('请设置有效期或选择永不过期')
       }
 
       if (!data.count || data.count <= 0 || data.count > 100) {

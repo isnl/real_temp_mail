@@ -105,6 +105,7 @@ export interface BatchRedeemCodeCreate {
   count: number
   prefix?: string
   maxUses?: number
+  neverExpires?: boolean
 }
 
 // 导出数据类型

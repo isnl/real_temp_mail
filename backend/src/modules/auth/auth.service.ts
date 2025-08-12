@@ -50,13 +50,25 @@ export class AuthService {
 
     const user = await this.dbService.createUser(userData)
 
-    // 6. 创建注册配额记录
+    // 6. 创建注册配额余额记录（永不过期）
+    await this.dbService.createQuotaBalance({
+      userId: user.id,
+      quotaType: 'permanent',
+      amount: defaultQuota,
+      expiresAt: null, // 永不过期
+      source: 'register',
+      sourceId: null
+    })
+
+    // 7. 创建注册配额记录
     await this.dbService.createQuotaLog({
       userId: user.id,
       type: 'earn',
       amount: defaultQuota,
       source: 'register',
-      description: '注册赠送配额'
+      description: '注册赠送配额（永不过期）',
+      expiresAt: null,
+      quotaType: 'permanent'
     })
 
     // 6. 生成JWT token对

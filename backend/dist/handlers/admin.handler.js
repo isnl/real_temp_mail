@@ -367,8 +367,8 @@ export class AdminHandler {
             if (!data.quota || data.quota <= 0) {
                 throw new ValidationError('配额必须大于0');
             }
-            if (!data.validUntil) {
-                throw new ValidationError('有效期不能为空');
+            if (!data.neverExpires && !data.validUntil) {
+                throw new ValidationError('请设置有效期或选择永不过期');
             }
             const code = await this.adminService.createRedeemCode(data);
             return this.createResponse(code, '兑换码创建成功');
@@ -391,8 +391,8 @@ export class AdminHandler {
             if (!data.quota || data.quota <= 0) {
                 throw new ValidationError('配额必须大于0');
             }
-            if (!data.validUntil) {
-                throw new ValidationError('有效期不能为空');
+            if (!data.neverExpires && !data.validUntil) {
+                throw new ValidationError('请设置有效期或选择永不过期');
             }
             if (!data.count || data.count <= 0 || data.count > 100) {
                 throw new ValidationError('数量必须在1-100之间');

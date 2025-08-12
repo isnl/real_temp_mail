@@ -1,0 +1,11 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:temp_mail}/backend/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/a494db9a333f01881884848849d32637e6b8484f84d2c70fc3465f9ef5dd1bbf.sqlite",
+            "name": "开发数据库"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}

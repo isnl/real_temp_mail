@@ -125,7 +125,8 @@ export class EmailService {
         if (!redeemCode) {
             throw new ValidationError('兑换码不存在');
         }
-        if (new Date(redeemCode.valid_until) < new Date()) {
+        // 检查兑换码是否过期（如果不是永不过期）
+        if (!redeemCode.never_expires && new Date(redeemCode.valid_until) < new Date()) {
             throw new ValidationError('兑换码已过期');
         }
         // 2. 检查用户是否已经使用过这个兑换码
@@ -143,28 +144,44 @@ export class EmailService {
         if (!success) {
             throw new ValidationError('兑换码使用失败');
         }
-        // 3. 更新用户配额
-        const user = await this.dbService.getUserById(userId);
-        if (!user) {
-            throw new NotFoundError('用户不存在');
+        // 5. 确定配额过期时间和类型
+        let expiresAt = null;
+        let quotaType = 'permanent';
+        if (!redeemCode.never_expires) {
+            // 如果兑换码不是永不过期，配额过期时间与兑换码过期时间相同
+            expiresAt = redeemCode.valid_until;
+            quotaType = 'custom';
         }
-        const newQuota = user.quota + redeemCode.quota;
-        await this.dbService.updateUserQuota(userId, newQuota);
-        // 4. 创建配额获得记录
+        // 如果兑换码永不过期，配额也永不过期（默认值）
+        // 6. 创建配额余额记录
+        await this.dbService.createQuotaBalance({
+            userId,
+            quotaType,
+            amount: redeemCode.quota,
+            expiresAt,
+            source: 'redeem_code',
+            sourceId: null // 兑换码没有数字ID，使用code作为标识
+        });
+        // 7. 创建配额获得记录
         await this.dbService.createQuotaLog({
             userId,
             type: 'earn',
             amount: redeemCode.quota,
             source: 'redeem_code',
-            description: `兑换码奖励: ${request.code}`
+            description: `兑换码奖励: ${request.code}${redeemCode.never_expires ? '（永不过期）' : `（${redeemCode.valid_until}过期）`}`,
+            expiresAt,
+            quotaType
         });
-        // 5. 记录日志
+        // 8. 更新用户剩余配额（保持向后兼容）
+        const totalQuota = await this.dbService.getUserTotalQuota(userId);
+        await this.dbService.updateUserQuota(userId, totalQuota.available);
+        // 9. 记录日志
         await this.dbService.createLog({
             userId,
             action: 'REDEEM_CODE',
-            details: `Redeemed code: ${request.code}, quota: ${redeemCode.quota}`
+            details: `Redeemed code: ${request.code}, quota: ${redeemCode.quota}, expires: ${expiresAt || 'never'}`
         });
-        return { quota: newQuota };
+        return { quota: totalQuota.available };
     }
     // 处理接收到的邮件（由Email Routing触发）
     async handleIncomingEmail(rawEmail, recipientEmail) {
