@@ -102,6 +102,7 @@ export interface QuotaLogsResponse {
 // 兑换码类型
 export interface RedeemCode {
   code: string
+  name?: string                   // 新增：兑换码名称（可选）
   quota: number
   valid_until: string
   used: boolean
