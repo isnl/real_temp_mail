@@ -406,10 +406,27 @@ export class AdminHandler {
       await this.validateAdminAuth(request)
 
       const url = new URL(request.url)
-      const page = parseInt(url.searchParams.get('page') || '1')
-      const limit = parseInt(url.searchParams.get('limit') || '20')
+      const params: any = {
+        page: parseInt(url.searchParams.get('page') || '1'),
+        limit: parseInt(url.searchParams.get('limit') || '20'),
+        search: url.searchParams.get('search') || undefined,
+        name: url.searchParams.get('name') || undefined,
+        status: url.searchParams.get('status') || undefined,
+        validityStatus: url.searchParams.get('validityStatus') || undefined,
+        startDate: url.searchParams.get('startDate') || undefined,
+        endDate: url.searchParams.get('endDate') || undefined
+      }
 
-      const codes = await this.adminService.getRedeemCodes(page, limit)
+      // 清理空值参数
+      Object.keys(params).forEach(key => {
+        if (params[key as keyof typeof params] === undefined ||
+            params[key as keyof typeof params] === '' ||
+            params[key as keyof typeof params] === 'all') {
+          delete params[key as keyof typeof params]
+        }
+      })
+
+      const codes = await this.adminService.getRedeemCodes(params)
       return this.createResponse(codes)
     } catch (error) {
       console.error('获取兑换码列表失败:', error)

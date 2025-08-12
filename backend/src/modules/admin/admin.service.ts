@@ -14,6 +14,7 @@ import type {
   AdminEmailListParams,
   AdminLogListParams,
   AdminRedeemCodeCreateData,
+  AdminRedeemCodeListParams,
   AdminStatsData,
   SystemSetting
 } from '@/types'
@@ -632,8 +633,70 @@ export class AdminService {
 
   // ==================== 兑换码管理 ====================
 
-  async getRedeemCodes(page: number = 1, limit: number = 20): Promise<PaginatedResponse<AdminRedeemCodeDetails>> {
+  async getRedeemCodes(params: AdminRedeemCodeListParams = {}): Promise<PaginatedResponse<AdminRedeemCodeDetails>> {
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      name,
+      status,
+      validityStatus,
+      startDate,
+      endDate
+    } = params
+
     const offset = (page - 1) * limit
+
+    // 构建 WHERE 条件
+    const conditions: string[] = []
+    const bindings: any[] = []
+
+    if (search) {
+      conditions.push('(r.code LIKE ? OR r.name LIKE ?)')
+      bindings.push(`%${search}%`, `%${search}%`)
+    }
+
+    if (name) {
+      conditions.push('r.name LIKE ?')
+      bindings.push(`%${name}%`)
+    }
+
+    if (status && status !== 'all') {
+      switch (status) {
+        case 'unused':
+          conditions.push('r.used_count = 0 AND (r.never_expires = 1 OR r.valid_until > datetime("now", "+8 hours"))')
+          break
+        case 'used':
+          conditions.push('r.used_count > 0')
+          break
+        case 'expired':
+          conditions.push('r.never_expires = 0 AND r.valid_until <= datetime("now", "+8 hours")')
+          break
+      }
+    }
+
+    if (validityStatus && validityStatus !== 'all') {
+      switch (validityStatus) {
+        case 'valid':
+          conditions.push('(r.never_expires = 1 OR r.valid_until > datetime("now", "+8 hours"))')
+          break
+        case 'expired':
+          conditions.push('r.never_expires = 0 AND r.valid_until <= datetime("now", "+8 hours")')
+          break
+      }
+    }
+
+    if (startDate) {
+      conditions.push('DATE(r.created_at) >= ?')
+      bindings.push(startDate)
+    }
+
+    if (endDate) {
+      conditions.push('DATE(r.created_at) <= ?')
+      bindings.push(endDate)
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     // 获取兑换码列表
     const codesQuery = `
@@ -648,18 +711,20 @@ export class AdminService {
         FROM redeem_code_usage
         GROUP BY code
       ) usage_count ON r.code = usage_count.code
+      ${whereClause}
       ORDER BY r.created_at DESC
       LIMIT ? OFFSET ?
     `
 
     const codes = await this.env.DB.prepare(codesQuery)
-      .bind(limit, offset)
+      .bind(...bindings, limit, offset)
       .all()
 
     // 获取总数
-    const countResult = await this.env.DB.prepare(`
-      SELECT COUNT(*) as total FROM redeem_codes
-    `).first()
+    const countQuery = `SELECT COUNT(*) as total FROM redeem_codes r ${whereClause}`
+    const countResult = await this.env.DB.prepare(countQuery)
+      .bind(...bindings)
+      .first()
 
     const total = Number(countResult?.total) || 0
     const totalPages = Math.ceil(total / limit)
@@ -695,13 +760,13 @@ export class AdminService {
   }
 
   async createRedeemCode(data: AdminRedeemCodeCreateData): Promise<RedeemCode> {
-    const { quota, validUntil, maxUses = 1, neverExpires = false } = data
+    const { name, quota, validUntil, maxUses = 1, neverExpires = false } = data
     const code = generateRandomString(12).toUpperCase()
 
     const result = await this.env.DB.prepare(`
-      INSERT INTO redeem_codes (code, quota, valid_until, max_uses, never_expires, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
-    `).bind(code, quota, validUntil, maxUses, neverExpires ? 1 : 0).run()
+      INSERT INTO redeem_codes (code, name, quota, valid_until, max_uses, never_expires, used_count, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now', '+8 hours'))
+    `).bind(code, name || null, quota, validUntil, maxUses, neverExpires ? 1 : 0).run()
 
     const newCode = await this.env.DB.prepare(`
       SELECT * FROM redeem_codes WHERE code = ?
@@ -711,16 +776,16 @@ export class AdminService {
   }
 
   async createBatchRedeemCodes(data: BatchRedeemCodeCreate): Promise<RedeemCode[]> {
-    const { quota, validUntil, count, prefix = '', maxUses = 1, neverExpires = false } = data
+    const { name, quota, validUntil, count, prefix = '', maxUses = 1, neverExpires = false } = data
     const codes: RedeemCode[] = []
 
     for (let i = 0; i < count; i++) {
       const code = prefix + generateRandomString(12 - prefix.length).toUpperCase()
 
       await this.env.DB.prepare(`
-        INSERT INTO redeem_codes (code, quota, valid_until, max_uses, never_expires, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
-      `).bind(code, quota, validUntil, maxUses, neverExpires ? 1 : 0).run()
+        INSERT INTO redeem_codes (code, name, quota, valid_until, max_uses, never_expires, used_count, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now', '+8 hours'))
+      `).bind(code, name || null, quota, validUntil, maxUses, neverExpires ? 1 : 0).run()
 
       const newCode = await this.env.DB.prepare(`
         SELECT * FROM redeem_codes WHERE code = ?

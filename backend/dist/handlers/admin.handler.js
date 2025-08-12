@@ -347,9 +347,25 @@ export class AdminHandler {
         try {
             await this.validateAdminAuth(request);
             const url = new URL(request.url);
-            const page = parseInt(url.searchParams.get('page') || '1');
-            const limit = parseInt(url.searchParams.get('limit') || '20');
-            const codes = await this.adminService.getRedeemCodes(page, limit);
+            const params = {
+                page: parseInt(url.searchParams.get('page') || '1'),
+                limit: parseInt(url.searchParams.get('limit') || '20'),
+                search: url.searchParams.get('search') || undefined,
+                name: url.searchParams.get('name') || undefined,
+                status: url.searchParams.get('status') || undefined,
+                validityStatus: url.searchParams.get('validityStatus') || undefined,
+                startDate: url.searchParams.get('startDate') || undefined,
+                endDate: url.searchParams.get('endDate') || undefined
+            };
+            // 清理空值参数
+            Object.keys(params).forEach(key => {
+                if (params[key] === undefined ||
+                    params[key] === '' ||
+                    params[key] === 'all') {
+                    delete params[key];
+                }
+            });
+            const codes = await this.adminService.getRedeemCodes(params);
             return this.createResponse(codes);
         }
         catch (error) {

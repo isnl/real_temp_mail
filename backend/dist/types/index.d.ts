@@ -84,6 +84,7 @@ export interface Domain {
 }
 export interface RedeemCode {
     code: string;
+    name?: string;
     quota: number;
     valid_until: string;
     used: boolean;
@@ -91,6 +92,7 @@ export interface RedeemCode {
     used_at: string | null;
     created_at: string;
     max_uses: number;
+    used_count: number;
     never_expires: boolean;
 }
 export interface RedeemCodeUsage {
@@ -258,11 +260,22 @@ export interface AdminLogListParams {
     endDate?: string;
 }
 export interface AdminRedeemCodeCreateData {
+    name?: string;
     quota: number;
     validUntil: string;
     count?: number;
     maxUses?: number;
     neverExpires?: boolean;
+}
+export interface AdminRedeemCodeListParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    name?: string;
+    status?: 'all' | 'unused' | 'used' | 'expired';
+    validityStatus?: 'all' | 'valid' | 'expired';
+    startDate?: string;
+    endDate?: string;
 }
 export interface AdminStatsData {
     totalUsers: number;

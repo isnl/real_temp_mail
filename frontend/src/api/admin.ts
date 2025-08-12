@@ -140,6 +140,7 @@ export interface AdminLogListParams {
 }
 
 export interface AdminRedeemCodeCreateData {
+  name?: string                   // 新增：兑换码名称（非必填）
   quota: number
   validUntil: string
   maxUses?: number
@@ -147,12 +148,25 @@ export interface AdminRedeemCodeCreateData {
 }
 
 export interface BatchRedeemCodeCreate {
+  name?: string                   // 新增：兑换码名称（非必填）
   quota: number
   validUntil: string
   count: number
   prefix?: string
   maxUses?: number
   neverExpires?: boolean
+}
+
+// 新增：兑换码筛选参数
+export interface AdminRedeemCodeListParams {
+  page?: number
+  limit?: number
+  search?: string                 // 搜索兑换码或名称
+  name?: string                   // 按名称筛选
+  status?: 'all' | 'unused' | 'used' | 'expired'  // 按状态筛选
+  validityStatus?: 'all' | 'valid' | 'expired'    // 按有效期筛选
+  startDate?: string              // 创建时间范围开始
+  endDate?: string                // 创建时间范围结束
 }
 
 // ==================== 仪表板统计 ====================
@@ -219,8 +233,9 @@ export const getLogActions = (): Promise<ApiResponse<string[]>> => {
 
 // ==================== 兑换码管理 ====================
 
-export const getRedeemCodes = (page: number = 1, limit: number = 20): Promise<ApiResponse<PaginatedResponse<AdminRedeemCodeDetails>>> => {
-  return apiClient.get('/api/admin/redeem-codes', { page, limit })
+export const getRedeemCodes = (params: AdminRedeemCodeListParams = {}): Promise<ApiResponse<PaginatedResponse<AdminRedeemCodeDetails>>> => {
+  const { page = 1, limit = 20, ...filters } = params
+  return apiClient.get('/api/admin/redeem-codes', { page, limit, ...filters })
 }
 
 export const createRedeemCode = (data: AdminRedeemCodeCreateData): Promise<ApiResponse<RedeemCode>> => {

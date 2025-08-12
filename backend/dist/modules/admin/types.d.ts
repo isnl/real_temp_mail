@@ -89,6 +89,7 @@ export interface BatchEmailOperation {
     operation: 'delete' | 'markRead' | 'markUnread';
 }
 export interface BatchRedeemCodeCreate {
+    name?: string;
     quota: number;
     validUntil: string;
     count: number;

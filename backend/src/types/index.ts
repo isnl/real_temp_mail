@@ -107,6 +107,7 @@ export interface Domain {
 // 兑换码类型
 export interface RedeemCode {
   code: string
+  name?: string                    // 新增：兑换码名称（非必填）
   quota: number
   valid_until: string
   used: boolean
@@ -114,7 +115,8 @@ export interface RedeemCode {
   used_at: string | null
   created_at: string
   max_uses: number
-  never_expires: boolean // 是否永不过期
+  used_count: number              // 新增：已使用次数
+  never_expires: boolean          // 是否永不过期
 }
 
 // 兑换码使用记录类型
@@ -337,11 +339,24 @@ export interface AdminLogListParams {
 }
 
 export interface AdminRedeemCodeCreateData {
+  name?: string                   // 新增：兑换码名称（非必填）
   quota: number
   validUntil: string
   count?: number
   maxUses?: number
-  neverExpires?: boolean // 是否永不过期
+  neverExpires?: boolean          // 是否永不过期
+}
+
+// 新增：兑换码筛选参数
+export interface AdminRedeemCodeListParams {
+  page?: number
+  limit?: number
+  search?: string                 // 搜索兑换码或名称
+  name?: string                   // 按名称筛选
+  status?: 'all' | 'unused' | 'used' | 'expired'  // 按状态筛选
+  validityStatus?: 'all' | 'valid' | 'expired'    // 按有效期筛选
+  startDate?: string              // 创建时间范围开始
+  endDate?: string                // 创建时间范围结束
 }
 
 export interface AdminStatsData {

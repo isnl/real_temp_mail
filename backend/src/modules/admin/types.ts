@@ -100,6 +100,7 @@ export interface BatchEmailOperation {
 }
 
 export interface BatchRedeemCodeCreate {
+  name?: string                   // 新增：兑换码名称（非必填）
   quota: number
   validUntil: string
   count: number
