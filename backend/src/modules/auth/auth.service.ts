@@ -3,21 +3,57 @@ import type {
   User,
   LoginRequest,
   RegisterRequest,
+  SendVerificationCodeRequest,
+  SendVerificationCodeResponse,
   TokenPair,
   CreateUserData
 } from '@/types'
 import { ValidationError, AuthenticationError } from '@/types'
 import { DatabaseService } from '@/modules/shared/database.service'
+import { EmailSenderService } from '@/modules/email/email-sender.service'
 import { JWTService } from './jwt.service'
 
 export class AuthService {
   private jwtService: JWTService
+  private emailSenderService: EmailSenderService
 
   constructor(
     private env: Env,
     private dbService: DatabaseService
   ) {
     this.jwtService = new JWTService(env, dbService)
+    this.emailSenderService = new EmailSenderService(env)
+  }
+
+  async sendVerificationCode(data: SendVerificationCodeRequest): Promise<SendVerificationCodeResponse> {
+    // 1. 验证邮箱格式
+    if (!this.isValidEmail(data.email)) {
+      throw new ValidationError('邮箱格式不正确')
+    }
+
+    // 2. 检查邮箱是否已被注册
+    const existingUser = await this.dbService.getUserByEmail(data.email)
+    if (existingUser) {
+      throw new ValidationError('邮箱已被注册')
+    }
+
+    // 3. 生成6位数字验证码
+    const code = this.generateVerificationCode()
+
+    // 4. 设置过期时间（10分钟后）
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+    // 5. 保存验证码到数据库
+    await this.dbService.createVerificationCode(data.email, code, expiresAt)
+
+    // 6. 发送验证码邮件
+    await this.emailSenderService.sendVerificationCode(data.email, code)
+
+    return {
+      success: true,
+      message: '验证码已发送到您的邮箱',
+      expiresAt
+    }
   }
 
   async register(data: RegisterRequest): Promise<{ user: User; tokens: TokenPair }> {
@@ -30,7 +66,15 @@ export class AuthService {
       throw new ValidationError('邮箱已被注册')
     }
 
-    // 3. 验证密码一致性
+    // 3. 验证邮箱验证码
+    if (data.verificationCode) {
+      const isCodeValid = await this.dbService.verifyEmailCode(data.email, data.verificationCode)
+      if (!isCodeValid) {
+        throw new ValidationError('验证码无效或已过期')
+      }
+    }
+
+    // 4. 验证密码一致性
     if (data.password !== data.confirmPassword) {
       throw new ValidationError('两次输入的密码不一致')
     }
@@ -278,5 +322,12 @@ export class AuthService {
       console.error('Password verification error:', error)
       return false
     }
+  }
+
+  /**
+   * 生成6位数字验证码
+   */
+  private generateVerificationCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString()
   }
 }

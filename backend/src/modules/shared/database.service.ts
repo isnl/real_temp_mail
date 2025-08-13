@@ -651,4 +651,46 @@ export class DatabaseService {
       return 1
     }
   }
+
+  // 邮箱验证码相关操作
+  async createVerificationCode(email: string, code: string, expiresAt: string): Promise<void> {
+    // 先删除该邮箱的旧验证码
+    await this.db.prepare(`
+      DELETE FROM email_verification_codes WHERE email = ?
+    `).bind(email).run()
+
+    // 创建新验证码
+    await this.db.prepare(`
+      INSERT INTO email_verification_codes (email, code, expires_at)
+      VALUES (?, ?, ?)
+    `).bind(email, code, expiresAt).run()
+  }
+
+  async verifyEmailCode(email: string, code: string): Promise<boolean> {
+    // 查找有效的验证码
+    const result = await this.db.prepare(`
+      SELECT * FROM email_verification_codes
+      WHERE email = ? AND code = ? AND used = 0 AND expires_at > datetime('now', '+8 hours')
+    `).bind(email, code).first()
+
+    if (!result) {
+      return false
+    }
+
+    // 标记验证码为已使用
+    await this.db.prepare(`
+      UPDATE email_verification_codes
+      SET used = 1, used_at = datetime('now', '+8 hours')
+      WHERE email = ? AND code = ?
+    `).bind(email, code).run()
+
+    return true
+  }
+
+  async cleanupExpiredVerificationCodes(): Promise<void> {
+    await this.db.prepare(`
+      DELETE FROM email_verification_codes
+      WHERE expires_at <= datetime('now', '+8 hours')
+    `).run()
+  }
 }

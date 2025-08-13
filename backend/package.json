@@ -29,6 +29,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
-    "postal-mime": "^2.4.4"
+    "postal-mime": "^2.4.4",
+    "mimetext": "^3.0.27"
   }
 }

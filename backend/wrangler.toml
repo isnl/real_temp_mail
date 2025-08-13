@@ -15,6 +15,7 @@ ENVIRONMENT = "production"
 JWT_SECRET = "peanut_0806_temp_mail_1Bl8GHds"
 TURNSTILE_SECRET_KEY = "0x4AAAAAABo_hIH2pHWgYDUxrP4x6uCZ9EY"
 TURNSTILE_SITE_KEY = "0x4AAAAAABo_hK-8xkK5jEPM"
+SENDER_DOMAIN = "oooo.icu"
 
 # 生产环境数据库配置
 [[env.production.d1_databases]]
@@ -24,7 +25,7 @@ database_id = "d1144511-217a-4db6-ab72-35f05dff553e"
 
 # 生产环境邮件发送配置
 [[env.production.send_email]]
-name = "SEND_EMAIL"
+name = "EMAIL_SENDER"
 
 # 开发环境变量
 [env.development.vars]
@@ -32,6 +33,7 @@ ENVIRONMENT = "development"
 JWT_SECRET = "peanut_0806_temp_mail_1Bl8GHds"
 TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
 TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+SENDER_DOMAIN = "oooo.icu"
 
 # 开发环境数据库配置
 [[env.development.d1_databases]]
@@ -41,7 +43,7 @@ database_id = "d1144511-217a-4db6-ab72-35f05dff553e"
 
 # 开发环境邮件发送配置
 [[env.development.send_email]]
-name = "SEND_EMAIL"
+name = "EMAIL_SENDER"
 
 # 默认环境变量（开发环境）
 [vars]
@@ -49,10 +51,11 @@ ENVIRONMENT = "development"
 JWT_SECRET = "peanut_0806_temp_mail_1Bl8GHds"
 TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
 TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
+SENDER_DOMAIN = "oooo.icu"
 
 # Cloudflare Send Email API 配置
 [[send_email]]
-name = "SEND_EMAIL"
+name = "EMAIL_SENDER"
 
 # 日志分析配置
 [observability]

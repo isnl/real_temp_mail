@@ -10,6 +10,15 @@ export interface RateLimitRule {
 }
 
 export const RATE_LIMIT_RULES: RateLimitRule[] = [
+  // 发送验证码限流：每小时最多 5 次
+  {
+    endpoint: '/api/auth/send-verification-code',
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 5,
+    requireAuth: false,
+    requireTurnstile: true
+  },
+
   // 注册限流：每小时最多 3 次
   {
     endpoint: '/api/auth/register',

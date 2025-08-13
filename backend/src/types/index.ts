@@ -6,6 +6,8 @@ export interface Env {
   ENVIRONMENT: 'development' | 'production'
   TURNSTILE_SECRET_KEY: string
   TURNSTILE_SITE_KEY: string
+  SENDER_DOMAIN: string
+  EMAIL_SENDER: any // Cloudflare Email Routing binding
 }
 
 // 用户相关类型
@@ -188,6 +190,20 @@ export interface RegisterRequest {
   password: string
   confirmPassword: string
   turnstileToken?: string
+  verificationCode?: string
+}
+
+// 发送验证码请求
+export interface SendVerificationCodeRequest {
+  email: string
+  turnstileToken: string
+}
+
+// 发送验证码响应
+export interface SendVerificationCodeResponse {
+  success: boolean
+  message: string
+  expiresAt: string
 }
 
 export interface CreateEmailRequest {

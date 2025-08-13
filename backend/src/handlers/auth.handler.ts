@@ -1,4 +1,4 @@
-import type { Env, LoginRequest, RegisterRequest, ApiResponse } from '@/types'
+import type { Env, LoginRequest, RegisterRequest, SendVerificationCodeRequest, ApiResponse } from '@/types'
 import { AuthService } from '@/modules/auth/auth.service'
 import { DatabaseService } from '@/modules/shared/database.service'
 import { withAuth, type AuthenticatedRequest } from '@/middleware/auth.middleware'
@@ -11,6 +11,7 @@ export class AuthHandler {
   public changePassword: (request: Request) => Promise<Response>
   public register: (request: Request) => Promise<Response>
   public login: (request: Request) => Promise<Response>
+  public sendVerificationCode: (request: Request) => Promise<Response>
 
   constructor(private env: Env) {
     const dbService = new DatabaseService(env.DB)
@@ -32,6 +33,10 @@ export class AuthHandler {
 
     this.login = withRateLimit(this.env, '/api/auth/login')((request: Request) => {
       return this.handleLogin(request)
+    })
+
+    this.sendVerificationCode = withRateLimit(this.env, '/api/auth/send-verification-code')((request: Request) => {
+      return this.handleSendVerificationCode(request)
     })
   }
 
@@ -60,6 +65,20 @@ export class AuthHandler {
     } catch (error: any) {
       console.error('Login error:', error)
       return this.errorResponse(error.message || '登录失败', error.statusCode || 500)
+    }
+  }
+
+  private async handleSendVerificationCode(request: Request): Promise<Response> {
+    try {
+      const data: SendVerificationCodeRequest = await request.json()
+
+      // 发送验证码
+      const result = await this.authService.sendVerificationCode(data)
+
+      return this.successResponse(result, '验证码发送成功')
+    } catch (error: any) {
+      console.error('Send verification code error:', error)
+      return this.errorResponse(error.message || '验证码发送失败', error.statusCode || 500)
     }
   }
 

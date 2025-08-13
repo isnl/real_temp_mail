@@ -2,6 +2,8 @@ import { apiClient } from './request'
 import type { 
   LoginRequest, 
   RegisterRequest, 
+  SendVerificationCodeRequest,
+  SendVerificationCodeResponse,
   AuthResponse, 
   TokenPair,
   User,
@@ -17,6 +19,11 @@ export const authApi = {
   // 用户注册
   async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
     return apiClient.post<AuthResponse>('/api/auth/register', data)
+  },
+
+  // 发送邮箱验证码
+  async sendVerificationCode(data: SendVerificationCodeRequest): Promise<ApiResponse<SendVerificationCodeResponse>> {
+    return apiClient.post<SendVerificationCodeResponse>('/api/auth/send-verification-code', data)
   },
 
   // 刷新Token

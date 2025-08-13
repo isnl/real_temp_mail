@@ -114,6 +114,10 @@ async function handleAuthRoutes(
       if (method === 'POST') return await handler.register(request)
       break
     
+    case '/api/auth/send-verification-code':
+      if (method === 'POST') return await handler.sendVerificationCode(request)
+      break
+    
     case '/api/auth/login':
       if (method === 'POST') return await handler.login(request)
       break
