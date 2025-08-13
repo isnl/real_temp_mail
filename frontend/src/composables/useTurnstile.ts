@@ -4,8 +4,8 @@ import { useThemeStore } from '@/stores/theme'
 // Turnstile 配置
 const isDev = import.meta.env.DEV
 const TURNSTILE_SITE_KEY = isDev
-  ? '1x00000000000000000000AA' // 开发环境测试密钥
-  : '0x4AAAAAABo_hK-8xkK5jEPM' // 生产环境密钥
+  ? (import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA') // 开发环境测试密钥
+  : (import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAABo_hK-8xkK5jEPM') // 生产环境密钥
 
 export function useTurnstile() {
   const themeStore = useThemeStore()

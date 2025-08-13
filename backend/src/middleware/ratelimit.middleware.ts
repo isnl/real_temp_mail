@@ -134,10 +134,31 @@ export function createRateLimitMiddleware(env: Env) {
 
         const verifyResult = await verifyResponse.json() as any
 
+        console.log('Turnstile verification result:', {
+          success: verifyResult.success,
+          errorCodes: verifyResult['error-codes'],
+          challenge_ts: verifyResult.challenge_ts,
+          hostname: verifyResult.hostname,
+          action: verifyResult.action,
+          cdata: verifyResult.cdata
+        })
+
         if (!verifyResult.success) {
+          const errorCodes = verifyResult['error-codes'] || []
+          const errorMessage = errorCodes.length > 0
+            ? `人机验证失败: ${errorCodes.join(', ')}`
+            : '人机验证失败'
+
+          console.error('Turnstile verification failed:', {
+            errorCodes,
+            turnstileToken: turnstileToken.substring(0, 20) + '...',
+            remoteip: request.headers.get('CF-Connecting-IP') || '',
+            secretKey: env.TURNSTILE_SECRET_KEY.substring(0, 10) + '...'
+          })
+
           throw new Response(JSON.stringify({
             success: false,
-            error: '人机验证失败'
+            error: errorMessage
           }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' }
