@@ -11,7 +11,7 @@ import { usePageTitle } from '@/composables/usePageTitle'
 usePageTitle()
 
 const authStore = useAuthStore()
-const { quotaInfo, fetchQuotaInfo, usagePercentage } = useQuota()
+const { quotaInfo, fetchQuotaInfo } = useQuota()
 
 const user = computed(() => authStore.user)
 
@@ -110,7 +110,7 @@ const loadMoreQuotaLogs = async () => {
   quotaPage.value++
   await loadQuotaLogs(false)
 }
-// usagePercentage 已经从 useQuota composable 中获取，无需重复定义
+
 
 // 获取配额类型统计
 const quotaStats = computed(() => {
@@ -260,28 +260,7 @@ const sourceStats = computed(() => {
       </h3>
       
       <div class="space-y-6">
-        <!-- 使用率进度条 -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-gray-600 dark:text-gray-400">配额使用率</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {{ usagePercentage }}%
-            </span>
-          </div>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-            <div 
-              :class="[
-                'h-3 rounded-full transition-all duration-500',
-                usagePercentage >= 90 ? 'bg-red-500' :
-                usagePercentage >= 70 ? 'bg-orange-500' : 'bg-green-500'
-              ]"
-              :style="{ width: `${usagePercentage}%` }"
-            ></div>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {{ quotaInfo.used }} / {{ quotaInfo.total }} 个邮箱
-          </p>
-        </div>
+
 
         <!-- 统计信息 -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -23,14 +23,18 @@ export class DatabaseService {
   // 用户相关操作
   async createUser(userData: CreateUserData): Promise<User> {
     const result = await this.db.prepare(`
-      INSERT INTO users (email, password_hash, quota, role)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, quota, role, provider, provider_id, avatar_url, display_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `).bind(
       userData.email,
-      userData.password_hash,
+      userData.password_hash || null,
       userData.quota || 5,
-      userData.role || 'user'
+      userData.role || 'user',
+      userData.provider || 'email',
+      userData.provider_id || null,
+      userData.avatar_url || null,
+      userData.display_name || null
     ).first<User>()
 
     if (!result) {
@@ -50,6 +54,53 @@ export class DatabaseService {
     return await this.db.prepare(`
       SELECT * FROM users WHERE id = ? AND is_active = 1
     `).bind(id).first<User>()
+  }
+
+  async getUserByProvider(provider: string, providerId: string): Promise<User | null> {
+    return await this.db.prepare(`
+      SELECT * FROM users WHERE provider = ? AND provider_id = ? AND is_active = 1
+    `).bind(provider, providerId).first<User>()
+  }
+
+  async updateUser(userId: number, updates: Partial<CreateUserData>): Promise<void> {
+    const fields: string[] = []
+    const values: any[] = []
+
+    if (updates.email !== undefined) {
+      fields.push('email = ?')
+      values.push(updates.email)
+    }
+    if (updates.password_hash !== undefined) {
+      fields.push('password_hash = ?')
+      values.push(updates.password_hash)
+    }
+    if (updates.provider !== undefined) {
+      fields.push('provider = ?')
+      values.push(updates.provider)
+    }
+    if (updates.provider_id !== undefined) {
+      fields.push('provider_id = ?')
+      values.push(updates.provider_id)
+    }
+    if (updates.avatar_url !== undefined) {
+      fields.push('avatar_url = ?')
+      values.push(updates.avatar_url)
+    }
+    if (updates.display_name !== undefined) {
+      fields.push('display_name = ?')
+      values.push(updates.display_name)
+    }
+
+    if (fields.length === 0) {
+      return // 没有需要更新的字段
+    }
+
+    fields.push('updated_at = datetime(\'now\', \'+8 hours\')')
+    values.push(userId)
+
+    await this.db.prepare(`
+      UPDATE users SET ${fields.join(', ')} WHERE id = ?
+    `).bind(...values).run()
   }
 
   async updateUserQuota(userId: number, quota: number): Promise<void> {
@@ -652,45 +703,5 @@ export class DatabaseService {
     }
   }
 
-  // 邮箱验证码相关操作
-  async createVerificationCode(email: string, code: string, expiresAt: string): Promise<void> {
-    // 先删除该邮箱的旧验证码
-    await this.db.prepare(`
-      DELETE FROM email_verification_codes WHERE email = ?
-    `).bind(email).run()
 
-    // 创建新验证码
-    await this.db.prepare(`
-      INSERT INTO email_verification_codes (email, code, expires_at)
-      VALUES (?, ?, ?)
-    `).bind(email, code, expiresAt).run()
-  }
-
-  async verifyEmailCode(email: string, code: string): Promise<boolean> {
-    // 查找有效的验证码
-    const result = await this.db.prepare(`
-      SELECT * FROM email_verification_codes
-      WHERE email = ? AND code = ? AND used = 0 AND expires_at > datetime('now', '+8 hours')
-    `).bind(email, code).first()
-
-    if (!result) {
-      return false
-    }
-
-    // 标记验证码为已使用
-    await this.db.prepare(`
-      UPDATE email_verification_codes
-      SET used = 1, used_at = datetime('now', '+8 hours')
-      WHERE email = ? AND code = ?
-    `).bind(email, code).run()
-
-    return true
-  }
-
-  async cleanupExpiredVerificationCodes(): Promise<void> {
-    await this.db.prepare(`
-      DELETE FROM email_verification_codes
-      WHERE expires_at <= datetime('now', '+8 hours')
-    `).run()
-  }
 }

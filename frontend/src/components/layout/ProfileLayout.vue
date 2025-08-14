@@ -24,13 +24,13 @@ const menuItems = [
     icon: 'user-cog',
     description: '编辑个人资料'
   },
-  {
-    path: '/profile/security',
-    name: 'profile-security',
-    title: '安全设置',
-    icon: 'shield-alt',
-    description: '密码和安全选项'
-  },
+  // {
+  //   path: '/profile/security',
+  //   name: 'profile-security',
+  //   title: '安全设置',
+  //   icon: 'shield-alt',
+  //   description: '密码和安全选项'
+  // },
   {
     path: '/profile/quota',
     name: 'profile-quota',
@@ -120,7 +120,7 @@ const toggleSidebar = () => {
             ]"
           />
           <div v-if="!sidebarCollapsed" class="flex-1 min-w-0">
-            <p class="text-sm font-medium truncate">返回首页</p>
+            <p class="text-sm font-medium truncate">返回控制台</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">回到邮箱管理</p>
           </div>
         </router-link>

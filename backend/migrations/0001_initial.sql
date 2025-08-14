@@ -2,12 +2,19 @@
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT, -- 改为可选，第三方登录用户可能没有密码
   quota INTEGER DEFAULT 5,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   is_active BOOLEAN DEFAULT 1,
+  -- 第三方登录相关字段
+  provider TEXT DEFAULT 'email' CHECK (provider IN ('email', 'github')), -- 登录提供商
+  provider_id TEXT, -- 第三方平台的用户ID（如GitHub ID）
+  avatar_url TEXT, -- 用户头像URL
+  display_name TEXT, -- 显示名称
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  -- 确保第三方登录的唯一性
+  UNIQUE(provider, provider_id)
 );
 
 -- 域名表
@@ -91,6 +98,7 @@ CREATE TABLE rate_limits (
 
 -- 创建索引以提高查询性能
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_provider_id ON users(provider, provider_id);
 CREATE INDEX idx_temp_emails_user_id ON temp_emails(user_id);
 CREATE INDEX idx_temp_emails_email ON temp_emails(email);
 CREATE INDEX idx_emails_temp_email_id ON emails(temp_email_id);
@@ -108,5 +116,5 @@ INSERT INTO domains (domain, status) VALUES
 ('disposable.email', 1);
 
 -- 创建默认管理员用户（密码: admin123）
-INSERT INTO users (email, password_hash, quota, role) VALUES 
-('admin@tempmail.dev', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 999999, 'admin');
+INSERT INTO users (email, password_hash, quota, role, provider) VALUES
+('admin@tempmail.dev', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 999999, 'admin', 'email');

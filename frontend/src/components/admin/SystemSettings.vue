@@ -57,7 +57,7 @@ const handleSave = async () => {
 const getSettingDisplayName = (key: string): string => {
   const nameMap: Record<string, string> = {
     'daily_checkin_quota': '每日签到奖励配额',
-    'default_register_quota': '注册默认配额'
+    'default_user_quota': '注册默认配额'
   }
   return nameMap[key] || key
 }
@@ -67,7 +67,7 @@ const getSettingDescription = (setting: SystemSetting): string => {
 
   const descMap: Record<string, string> = {
     'daily_checkin_quota': '用户每日签到可获得的配额数量',
-    'default_register_quota': '用户注册时默认赠送的配额数量'
+    'default_user_quota': '用户注册时默认赠送的配额数量'
   }
   return descMap[setting.setting_key] || '系统配置项'
 }
@@ -77,7 +77,7 @@ const validateValue = (key: string, value: string): boolean => {
     case 'daily_checkin_quota':
       const dailyNum = parseInt(value)
       return !isNaN(dailyNum) && dailyNum >= 0 && dailyNum <= 100
-    case 'default_register_quota':
+    case 'default_user_quota':
       const registerNum = parseInt(value)
       return !isNaN(registerNum) && registerNum >= 0 && registerNum <= 1000
     default:
@@ -89,7 +89,7 @@ const getValidationMessage = (key: string): string => {
   switch (key) {
     case 'daily_checkin_quota':
       return '请输入0-100之间的整数'
-    case 'default_register_quota':
+    case 'default_user_quota':
       return '请输入0-1000之间的整数'
     default:
       return '请输入有效值'

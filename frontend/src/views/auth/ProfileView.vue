@@ -186,30 +186,15 @@ const loadMoreQuotaLogs = async () => {
         使用统计
       </h3>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">配额使用率</p>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
-              class="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              :style="{ width: `${(quotaInfo.used / quotaInfo.total) * 100}%` }"
-            ></div>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {{ quotaInfo.used }} / {{ quotaInfo.total }} ({{ Math.round((quotaInfo.used / quotaInfo.total) * 100) }}%)
-          </p>
-        </div>
-
-        <div>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">账户类型</p>
-          <div class="flex items-center space-x-2">
-            <el-tag :type="user?.role === 'admin' ? 'danger' : 'primary'" size="small">
-              {{ user?.role === 'admin' ? '管理员' : '普通用户' }}
-            </el-tag>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
-              注册时间: {{ new Date(user?.created_at || '').toLocaleDateString('zh-CN') }}
-            </span>
-          </div>
+      <div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">账户类型</p>
+        <div class="flex items-center space-x-2">
+          <el-tag :type="user?.role === 'admin' ? 'danger' : 'primary'" size="small">
+            {{ user?.role === 'admin' ? '管理员' : '普通用户' }}
+          </el-tag>
+          <span class="text-sm text-gray-600 dark:text-gray-400">
+            注册时间: {{ new Date(user?.created_at || '').toLocaleDateString('zh-CN') }}
+          </span>
         </div>
       </div>
     </div>

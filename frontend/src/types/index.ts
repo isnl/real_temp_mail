@@ -141,26 +141,7 @@ export interface LoginRequest {
   turnstileToken?: string
 }
 
-export interface RegisterRequest {
-  email: string
-  password: string
-  confirmPassword: string
-  turnstileToken?: string
-  verificationCode?: string
-}
 
-// 发送验证码请求
-export interface SendVerificationCodeRequest {
-  email: string
-  turnstileToken: string
-}
-
-// 发送验证码响应
-export interface SendVerificationCodeResponse {
-  success: boolean
-  message: string
-  expiresAt: string
-}
 
 export interface TokenPair {
   accessToken: string

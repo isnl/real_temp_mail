@@ -103,13 +103,17 @@ export default {
 };
 async function handleAuthRoutes(pathname, method, request, handler) {
     switch (pathname) {
-        case '/api/auth/register':
-            if (method === 'POST')
-                return await handler.register(request);
-            break;
         case '/api/auth/login':
             if (method === 'POST')
                 return await handler.login(request);
+            break;
+        case '/api/auth/github':
+            if (method === 'GET')
+                return await handler.githubAuth(request);
+            break;
+        case '/api/auth/github/callback':
+            if (method === 'GET')
+                return await handler.githubCallback(request);
             break;
         case '/api/auth/refresh':
             if (method === 'POST')

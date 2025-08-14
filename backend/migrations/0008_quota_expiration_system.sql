@@ -45,7 +45,7 @@ SET quota_type = 'permanent', expires_at = NULL
 WHERE source = 'redeem_code';
 
 -- 签到配额设为每日过期（设置为当天24点过期）
-UPDATE quota_logs 
+UPDATE quota_logs
 SET quota_type = 'daily',
     expires_at = datetime(date(created_at, '+8 hours'), '+1 day', '-8 hours')
 WHERE source = 'checkin';
@@ -53,7 +53,7 @@ WHERE source = 'checkin';
 -- 6. 迁移现有配额数据到 user_quota_balances 表
 -- 首先处理注册配额（永久）
 INSERT INTO user_quota_balances (user_id, quota_type, amount, expires_at, source, source_id, created_at, updated_at)
-SELECT 
+SELECT
   user_id,
   'permanent',
   SUM(amount),
@@ -62,13 +62,13 @@ SELECT
   NULL,
   MIN(created_at),
   MAX(created_at)
-FROM quota_logs 
+FROM quota_logs
 WHERE type = 'earn' AND source = 'register'
 GROUP BY user_id;
 
 -- 处理管理员调整配额（永久）
 INSERT INTO user_quota_balances (user_id, quota_type, amount, expires_at, source, source_id, created_at, updated_at)
-SELECT 
+SELECT
   user_id,
   'permanent',
   SUM(amount),
@@ -77,13 +77,13 @@ SELECT
   related_id,
   MIN(created_at),
   MAX(created_at)
-FROM quota_logs 
+FROM quota_logs
 WHERE type = 'earn' AND source = 'admin_adjust'
 GROUP BY user_id, related_id;
 
 -- 处理兑换码配额（暂时设为永久，后续会调整）
 INSERT INTO user_quota_balances (user_id, quota_type, amount, expires_at, source, source_id, created_at, updated_at)
-SELECT 
+SELECT
   user_id,
   'permanent',
   SUM(amount),
@@ -92,13 +92,13 @@ SELECT
   related_id,
   MIN(created_at),
   MAX(created_at)
-FROM quota_logs 
+FROM quota_logs
 WHERE type = 'earn' AND source = 'redeem_code'
 GROUP BY user_id, related_id;
 
 -- 处理签到配额（每日过期）
 INSERT INTO user_quota_balances (user_id, quota_type, amount, expires_at, source, source_id, created_at, updated_at)
-SELECT 
+SELECT
   user_id,
   'daily',
   amount,
@@ -107,16 +107,16 @@ SELECT
   related_id,
   created_at,
   created_at
-FROM quota_logs 
+FROM quota_logs
 WHERE type = 'earn' AND source = 'checkin';
 
 -- 7. 减去已消费的配额
 -- 计算每个用户已消费的配额总量
 CREATE TEMPORARY TABLE user_consumed_quota AS
-SELECT 
+SELECT
   user_id,
   SUM(amount) as total_consumed
-FROM quota_logs 
+FROM quota_logs
 WHERE type = 'consume'
 GROUP BY user_id;
 

@@ -2,136 +2,26 @@ import type {
   Env,
   User,
   LoginRequest,
-  RegisterRequest,
-  SendVerificationCodeRequest,
-  SendVerificationCodeResponse,
   TokenPair,
   CreateUserData
 } from '@/types'
 import { ValidationError, AuthenticationError } from '@/types'
 import { DatabaseService } from '@/modules/shared/database.service'
-import { EmailSenderService } from '@/modules/email/email-sender.service'
 import { JWTService } from './jwt.service'
 
 export class AuthService {
   private jwtService: JWTService
-  private emailSenderService: EmailSenderService
 
   constructor(
     private env: Env,
     private dbService: DatabaseService
   ) {
     this.jwtService = new JWTService(env, dbService)
-    this.emailSenderService = new EmailSenderService(env)
   }
 
-  async sendVerificationCode(data: SendVerificationCodeRequest): Promise<SendVerificationCodeResponse> {
-    // 1. 验证邮箱格式
-    if (!this.isValidEmail(data.email)) {
-      throw new ValidationError('邮箱格式不正确')
-    }
 
-    // 2. 检查邮箱是否已被注册
-    const existingUser = await this.dbService.getUserByEmail(data.email)
-    if (existingUser) {
-      throw new ValidationError('邮箱已被注册')
-    }
 
-    // 3. 生成6位数字验证码
-    const code = this.generateVerificationCode()
 
-    // 4. 设置过期时间（10分钟后）
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
-
-    // 5. 保存验证码到数据库
-    await this.dbService.createVerificationCode(data.email, code, expiresAt)
-
-    // 6. 发送验证码邮件
-    await this.emailSenderService.sendVerificationCode(data.email, code)
-
-    return {
-      success: true,
-      message: '验证码已发送到您的邮箱',
-      expiresAt
-    }
-  }
-
-  async register(data: RegisterRequest): Promise<{ user: User; tokens: TokenPair }> {
-    // 1. 验证输入数据
-    this.validateRegisterData(data)
-
-    // 2. 检查邮箱是否已存在
-    const existingUser = await this.dbService.getUserByEmail(data.email)
-    if (existingUser) {
-      throw new ValidationError('邮箱已被注册')
-    }
-
-    // 3. 验证邮箱验证码
-    if (data.verificationCode) {
-      const isCodeValid = await this.dbService.verifyEmailCode(data.email, data.verificationCode)
-      if (!isCodeValid) {
-        throw new ValidationError('验证码无效或已过期')
-      }
-    }
-
-    // 4. 验证密码一致性
-    if (data.password !== data.confirmPassword) {
-      throw new ValidationError('两次输入的密码不一致')
-    }
-
-    // 4. 获取注册默认配额设置
-    const defaultQuotaSetting = await this.dbService.getSystemSetting('default_register_quota')
-    const defaultQuota = parseInt(defaultQuotaSetting?.setting_value || '5')
-
-    // 5. 创建用户
-    const passwordHash = await this.hashPassword(data.password)
-    const userData: CreateUserData = {
-      email: data.email,
-      password_hash: passwordHash,
-      quota: defaultQuota,
-      role: 'user'
-    }
-
-    const user = await this.dbService.createUser(userData)
-
-    // 6. 创建注册配额余额记录（永不过期）
-    await this.dbService.createQuotaBalance({
-      userId: user.id,
-      quotaType: 'permanent',
-      amount: defaultQuota,
-      expiresAt: null, // 永不过期
-      source: 'register',
-      sourceId: null
-    })
-
-    // 7. 创建注册配额记录
-    await this.dbService.createQuotaLog({
-      userId: user.id,
-      type: 'earn',
-      amount: defaultQuota,
-      source: 'register',
-      description: '注册赠送配额（永不过期）',
-      expiresAt: null,
-      quotaType: 'permanent'
-    })
-
-    // 6. 生成JWT token对
-    const tokens = await this.jwtService.generateTokenPair(user)
-
-    // 7. 记录日志
-    await this.dbService.createLog({
-      userId: user.id,
-      action: 'REGISTER',
-      details: `User registered: ${user.email}`
-    })
-
-    // 8. 返回用户信息（不包含密码）
-    const { password_hash, ...userWithoutPassword } = user
-    return {
-      user: userWithoutPassword as User,
-      tokens
-    }
-  }
 
   async login(data: LoginRequest): Promise<{ user: User; tokens: TokenPair }> {
     // 1. 验证输入数据
@@ -143,21 +33,30 @@ export class AuthService {
       throw new AuthenticationError('邮箱或密码错误')
     }
 
-    // 3. 验证密码
+    // 3. 检查用户是否为第三方登录用户
+    if (user.provider !== 'email') {
+      throw new AuthenticationError('该账户使用第三方登录，请使用对应的登录方式')
+    }
+
+    // 4. 验证密码
+    if (!user.password_hash) {
+      throw new AuthenticationError('该账户未设置密码，请使用第三方登录')
+    }
+
     const isPasswordValid = await this.verifyPassword(data.password, user.password_hash)
     if (!isPasswordValid) {
       throw new AuthenticationError('邮箱或密码错误')
     }
 
-    // 4. 检查用户状态
+    // 5. 检查用户状态
     if (!user.is_active) {
       throw new AuthenticationError('账户已被禁用')
     }
 
-    // 5. 生成JWT token对
+    // 6. 生成JWT token对
     const tokens = await this.jwtService.generateTokenPair(user)
 
-    // 6. 记录日志
+    // 7. 记录日志
     await this.dbService.createLog({
       userId: user.id,
       action: 'LOGIN',
@@ -194,6 +93,14 @@ export class AuthService {
     return userWithoutPassword as User
   }
 
+  async logUserAction(userId: number, action: string, details: string): Promise<void> {
+    await this.dbService.createLog({
+      userId,
+      action,
+      details
+    })
+  }
+
   async changePassword(
     userId: number, 
     currentPassword: string, 
@@ -205,7 +112,12 @@ export class AuthService {
       throw new AuthenticationError('用户不存在')
     }
 
-    // 2. 验证当前密码
+    // 2. 检查用户是否有密码（第三方登录用户可能没有密码）
+    if (!user.password_hash) {
+      throw new AuthenticationError('该账户使用第三方登录，无法修改密码')
+    }
+
+    // 3. 验证当前密码
     const isCurrentPasswordValid = await this.verifyPassword(currentPassword, user.password_hash)
     if (!isCurrentPasswordValid) {
       throw new AuthenticationError('当前密码错误')
@@ -226,13 +138,7 @@ export class AuthService {
     })
   }
 
-  private validateRegisterData(data: RegisterRequest): void {
-    if (!this.isValidEmail(data.email)) {
-      throw new ValidationError('邮箱格式不正确')
-    }
 
-    this.validatePassword(data.password)
-  }
 
   private validateLoginData(data: LoginRequest): void {
     if (!data.email || !data.password) {
@@ -324,10 +230,5 @@ export class AuthService {
     }
   }
 
-  /**
-   * 生成6位数字验证码
-   */
-  private generateVerificationCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString()
-  }
+
 }

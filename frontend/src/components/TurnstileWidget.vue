@@ -180,6 +180,8 @@ onMounted(async () => {
     // 通知父组件开始加载
     emit('beforeInteractive')
 
+
+
     // 开发环境直接模拟成功
     if (import.meta.env.DEV) {
       await nextTick()
@@ -207,6 +209,7 @@ onMounted(async () => {
     // 通知父组件加载完成
     emit('afterInteractive')
   } catch (error) {
+    console.error('TurnstileWidget initialization error:', error)
     loadingError.value = `初始化失败: ${error}`
     emit('error', 'Failed to load Turnstile')
   }

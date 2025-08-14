@@ -123,6 +123,8 @@ export function createRateLimitMiddleware(env: Env) {
         // 开发环境跳过验证或使用测试密钥
         const isDevelopment = env.ENVIRONMENT === 'development'
 
+
+
         if (isDevelopment && turnstileToken === 'XXXX.DUMMY.TOKEN.XXXX') {
           // 开发环境允许使用虚拟token
           return
@@ -154,15 +156,34 @@ export function createRateLimitMiddleware(env: Env) {
 
         if (!verifyResult.success) {
           const errorCodes = verifyResult['error-codes'] || []
+
+          // 详细的错误代码说明
+          const errorCodeMappings: Record<string, string> = {
+            'missing-input-secret': '缺少密钥',
+            'invalid-input-secret': '密钥无效或不匹配',
+            'missing-input-response': '缺少验证响应',
+            'invalid-input-response': '验证响应无效',
+            'bad-request': '请求格式错误',
+            'timeout-or-duplicate': '验证超时或重复提交',
+            'internal-error': 'Cloudflare 内部错误'
+          }
+
+          const detailedErrors = errorCodes.map((code: string) =>
+            `${code} (${errorCodeMappings[code] || '未知错误'})`
+          )
+
           const errorMessage = errorCodes.length > 0
-            ? `人机验证失败: ${errorCodes.join(', ')}`
+            ? `人机验证失败: ${detailedErrors.join(', ')}`
             : '人机验证失败'
 
           console.error('Turnstile verification failed:', {
             errorCodes,
+            detailedErrors,
             turnstileToken: turnstileToken.substring(0, 20) + '...',
             remoteip: request.headers.get('CF-Connecting-IP') || '',
-            secretKey: env.TURNSTILE_SECRET_KEY.substring(0, 10) + '...'
+            secretKey: env.TURNSTILE_SECRET_KEY.substring(0, 10) + '...',
+            siteKey: env.TURNSTILE_SITE_KEY,
+            environment: env.ENVIRONMENT
           })
 
           throw new Response(JSON.stringify({

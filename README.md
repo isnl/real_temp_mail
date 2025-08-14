@@ -740,7 +740,7 @@ export default defineConfig({
 
 wrangler pages deploy dist --project-name temp-mail-frontend
 
-wrangler deploy --config wrangler.toml
+wrangler deploy --config wrangler.toml --env production
 
 client id
 Ov23liMbRVOzZ5igeF1M

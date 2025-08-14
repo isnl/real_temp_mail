@@ -1,18 +1,23 @@
 import { AuthService } from '@/modules/auth/auth.service';
+import { GitHubOAuthService } from '@/modules/auth/github-oauth.service';
 import { DatabaseService } from '@/modules/shared/database.service';
+import { JWTService } from '@/modules/auth/jwt.service';
 import { withAuth } from '@/middleware/auth.middleware';
 import { withRateLimit } from '@/middleware/ratelimit.middleware';
 export class AuthHandler {
     env;
     authService;
+    githubOAuthService;
+    jwtService;
     getCurrentUser;
     changePassword;
-    register;
     login;
     constructor(env) {
         this.env = env;
         const dbService = new DatabaseService(env.DB);
         this.authService = new AuthService(env, dbService);
+        this.githubOAuthService = new GitHubOAuthService(env, dbService);
+        this.jwtService = new JWTService(env, dbService);
         // 初始化需要认证的方法
         this.getCurrentUser = withAuth(this.env)((request, user) => {
             return this.handleGetCurrentUser(request, user);
@@ -21,24 +26,9 @@ export class AuthHandler {
             return this.handleChangePassword(request, user);
         }));
         // 初始化需要限流的公开方法
-        this.register = withRateLimit(this.env, '/api/auth/register')((request) => {
-            return this.handleRegister(request);
-        });
         this.login = withRateLimit(this.env, '/api/auth/login')((request) => {
             return this.handleLogin(request);
         });
-    }
-    async handleRegister(request) {
-        try {
-            const data = await request.json();
-            // 注册用户
-            const result = await this.authService.register(data);
-            return this.successResponse(result, '注册成功');
-        }
-        catch (error) {
-            console.error('Register error:', error);
-            return this.errorResponse(error.message || '注册失败', error.statusCode || 500);
-        }
     }
     async handleLogin(request) {
         try {
@@ -50,6 +40,52 @@ export class AuthHandler {
         catch (error) {
             console.error('Login error:', error);
             return this.errorResponse(error.message || '登录失败', error.statusCode || 500);
+        }
+    }
+    // GitHub OAuth 相关方法
+    async githubAuth(request) {
+        try {
+            const url = new URL(request.url);
+            const state = url.searchParams.get('state') || undefined;
+            const authUrl = this.githubOAuthService.generateAuthUrl(state);
+            return Response.redirect(authUrl, 302);
+        }
+        catch (error) {
+            console.error('GitHub auth error:', error);
+            return this.errorResponse(error.message || 'GitHub授权失败', error.statusCode || 500);
+        }
+    }
+    async githubCallback(request) {
+        try {
+            const url = new URL(request.url);
+            const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state');
+            if (!code) {
+                return this.errorResponse('缺少授权码', 400);
+            }
+            // 处理GitHub OAuth回调
+            const { user, isNewUser } = await this.githubOAuthService.handleCallback(code, state || undefined);
+            // 生成JWT token对
+            const tokens = await this.jwtService.generateTokenPair(user);
+            // 记录登录日志
+            await this.authService.logUserAction(user.id, isNewUser ? 'GITHUB_REGISTER' : 'GITHUB_LOGIN', `User ${isNewUser ? 'registered' : 'logged in'} via GitHub: ${user.email}`);
+            // 构建前端重定向URL，携带token信息
+            const frontendUrl = this.getFrontendUrl();
+            const redirectUrl = new URL('/auth/callback', frontendUrl);
+            redirectUrl.searchParams.set('token', tokens.accessToken);
+            redirectUrl.searchParams.set('refresh_token', tokens.refreshToken);
+            if (isNewUser) {
+                redirectUrl.searchParams.set('new_user', '1');
+            }
+            return Response.redirect(redirectUrl.toString(), 302);
+        }
+        catch (error) {
+            console.error('GitHub callback error:', error);
+            // 重定向到前端错误页面
+            const frontendUrl = this.getFrontendUrl();
+            const errorUrl = new URL('/login', frontendUrl);
+            errorUrl.searchParams.set('error', encodeURIComponent(error.message || 'GitHub登录失败'));
+            return Response.redirect(errorUrl.toString(), 302);
         }
     }
     async refreshToken(request) {
@@ -106,6 +142,11 @@ export class AuthHandler {
             console.error('Change password error:', error);
             return this.errorResponse(error.message || '密码修改失败', error.statusCode || 500);
         }
+    }
+    getFrontendUrl() {
+        return this.env.ENVIRONMENT === 'production'
+            ? `https://${this.env.FRONTEND_DOMAIN}`
+            : `http://${this.env.FRONTEND_DOMAIN}`; // 开发环境前端地址
     }
     successResponse(data, message) {
         const response = {

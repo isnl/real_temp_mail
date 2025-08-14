@@ -1,5 +1,13 @@
 import { DatabaseService } from '@/modules/shared/database.service';
 export const RATE_LIMIT_RULES = [
+    // 发送验证码限流：每小时最多 5 次
+    {
+        endpoint: '/api/auth/send-verification-code',
+        windowMs: 60 * 60 * 1000,
+        maxRequests: 5,
+        requireAuth: false,
+        requireTurnstile: true
+    },
     // 注册限流：每小时最多 3 次
     {
         endpoint: '/api/auth/register',
@@ -117,14 +125,28 @@ export function createRateLimitMiddleware(env) {
                 });
                 if (!verifyResult.success) {
                     const errorCodes = verifyResult['error-codes'] || [];
+                    // 详细的错误代码说明
+                    const errorCodeMappings = {
+                        'missing-input-secret': '缺少密钥',
+                        'invalid-input-secret': '密钥无效或不匹配',
+                        'missing-input-response': '缺少验证响应',
+                        'invalid-input-response': '验证响应无效',
+                        'bad-request': '请求格式错误',
+                        'timeout-or-duplicate': '验证超时或重复提交',
+                        'internal-error': 'Cloudflare 内部错误'
+                    };
+                    const detailedErrors = errorCodes.map((code) => `${code} (${errorCodeMappings[code] || '未知错误'})`);
                     const errorMessage = errorCodes.length > 0
-                        ? `人机验证失败: ${errorCodes.join(', ')}`
+                        ? `人机验证失败: ${detailedErrors.join(', ')}`
                         : '人机验证失败';
                     console.error('Turnstile verification failed:', {
                         errorCodes,
+                        detailedErrors,
                         turnstileToken: turnstileToken.substring(0, 20) + '...',
                         remoteip: request.headers.get('CF-Connecting-IP') || '',
-                        secretKey: env.TURNSTILE_SECRET_KEY.substring(0, 10) + '...'
+                        secretKey: env.TURNSTILE_SECRET_KEY.substring(0, 10) + '...',
+                        siteKey: env.TURNSTILE_SITE_KEY,
+                        environment: env.ENVIRONMENT
                     });
                     throw new Response(JSON.stringify({
                         success: false,

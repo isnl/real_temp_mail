@@ -1,14 +1,10 @@
-import type { Env, User, LoginRequest, RegisterRequest, TokenPair } from '@/types';
+import type { Env, User, LoginRequest, TokenPair } from '@/types';
 import { DatabaseService } from '@/modules/shared/database.service';
 export declare class AuthService {
     private env;
     private dbService;
     private jwtService;
     constructor(env: Env, dbService: DatabaseService);
-    register(data: RegisterRequest): Promise<{
-        user: User;
-        tokens: TokenPair;
-    }>;
     login(data: LoginRequest): Promise<{
         user: User;
         tokens: TokenPair;
@@ -16,8 +12,8 @@ export declare class AuthService {
     refreshTokens(refreshToken: string): Promise<TokenPair>;
     logout(refreshToken: string): Promise<void>;
     getCurrentUser(userId: number): Promise<User>;
+    logUserAction(userId: number, action: string, details: string): Promise<void>;
     changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void>;
-    private validateRegisterData;
     private validateLoginData;
     private validatePassword;
     private isValidEmail;

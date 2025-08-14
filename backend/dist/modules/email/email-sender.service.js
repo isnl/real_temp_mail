@@ -1,66 +1,54 @@
-import { EmailMessage } from "cloudflare:email"
-import { createMimeMessage } from "mimetext"
-import type { Env } from '@/types'
-
+import { EmailMessage } from "cloudflare:email";
+import { createMimeMessage } from "mimetext";
 export class EmailSenderService {
-  constructor(private env: Env) {}
-
-  /**
-   * 发送邮箱验证码
-   */
-  async sendVerificationCode(email: string, code: string): Promise<void> {
-    const msg = createMimeMessage()
-    
-    // 设置发件人（使用你的域名）
-    msg.setSender({
-      name: "临时邮箱服务",
-      addr: `noreply@${this.env.SENDER_DOMAIN || 'oooo.icu'}`
-    })
-    
-    // 设置收件人
-    msg.setRecipient(email)
-    
-    // 设置主题
-    msg.setSubject("邮箱验证码 - 临时邮箱服务")
-    
-    // 设置邮件内容
-    const htmlContent = this.generateVerificationCodeHTML(code)
-    const textContent = this.generateVerificationCodeText(code)
-    
-    // 添加纯文本内容
-    msg.addMessage({
-      contentType: 'text/plain',
-      data: textContent
-    })
-    
-    // 添加HTML内容
-    msg.addMessage({
-      contentType: 'text/html',
-      data: htmlContent
-    })
-
-    // 创建邮件消息
-    const message = new EmailMessage(
-      `noreply@${this.env.SENDER_DOMAIN || 'oooo.icu'}`,
-      email,
-      msg.asRaw()
-    )
-
-    try {
-      // 发送邮件
-      await this.env.EMAIL_SENDER.send(message)
-      console.log(`Verification code sent to ${email}`)
-    } catch (error) {
-      console.error('Failed to send verification code:', error)
-      throw new Error('邮件发送失败')
+    env;
+    constructor(env) {
+        this.env = env;
     }
-  }
-
-  /**
-   * 生成验证码邮件的HTML内容
-   */
-  private generateVerificationCodeHTML(code: string): string {
-    return `
+    /**
+     * 发送邮箱验证码
+     */
+    async sendVerificationCode(email, code) {
+        const msg = createMimeMessage();
+        // 设置发件人（使用你的域名）
+        msg.setSender({
+            name: "临时邮箱服务",
+            addr: `noreply@${this.env.SENDER_DOMAIN || 'oooo.icu'}`
+        });
+        // 设置收件人
+        msg.setRecipient(email);
+        // 设置主题
+        msg.setSubject("邮箱验证码 - 临时邮箱服务");
+        // 设置邮件内容
+        const htmlContent = this.generateVerificationCodeHTML(code);
+        const textContent = this.generateVerificationCodeText(code);
+        // 添加纯文本内容
+        msg.addMessage({
+            contentType: 'text/plain',
+            data: textContent
+        });
+        // 添加HTML内容
+        msg.addMessage({
+            contentType: 'text/html',
+            data: htmlContent
+        });
+        // 创建邮件消息
+        const message = new EmailMessage(`noreply@${this.env.SENDER_DOMAIN || 'oooo.icu'}`, email, msg.asRaw());
+        try {
+            // 发送邮件
+            await this.env.EMAIL_SENDER.send(message);
+            console.log(`Verification code sent to ${email}`);
+        }
+        catch (error) {
+            console.error('Failed to send verification code:', error);
+            throw new Error('邮件发送失败');
+        }
+    }
+    /**
+     * 生成验证码邮件的HTML内容
+     */
+    generateVerificationCodeHTML(code) {
+        return `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -170,14 +158,13 @@ export class EmailSenderService {
     </div>
 </body>
 </html>
-    `
-  }
-
-  /**
-   * 生成验证码邮件的纯文本内容
-   */
-  private generateVerificationCodeText(code: string): string {
-    return `
+    `;
+    }
+    /**
+     * 生成验证码邮件的纯文本内容
+     */
+    generateVerificationCodeText(code) {
+        return `
 临时邮箱服务 - 邮箱验证码
 
 您好！感谢您注册我们的临时邮箱服务。
@@ -193,6 +180,6 @@ export class EmailSenderService {
 
 此邮件由系统自动发送，请勿回复。
 © 2025 临时邮箱服务
-    `
-  }
+    `;
+    }
 }

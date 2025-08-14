@@ -11,7 +11,7 @@ usePageTitle()
 
 const authStore = useAuthStore()
 const emailStore = useEmailStore()
-const { quotaInfo, loading: quotaLoading, usagePercentage, fetchQuotaInfo } = useQuota()
+const { quotaInfo, loading: quotaLoading, fetchQuotaInfo } = useQuota()
 
 const user = computed(() => authStore.user)
 const loading = ref(false)
@@ -32,18 +32,7 @@ onMounted(async () => {
   }
 })
 
-// 获取使用率颜色
-const getUsageColor = (percentage: number) => {
-  if (percentage >= 90) return 'text-red-600 dark:text-red-400'
-  if (percentage >= 70) return 'text-orange-600 dark:text-orange-400'
-  return 'text-green-600 dark:text-green-400'
-}
 
-const getUsageBgColor = (percentage: number) => {
-  if (percentage >= 90) return 'bg-red-500'
-  if (percentage >= 70) return 'bg-orange-500'
-  return 'bg-green-500'
-}
 </script>
 
 <template>
@@ -138,51 +127,7 @@ const getUsageBgColor = (percentage: number) => {
       </div>
     </div>
 
-    <!-- 使用情况详情 -->
-    <div class="card-base p-6">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        配额使用情况
-      </h3>
-      
-      <div class="space-y-4">
-        <!-- 使用率进度条 -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-gray-600 dark:text-gray-400">使用率</span>
-            <span :class="['text-sm font-medium', getUsageColor(usagePercentage)]">
-              {{ usagePercentage }}%
-            </span>
-          </div>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-            <div 
-              :class="['h-3 rounded-full transition-all duration-500', getUsageBgColor(usagePercentage)]"
-              :style="{ width: `${usagePercentage}%` }"
-            ></div>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {{ quotaInfo?.used || 0 }} / {{ quotaInfo?.total || 0 }} 个邮箱
-          </p>
-        </div>
 
-        <!-- 使用状态提示 -->
-        <div v-if="usagePercentage >= 90" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <div class="flex items-center space-x-2">
-            <font-awesome-icon :icon="['fas', 'exclamation-triangle']" class="text-red-600 dark:text-red-400" />
-            <p class="text-sm text-red-800 dark:text-red-200">
-              配额即将用完。
-            </p>
-          </div>
-        </div>
-        <div v-else-if="usagePercentage >= 70" class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-          <div class="flex items-center space-x-2">
-            <font-awesome-icon :icon="['fas', 'info-circle']" class="text-orange-600 dark:text-orange-400" />
-            <p class="text-sm text-orange-800 dark:text-orange-200">
-              配额使用较多，建议关注使用情况。
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- 快捷操作 -->
     <div class="card-base p-6">

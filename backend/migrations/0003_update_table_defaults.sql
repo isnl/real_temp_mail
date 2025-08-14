@@ -38,7 +38,7 @@ CREATE TABLE temp_emails_new (
   created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
   active BOOLEAN DEFAULT 1,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
+  FOREIGN KEY (domain_id) REFERENCES domains(id)
 );
 
 INSERT INTO temp_emails_new SELECT * FROM temp_emails;
@@ -50,12 +50,10 @@ CREATE TABLE emails_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   temp_email_id INTEGER NOT NULL,
   sender TEXT NOT NULL,
-  subject TEXT,
-  content TEXT,
-  html_content TEXT,
-  verification_code TEXT,
-  is_read BOOLEAN DEFAULT 0,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
   received_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  is_read BOOLEAN DEFAULT 0,
   FOREIGN KEY (temp_email_id) REFERENCES temp_emails(id) ON DELETE CASCADE
 );
 
@@ -63,30 +61,13 @@ INSERT INTO emails_new SELECT * FROM emails;
 DROP TABLE emails;
 ALTER TABLE emails_new RENAME TO emails;
 
--- 5. 重建 redeem_codes 表
-CREATE TABLE redeem_codes_new (
-  code TEXT PRIMARY KEY,
-  quota INTEGER NOT NULL,
-  valid_until TIMESTAMP NOT NULL,
-  used BOOLEAN DEFAULT 0,
-  used_by INTEGER,
-  used_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
-  FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
-INSERT INTO redeem_codes_new SELECT * FROM redeem_codes;
-DROP TABLE redeem_codes;
-ALTER TABLE redeem_codes_new RENAME TO redeem_codes;
-
--- 6. 重建 refresh_tokens 表
+-- 5. 重建 refresh_tokens 表
 CREATE TABLE refresh_tokens_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
-  token_hash TEXT UNIQUE NOT NULL,
+  token_hash TEXT NOT NULL,
   expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
-  is_revoked BOOLEAN DEFAULT 0,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -94,7 +75,7 @@ INSERT INTO refresh_tokens_new SELECT * FROM refresh_tokens;
 DROP TABLE refresh_tokens;
 ALTER TABLE refresh_tokens_new RENAME TO refresh_tokens;
 
--- 7. 重建 logs 表
+-- 6. 重建 logs 表
 CREATE TABLE logs_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER,
@@ -110,19 +91,36 @@ INSERT INTO logs_new SELECT * FROM logs;
 DROP TABLE logs;
 ALTER TABLE logs_new RENAME TO logs;
 
--- 8. 重建 rate_limits 表
+-- 7. 重建 rate_limits 表
 CREATE TABLE rate_limits_new (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   identifier TEXT NOT NULL,
   endpoint TEXT NOT NULL,
-  request_count INTEGER DEFAULT 1,
+  count INTEGER DEFAULT 1,
   window_start TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
-  UNIQUE(identifier, endpoint, window_start)
+  UNIQUE(identifier, endpoint)
 );
 
 INSERT INTO rate_limits_new SELECT * FROM rate_limits;
 DROP TABLE rate_limits;
 ALTER TABLE rate_limits_new RENAME TO rate_limits;
+
+-- 8. 重建 redeem_codes 表
+CREATE TABLE redeem_codes_new (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT UNIQUE NOT NULL,
+  quota INTEGER NOT NULL,
+  used BOOLEAN DEFAULT 0,
+  used_by INTEGER,
+  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  used_at TIMESTAMP,
+  valid_until TIMESTAMP,
+  FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+INSERT INTO redeem_codes_new SELECT * FROM redeem_codes;
+DROP TABLE redeem_codes;
+ALTER TABLE redeem_codes_new RENAME TO redeem_codes;
 
 -- 重新创建索引
 CREATE INDEX idx_users_email ON users(email);

@@ -1,13 +1,10 @@
 import { apiClient } from './request'
-import type { 
-  LoginRequest, 
-  RegisterRequest, 
-  SendVerificationCodeRequest,
-  SendVerificationCodeResponse,
-  AuthResponse, 
+import type {
+  LoginRequest,
+  AuthResponse,
   TokenPair,
   User,
-  ApiResponse 
+  ApiResponse
 } from '@/types'
 
 export const authApi = {
@@ -16,15 +13,7 @@ export const authApi = {
     return apiClient.post<AuthResponse>('/api/auth/login', data)
   },
 
-  // 用户注册
-  async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
-    return apiClient.post<AuthResponse>('/api/auth/register', data)
-  },
 
-  // 发送邮箱验证码
-  async sendVerificationCode(data: SendVerificationCodeRequest): Promise<ApiResponse<SendVerificationCodeResponse>> {
-    return apiClient.post<SendVerificationCodeResponse>('/api/auth/send-verification-code', data)
-  },
 
   // 刷新Token
   async refreshToken(refreshToken: string): Promise<ApiResponse<TokenPair>> {

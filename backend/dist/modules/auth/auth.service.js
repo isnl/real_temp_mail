@@ -9,64 +9,6 @@ export class AuthService {
         this.dbService = dbService;
         this.jwtService = new JWTService(env, dbService);
     }
-    async register(data) {
-        // 1. 验证输入数据
-        this.validateRegisterData(data);
-        // 2. 检查邮箱是否已存在
-        const existingUser = await this.dbService.getUserByEmail(data.email);
-        if (existingUser) {
-            throw new ValidationError('邮箱已被注册');
-        }
-        // 3. 验证密码一致性
-        if (data.password !== data.confirmPassword) {
-            throw new ValidationError('两次输入的密码不一致');
-        }
-        // 4. 获取注册默认配额设置
-        const defaultQuotaSetting = await this.dbService.getSystemSetting('default_register_quota');
-        const defaultQuota = parseInt(defaultQuotaSetting?.setting_value || '5');
-        // 5. 创建用户
-        const passwordHash = await this.hashPassword(data.password);
-        const userData = {
-            email: data.email,
-            password_hash: passwordHash,
-            quota: defaultQuota,
-            role: 'user'
-        };
-        const user = await this.dbService.createUser(userData);
-        // 6. 创建注册配额余额记录（永不过期）
-        await this.dbService.createQuotaBalance({
-            userId: user.id,
-            quotaType: 'permanent',
-            amount: defaultQuota,
-            expiresAt: null, // 永不过期
-            source: 'register',
-            sourceId: null
-        });
-        // 7. 创建注册配额记录
-        await this.dbService.createQuotaLog({
-            userId: user.id,
-            type: 'earn',
-            amount: defaultQuota,
-            source: 'register',
-            description: '注册赠送配额（永不过期）',
-            expiresAt: null,
-            quotaType: 'permanent'
-        });
-        // 6. 生成JWT token对
-        const tokens = await this.jwtService.generateTokenPair(user);
-        // 7. 记录日志
-        await this.dbService.createLog({
-            userId: user.id,
-            action: 'REGISTER',
-            details: `User registered: ${user.email}`
-        });
-        // 8. 返回用户信息（不包含密码）
-        const { password_hash, ...userWithoutPassword } = user;
-        return {
-            user: userWithoutPassword,
-            tokens
-        };
-    }
     async login(data) {
         // 1. 验证输入数据
         this.validateLoginData(data);
@@ -75,18 +17,25 @@ export class AuthService {
         if (!user) {
             throw new AuthenticationError('邮箱或密码错误');
         }
-        // 3. 验证密码
+        // 3. 检查用户是否为第三方登录用户
+        if (user.provider !== 'email') {
+            throw new AuthenticationError('该账户使用第三方登录，请使用对应的登录方式');
+        }
+        // 4. 验证密码
+        if (!user.password_hash) {
+            throw new AuthenticationError('该账户未设置密码，请使用第三方登录');
+        }
         const isPasswordValid = await this.verifyPassword(data.password, user.password_hash);
         if (!isPasswordValid) {
             throw new AuthenticationError('邮箱或密码错误');
         }
-        // 4. 检查用户状态
+        // 5. 检查用户状态
         if (!user.is_active) {
             throw new AuthenticationError('账户已被禁用');
         }
-        // 5. 生成JWT token对
+        // 6. 生成JWT token对
         const tokens = await this.jwtService.generateTokenPair(user);
-        // 6. 记录日志
+        // 7. 记录日志
         await this.dbService.createLog({
             userId: user.id,
             action: 'LOGIN',
@@ -117,13 +66,24 @@ export class AuthService {
         const { password_hash, ...userWithoutPassword } = user;
         return userWithoutPassword;
     }
+    async logUserAction(userId, action, details) {
+        await this.dbService.createLog({
+            userId,
+            action,
+            details
+        });
+    }
     async changePassword(userId, currentPassword, newPassword) {
         // 1. 获取用户信息
         const user = await this.dbService.getUserById(userId);
         if (!user) {
             throw new AuthenticationError('用户不存在');
         }
-        // 2. 验证当前密码
+        // 2. 检查用户是否有密码（第三方登录用户可能没有密码）
+        if (!user.password_hash) {
+            throw new AuthenticationError('该账户使用第三方登录，无法修改密码');
+        }
+        // 3. 验证当前密码
         const isCurrentPasswordValid = await this.verifyPassword(currentPassword, user.password_hash);
         if (!isCurrentPasswordValid) {
             throw new AuthenticationError('当前密码错误');
@@ -139,12 +99,6 @@ export class AuthService {
             action: 'CHANGE_PASSWORD',
             details: 'User changed password'
         });
-    }
-    validateRegisterData(data) {
-        if (!this.isValidEmail(data.email)) {
-            throw new ValidationError('邮箱格式不正确');
-        }
-        this.validatePassword(data.password);
     }
     validateLoginData(data) {
         if (!data.email || !data.password) {

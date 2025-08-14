@@ -81,10 +81,7 @@ export function useQuota() {
     }
   })
 
-  const usagePercentage = computed(() => {
-    const { total, used } = quotaData.value
-    return total > 0 ? Math.round((used / total) * 100) : 0
-  })
+
 
   // 🎯 手动刷新配额信息的方法
   const refreshQuotaInfo = () => {
@@ -94,7 +91,6 @@ export function useQuota() {
   return {
     quotaInfo: quotaData,
     loading: computed(() => isLoading.value),
-    usagePercentage,
     fetchQuotaInfo,
     refreshQuotaInfo
   }

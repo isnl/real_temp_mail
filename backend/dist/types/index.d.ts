@@ -2,25 +2,38 @@ export interface Env {
     DB: D1Database;
     JWT_SECRET: string;
     BASE_DOMAIN: string;
+    FRONTEND_DOMAIN: string;
     ENVIRONMENT: 'development' | 'production';
     TURNSTILE_SECRET_KEY: string;
     TURNSTILE_SITE_KEY: string;
+    SENDER_DOMAIN: string;
+    EMAIL_SENDER: any;
+    GITHUB_CLIENT_ID: string;
+    GITHUB_CLIENT_SECRET: string;
 }
 export interface User {
     id: number;
     email: string;
-    password_hash: string;
+    password_hash?: string;
     quota: number;
     role: 'user' | 'admin';
     is_active: boolean;
+    provider: 'email' | 'github';
+    provider_id?: string;
+    avatar_url?: string;
+    display_name?: string;
     created_at: string;
     updated_at: string;
 }
 export interface CreateUserData {
     email: string;
-    password_hash: string;
+    password_hash?: string;
     quota?: number;
     role?: 'user' | 'admin';
+    provider?: 'email' | 'github';
+    provider_id?: string;
+    avatar_url?: string;
+    display_name?: string;
 }
 export interface TempEmail {
     id: number;
@@ -146,11 +159,21 @@ export interface LoginRequest {
     password: string;
     turnstileToken?: string;
 }
-export interface RegisterRequest {
+export interface GitHubOAuthRequest {
+    code: string;
+    state?: string;
+}
+export interface GitHubUser {
+    id: number;
+    login: string;
     email: string;
-    password: string;
-    confirmPassword: string;
-    turnstileToken?: string;
+    name: string;
+    avatar_url: string;
+}
+export interface GitHubOAuthResponse {
+    access_token: string;
+    token_type: string;
+    scope: string;
 }
 export interface CreateEmailRequest {
     domainId: number;

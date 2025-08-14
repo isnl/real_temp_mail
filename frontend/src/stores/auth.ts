@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { User, LoginRequest, RegisterRequest, TokenPair } from '@/types'
+import type { User, LoginRequest, TokenPair } from '@/types'
 import { authApi } from '@/api/auth'
 
 export const useAuthStore = defineStore('auth', {
@@ -33,19 +33,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async register(registerData: RegisterRequest) {
-      this.isLoading = true
-      try {
-        const response = await authApi.register(registerData)
-        // API 客户端现在在错误时会抛出异常，所以这里只处理成功的情况
-        this.setAuthData(response.data!.user, response.data!.tokens)
-        return response
-      } catch (error) {
-        throw error
-      } finally {
-        this.isLoading = false
-      }
-    },
+
 
     async refreshTokens() {
       if (!this.refreshToken) {

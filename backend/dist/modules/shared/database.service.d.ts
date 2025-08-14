@@ -5,6 +5,8 @@ export declare class DatabaseService {
     createUser(userData: CreateUserData): Promise<User>;
     getUserByEmail(email: string): Promise<User | null>;
     getUserById(id: number): Promise<User | null>;
+    getUserByProvider(provider: string, providerId: string): Promise<User | null>;
+    updateUser(userId: number, updates: Partial<CreateUserData>): Promise<void>;
     updateUserQuota(userId: number, quota: number): Promise<void>;
     decrementUserQuota(userId: number): Promise<boolean>;
     updateUserPassword(userId: number, passwordHash: string): Promise<boolean>;

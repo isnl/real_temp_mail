@@ -6,10 +6,10 @@ export class DatabaseService {
     // 用户相关操作
     async createUser(userData) {
         const result = await this.db.prepare(`
-      INSERT INTO users (email, password_hash, quota, role)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, quota, role, provider, provider_id, avatar_url, display_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
-    `).bind(userData.email, userData.password_hash, userData.quota || 5, userData.role || 'user').first();
+    `).bind(userData.email, userData.password_hash || null, userData.quota || 5, userData.role || 'user', userData.provider || 'email', userData.provider_id || null, userData.avatar_url || null, userData.display_name || null).first();
         if (!result) {
             throw new Error('Failed to create user');
         }
@@ -24,6 +24,47 @@ export class DatabaseService {
         return await this.db.prepare(`
       SELECT * FROM users WHERE id = ? AND is_active = 1
     `).bind(id).first();
+    }
+    async getUserByProvider(provider, providerId) {
+        return await this.db.prepare(`
+      SELECT * FROM users WHERE provider = ? AND provider_id = ? AND is_active = 1
+    `).bind(provider, providerId).first();
+    }
+    async updateUser(userId, updates) {
+        const fields = [];
+        const values = [];
+        if (updates.email !== undefined) {
+            fields.push('email = ?');
+            values.push(updates.email);
+        }
+        if (updates.password_hash !== undefined) {
+            fields.push('password_hash = ?');
+            values.push(updates.password_hash);
+        }
+        if (updates.provider !== undefined) {
+            fields.push('provider = ?');
+            values.push(updates.provider);
+        }
+        if (updates.provider_id !== undefined) {
+            fields.push('provider_id = ?');
+            values.push(updates.provider_id);
+        }
+        if (updates.avatar_url !== undefined) {
+            fields.push('avatar_url = ?');
+            values.push(updates.avatar_url);
+        }
+        if (updates.display_name !== undefined) {
+            fields.push('display_name = ?');
+            values.push(updates.display_name);
+        }
+        if (fields.length === 0) {
+            return; // 没有需要更新的字段
+        }
+        fields.push('updated_at = datetime(\'now\', \'+8 hours\')');
+        values.push(userId);
+        await this.db.prepare(`
+      UPDATE users SET ${fields.join(', ')} WHERE id = ?
+    `).bind(...values).run();
     }
     async updateUserQuota(userId, quota) {
         await this.db.prepare(`

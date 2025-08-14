@@ -25,7 +25,7 @@ CREATE TABLE user_checkins (
   UNIQUE(user_id, checkin_date)
 );
 
--- 3. 配额变动记录表
+-- 3. 配额记录表（记录所有配额变动）
 CREATE TABLE quota_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -33,25 +33,28 @@ CREATE TABLE quota_logs (
   amount INTEGER NOT NULL,
   source TEXT NOT NULL CHECK (source IN ('register', 'checkin', 'redeem_code', 'admin_adjust', 'create_email')),
   description TEXT,
-  related_id INTEGER, -- 关联的记录ID（如兑换码ID、邮箱ID等）
+  related_id INTEGER, -- 关联记录ID（如签到记录ID、兑换码ID等）
   created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 创建索引以提高查询性能
-CREATE INDEX idx_user_checkins_user_date ON user_checkins(user_id, checkin_date);
+CREATE INDEX idx_user_checkins_user_id ON user_checkins(user_id);
+CREATE INDEX idx_user_checkins_date ON user_checkins(checkin_date);
 CREATE INDEX idx_quota_logs_user_id ON quota_logs(user_id);
-CREATE INDEX idx_quota_logs_created_at ON quota_logs(created_at);
 CREATE INDEX idx_quota_logs_type ON quota_logs(type);
 CREATE INDEX idx_quota_logs_source ON quota_logs(source);
+CREATE INDEX idx_quota_logs_created_at ON quota_logs(created_at);
+CREATE INDEX idx_system_settings_key ON system_settings(setting_key);
 
--- 为现有用户创建注册配额记录（回填数据）
+-- 为现有用户创建注册配额记录
 INSERT INTO quota_logs (user_id, type, amount, source, description, created_at)
 SELECT 
   id,
   'earn',
-  5,
+  quota,
   'register',
-  '注册赠送配额',
+  '注册奖励配额',
   created_at
-FROM users;
+FROM users 
+WHERE quota > 0;
