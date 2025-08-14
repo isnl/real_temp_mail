@@ -18,12 +18,13 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { fas } from '@fortawesome/free-solid-svg-icons'
+import { fab } from '@fortawesome/free-brands-svg-icons'
 
 import App from './App.vue'
 import router from './router'
 
-// 添加所有solid图标到库
-library.add(fas)
+// 添加所有solid和brand图标到库
+library.add(fas, fab)
 
 const app = createApp(App)
 

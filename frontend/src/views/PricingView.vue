@@ -137,8 +137,8 @@ const handlePurchase = (plan: typeof plans[0]) => {
     return
   }
 
-  // 这里可以集成支付接口
-  ElMessage.info('开发中，敬请期待')
+  // 跳转到固定的购买链接
+  window.open('https://www.zaofaka.com/links/7C5575CE', '_blank')
 }
 
 const goToLogin = () => {

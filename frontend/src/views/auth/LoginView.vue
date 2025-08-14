@@ -4,6 +4,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
 import { usePageTitle } from '@/composables/usePageTitle'
+import UserAgreement from '@/components/legal/UserAgreement.vue'
+import PrivacyPolicy from '@/components/legal/PrivacyPolicy.vue'
 
 // 设置页面标题
 usePageTitle()
@@ -12,6 +14,10 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const loading = ref(false)
+
+// 法律协议组件引用
+const userAgreementRef = ref<InstanceType<typeof UserAgreement>>()
+const privacyPolicyRef = ref<InstanceType<typeof PrivacyPolicy>>()
 
 // 处理GitHub登录回调
 onMounted(async () => {
@@ -58,6 +64,16 @@ const handleGitHubLogin = () => {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
   window.location.href = `${apiBaseUrl}/api/auth/github`
 }
+
+// 打开用户协议
+const openUserAgreement = () => {
+  userAgreementRef.value?.open()
+}
+
+// 打开隐私政策
+const openPrivacyPolicy = () => {
+  privacyPolicyRef.value?.open()
+}
 </script>
 
 <template>
@@ -96,10 +112,30 @@ const handleGitHubLogin = () => {
           </el-button>
 
           <!-- 说明文字 -->
-          <div class="text-center">
+          <div class="text-center flex flex-col gap-3">
             <p class="text-sm text-gray-600 dark:text-gray-400">
               点击上方按钮将跳转到GitHub进行授权登录
             </p>
+            <p class="text-xs text-blue-600 dark:text-blue-400">
+              <font-awesome-icon :icon="['fas', 'info-circle']" class="mr-1" />
+              未注册用户将自动创建账户
+            </p>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              注册登录即表示同意
+              <button
+                @click="openUserAgreement"
+                class="text-blue-600 dark:text-blue-400 hover:underline mx-1"
+              >
+                用户协议
+              </button>
+              和
+              <button
+                @click="openPrivacyPolicy"
+                class="text-blue-600 dark:text-blue-400 hover:underline mx-1"
+              >
+                隐私政策
+              </button>
+            </div>
           </div>
         </div>
 
@@ -125,6 +161,10 @@ const handleGitHubLogin = () => {
         </div>
       </div>
     </div>
+
+    <!-- 法律协议弹窗 -->
+    <UserAgreement ref="userAgreementRef" />
+    <PrivacyPolicy ref="privacyPolicyRef" />
   </div>
 </template>
 

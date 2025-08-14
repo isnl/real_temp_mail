@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { User, LoginRequest, TokenPair } from '@/types'
 import { authApi } from '@/api/auth'
+import router from '@/router'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -37,7 +38,7 @@ export const useAuthStore = defineStore('auth', {
 
     async refreshTokens() {
       if (!this.refreshToken) {
-        this.logout()
+        this.clearAuthDataAndRedirect()
         throw new Error('No refresh token available')
       }
 
@@ -48,7 +49,7 @@ export const useAuthStore = defineStore('auth', {
         return response
       } catch (error) {
         console.error('Token refresh failed:', error)
-        this.logout()
+        this.clearAuthDataAndRedirect()
         throw error
       }
     },
@@ -86,6 +87,13 @@ export const useAuthStore = defineStore('auth', {
       this.accessToken = ''
       this.refreshToken = ''
       this.isAuthenticated = false
+    },
+
+    // 清除认证数据并跳转到登录页面（用于token刷新失败时）
+    clearAuthDataAndRedirect() {
+      this.clearAuthData()
+      // 跳转到登录页面
+      router.push('/login')
     },
 
     updateUserQuota(quota: number) {
@@ -127,7 +135,7 @@ export const useAuthStore = defineStore('auth', {
         return true
       } catch (error) {
         console.error('Token check failed:', error)
-        this.logout()
+        this.clearAuthDataAndRedirect()
         return false
       }
     }
