@@ -6,7 +6,7 @@ export declare class CheckinService {
     /**
      * 用户签到
      */
-    checkin(userId: number): Promise<CheckinResponse>;
+    checkin(userId: number, request?: Request): Promise<CheckinResponse>;
     /**
      * 检查用户今日签到状态
      */

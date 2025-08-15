@@ -75,7 +75,7 @@ export class EmailHandler {
     async handleCreateTempEmail(request, user) {
         try {
             const data = await request.json();
-            const tempEmail = await this.emailService.createTempEmail(user.userId, data);
+            const tempEmail = await this.emailService.createTempEmail(user.userId, data, request);
             // 获取用户最新配额信息
             const updatedUser = await this.emailService.getUserById(user.userId);
             return this.successResponse({

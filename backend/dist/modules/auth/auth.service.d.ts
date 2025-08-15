@@ -5,15 +5,15 @@ export declare class AuthService {
     private dbService;
     private jwtService;
     constructor(env: Env, dbService: DatabaseService);
-    login(data: LoginRequest): Promise<{
+    login(data: LoginRequest, request?: Request): Promise<{
         user: User;
         tokens: TokenPair;
     }>;
     refreshTokens(refreshToken: string): Promise<TokenPair>;
     logout(refreshToken: string): Promise<void>;
     getCurrentUser(userId: number): Promise<User>;
-    logUserAction(userId: number, action: string, details: string): Promise<void>;
-    changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void>;
+    logUserAction(userId: number, action: string, details: string, request?: Request): Promise<void>;
+    changePassword(userId: number, currentPassword: string, newPassword: string, request?: Request): Promise<void>;
     private validateLoginData;
     private validatePassword;
     private isValidEmail;

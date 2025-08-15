@@ -33,8 +33,8 @@ export class AuthHandler {
     async handleLogin(request) {
         try {
             const data = await request.json();
-            // 用户登录
-            const result = await this.authService.login(data);
+            // 用户登录（传递request对象以获取IP地址）
+            const result = await this.authService.login(data, request);
             return this.successResponse(result, '登录成功');
         }
         catch (error) {
@@ -67,8 +67,8 @@ export class AuthHandler {
             const { user, isNewUser } = await this.githubOAuthService.handleCallback(code, state || undefined);
             // 生成JWT token对
             const tokens = await this.jwtService.generateTokenPair(user);
-            // 记录登录日志
-            await this.authService.logUserAction(user.id, isNewUser ? 'GITHUB_REGISTER' : 'GITHUB_LOGIN', `User ${isNewUser ? 'registered' : 'logged in'} via GitHub: ${user.email}`);
+            // 记录登录日志（传递request对象以获取IP地址）
+            await this.authService.logUserAction(user.id, isNewUser ? 'GITHUB_REGISTER' : 'GITHUB_LOGIN', `User ${isNewUser ? 'registered' : 'logged in'} via GitHub: ${user.email}`, request);
             // 构建前端重定向URL，携带token信息
             const frontendUrl = this.getFrontendUrl();
             const redirectUrl = new URL('/auth/callback', frontendUrl);
@@ -135,7 +135,7 @@ export class AuthHandler {
             if (newPassword !== confirmPassword) {
                 return this.errorResponse('新密码确认不一致', 400);
             }
-            await this.authService.changePassword(user.userId, currentPassword, newPassword);
+            await this.authService.changePassword(user.userId, currentPassword, newPassword, request);
             return this.successResponse(null, '密码修改成功');
         }
         catch (error) {

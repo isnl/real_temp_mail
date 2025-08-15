@@ -9,7 +9,7 @@ export class AuthService {
         this.dbService = dbService;
         this.jwtService = new JWTService(env, dbService);
     }
-    async login(data) {
+    async login(data, request) {
         // 1. 验证输入数据
         this.validateLoginData(data);
         // 2. 查找用户
@@ -35,13 +35,22 @@ export class AuthService {
         }
         // 6. 生成JWT token对
         const tokens = await this.jwtService.generateTokenPair(user);
-        // 7. 记录日志
-        await this.dbService.createLog({
-            userId: user.id,
-            action: 'LOGIN',
-            details: `User logged in: ${user.email}`
-        });
-        // 7. 返回用户信息（不包含密码）
+        // 7. 记录日志（包含IP地址和User-Agent）
+        if (request) {
+            await this.dbService.createLogWithRequest(request, {
+                userId: user.id,
+                action: 'LOGIN',
+                details: `User logged in: ${user.email}`
+            });
+        }
+        else {
+            await this.dbService.createLog({
+                userId: user.id,
+                action: 'LOGIN',
+                details: `User logged in: ${user.email}`
+            });
+        }
+        // 8. 返回用户信息（不包含密码）
         const { password_hash, ...userWithoutPassword } = user;
         return {
             user: userWithoutPassword,
@@ -66,14 +75,23 @@ export class AuthService {
         const { password_hash, ...userWithoutPassword } = user;
         return userWithoutPassword;
     }
-    async logUserAction(userId, action, details) {
-        await this.dbService.createLog({
-            userId,
-            action,
-            details
-        });
+    async logUserAction(userId, action, details, request) {
+        if (request) {
+            await this.dbService.createLogWithRequest(request, {
+                userId,
+                action,
+                details
+            });
+        }
+        else {
+            await this.dbService.createLog({
+                userId,
+                action,
+                details
+            });
+        }
     }
-    async changePassword(userId, currentPassword, newPassword) {
+    async changePassword(userId, currentPassword, newPassword, request) {
         // 1. 获取用户信息
         const user = await this.dbService.getUserById(userId);
         if (!user) {
@@ -88,17 +106,26 @@ export class AuthService {
         if (!isCurrentPasswordValid) {
             throw new AuthenticationError('当前密码错误');
         }
-        // 3. 验证新密码
+        // 4. 验证新密码
         this.validatePassword(newPassword);
-        // 4. 更新密码
+        // 5. 更新密码
         const newPasswordHash = await this.hashPassword(newPassword);
         await this.dbService.updateUserPassword(userId, newPasswordHash);
-        // 5. 记录日志
-        await this.dbService.createLog({
-            userId,
-            action: 'CHANGE_PASSWORD',
-            details: 'User changed password'
-        });
+        // 6. 记录日志（包含IP地址和User-Agent）
+        if (request) {
+            await this.dbService.createLogWithRequest(request, {
+                userId,
+                action: 'CHANGE_PASSWORD',
+                details: 'User changed password'
+            });
+        }
+        else {
+            await this.dbService.createLog({
+                userId,
+                action: 'CHANGE_PASSWORD',
+                details: 'User changed password'
+            });
+        }
     }
     validateLoginData(data) {
         if (!data.email || !data.password) {

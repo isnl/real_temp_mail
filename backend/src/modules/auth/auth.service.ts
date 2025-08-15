@@ -23,7 +23,7 @@ export class AuthService {
 
 
 
-  async login(data: LoginRequest): Promise<{ user: User; tokens: TokenPair }> {
+  async login(data: LoginRequest, request?: Request): Promise<{ user: User; tokens: TokenPair }> {
     // 1. 验证输入数据
     this.validateLoginData(data)
 
@@ -56,14 +56,22 @@ export class AuthService {
     // 6. 生成JWT token对
     const tokens = await this.jwtService.generateTokenPair(user)
 
-    // 7. 记录日志
-    await this.dbService.createLog({
-      userId: user.id,
-      action: 'LOGIN',
-      details: `User logged in: ${user.email}`
-    })
+    // 7. 记录日志（包含IP地址和User-Agent）
+    if (request) {
+      await this.dbService.createLogWithRequest(request, {
+        userId: user.id,
+        action: 'LOGIN',
+        details: `User logged in: ${user.email}`
+      })
+    } else {
+      await this.dbService.createLog({
+        userId: user.id,
+        action: 'LOGIN',
+        details: `User logged in: ${user.email}`
+      })
+    }
 
-    // 7. 返回用户信息（不包含密码）
+    // 8. 返回用户信息（不包含密码）
     const { password_hash, ...userWithoutPassword } = user
     return {
       user: userWithoutPassword as User,
@@ -93,18 +101,27 @@ export class AuthService {
     return userWithoutPassword as User
   }
 
-  async logUserAction(userId: number, action: string, details: string): Promise<void> {
-    await this.dbService.createLog({
-      userId,
-      action,
-      details
-    })
+  async logUserAction(userId: number, action: string, details: string, request?: Request): Promise<void> {
+    if (request) {
+      await this.dbService.createLogWithRequest(request, {
+        userId,
+        action,
+        details
+      })
+    } else {
+      await this.dbService.createLog({
+        userId,
+        action,
+        details
+      })
+    }
   }
 
   async changePassword(
-    userId: number, 
-    currentPassword: string, 
-    newPassword: string
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+    request?: Request
   ): Promise<void> {
     // 1. 获取用户信息
     const user = await this.dbService.getUserById(userId)
@@ -123,19 +140,27 @@ export class AuthService {
       throw new AuthenticationError('当前密码错误')
     }
 
-    // 3. 验证新密码
+    // 4. 验证新密码
     this.validatePassword(newPassword)
 
-    // 4. 更新密码
+    // 5. 更新密码
     const newPasswordHash = await this.hashPassword(newPassword)
     await this.dbService.updateUserPassword(userId, newPasswordHash)
 
-    // 5. 记录日志
-    await this.dbService.createLog({
-      userId,
-      action: 'CHANGE_PASSWORD',
-      details: 'User changed password'
-    })
+    // 6. 记录日志（包含IP地址和User-Agent）
+    if (request) {
+      await this.dbService.createLogWithRequest(request, {
+        userId,
+        action: 'CHANGE_PASSWORD',
+        details: 'User changed password'
+      })
+    } else {
+      await this.dbService.createLog({
+        userId,
+        action: 'CHANGE_PASSWORD',
+        details: 'User changed password'
+      })
+    }
   }
 
 

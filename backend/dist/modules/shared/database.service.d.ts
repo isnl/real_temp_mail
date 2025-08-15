@@ -46,6 +46,11 @@ export declare class DatabaseService {
         userAgent?: string;
         details?: string;
     }): Promise<void>;
+    createLogWithRequest(request: Request, logData: {
+        userId?: number;
+        action: string;
+        details?: string;
+    }): Promise<void>;
     getSystemSetting(key: string): Promise<SystemSetting | null>;
     updateSystemSetting(key: string, value: string): Promise<void>;
     getTodayCheckin(userId: number): Promise<UserCheckin | null>;

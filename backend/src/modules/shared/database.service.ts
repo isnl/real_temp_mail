@@ -390,6 +390,26 @@ export class DatabaseService {
     ).run()
   }
 
+  // 带请求信息的日志记录方法
+  async createLogWithRequest(request: Request, logData: {
+    userId?: number
+    action: string
+    details?: string
+  }): Promise<void> {
+    const ipAddress = request.headers.get('CF-Connecting-IP') ||
+                     request.headers.get('X-Forwarded-For') ||
+                     request.headers.get('X-Real-IP') ||
+                     'unknown'
+
+    const userAgent = request.headers.get('User-Agent') || 'unknown'
+
+    await this.createLog({
+      ...logData,
+      ipAddress,
+      userAgent
+    })
+  }
+
   // ==================== 系统设置相关操作 ====================
 
   async getSystemSetting(key: string): Promise<SystemSetting | null> {

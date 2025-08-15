@@ -5,7 +5,7 @@ export declare class EmailService {
     private dbService;
     private parserService;
     constructor(env: Env, dbService: DatabaseService);
-    createTempEmail(userId: number, request: CreateEmailRequest): Promise<TempEmail>;
+    createTempEmail(userId: number, request: CreateEmailRequest, httpRequest?: Request): Promise<TempEmail>;
     getTempEmails(userId: number): Promise<TempEmail[]>;
     deleteTempEmail(userId: number, emailId: number): Promise<void>;
     getEmailsForTempEmail(userId: number, tempEmailId: number, pagination: PaginationParams): Promise<PaginatedResponse<Email>>;

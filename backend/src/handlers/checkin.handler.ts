@@ -46,8 +46,8 @@ export class CheckinHandler {
    */
   private async handleCheckin(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
     try {
-      // 签到不需要额外的请求数据
-      const result = await this.checkinService.checkin(user.userId)
+      // 签到不需要额外的请求数据，但传递request对象以获取IP地址
+      const result = await this.checkinService.checkin(user.userId, request)
       return this.successResponse(result, result.message)
     } catch (error: any) {
       console.error('Checkin error:', error)

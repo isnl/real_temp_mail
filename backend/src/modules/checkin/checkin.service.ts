@@ -23,7 +23,7 @@ export class CheckinService {
   /**
    * 用户签到
    */
-  async checkin(userId: number): Promise<CheckinResponse> {
+  async checkin(userId: number, request?: Request): Promise<CheckinResponse> {
     // 1. 检查用户是否存在
     const user = await this.dbService.getUserById(userId)
     if (!user) {
@@ -77,12 +77,20 @@ export class CheckinService {
       const totalQuota = await this.dbService.getUserTotalQuota(userId)
       await this.dbService.updateUserQuota(userId, totalQuota.available)
 
-      // 记录操作日志
-      await this.dbService.createLog({
-        userId,
-        action: 'CHECKIN',
-        details: `Daily checkin completed, reward: ${quotaReward} quota, expires at: ${expiresAt}`
-      })
+      // 记录操作日志（包含IP地址和User-Agent）
+      if (request) {
+        await this.dbService.createLogWithRequest(request, {
+          userId,
+          action: 'CHECKIN',
+          details: `Daily checkin completed, reward: ${quotaReward} quota, expires at: ${expiresAt}`
+        })
+      } else {
+        await this.dbService.createLog({
+          userId,
+          action: 'CHECKIN',
+          details: `Daily checkin completed, reward: ${quotaReward} quota, expires at: ${expiresAt}`
+        })
+      }
 
       return {
         success: true,

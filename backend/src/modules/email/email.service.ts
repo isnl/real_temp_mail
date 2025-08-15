@@ -22,7 +22,7 @@ export class EmailService {
     this.parserService = new EmailParserService()
   }
 
-  async createTempEmail(userId: number, request: CreateEmailRequest): Promise<TempEmail> {
+  async createTempEmail(userId: number, request: CreateEmailRequest, httpRequest?: Request): Promise<TempEmail> {
     // 1. 检查用户剩余配额
     const user = await this.dbService.getUserById(userId)
     if (!user) {
@@ -72,12 +72,20 @@ export class EmailService {
         relatedId: tempEmail.id
       })
 
-      // 7. 记录日志
-      await this.dbService.createLog({
-        userId,
-        action: 'CREATE_EMAIL',
-        details: `Created temp email: ${email}`
-      })
+      // 7. 记录日志（包含IP地址和User-Agent）
+      if (httpRequest) {
+        await this.dbService.createLogWithRequest(httpRequest, {
+          userId,
+          action: 'CREATE_EMAIL',
+          details: `Created temp email: ${email}`
+        })
+      } else {
+        await this.dbService.createLog({
+          userId,
+          action: 'CREATE_EMAIL',
+          details: `Created temp email: ${email}`
+        })
+      }
 
       return tempEmail
     } catch (error) {

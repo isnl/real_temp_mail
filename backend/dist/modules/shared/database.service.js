@@ -276,6 +276,19 @@ export class DatabaseService {
       VALUES (?, ?, ?, ?, ?)
     `).bind(logData.userId || null, logData.action, logData.ipAddress || null, logData.userAgent || null, logData.details || null).run();
     }
+    // 带请求信息的日志记录方法
+    async createLogWithRequest(request, logData) {
+        const ipAddress = request.headers.get('CF-Connecting-IP') ||
+            request.headers.get('X-Forwarded-For') ||
+            request.headers.get('X-Real-IP') ||
+            'unknown';
+        const userAgent = request.headers.get('User-Agent') || 'unknown';
+        await this.createLog({
+            ...logData,
+            ipAddress,
+            userAgent
+        });
+    }
     // ==================== 系统设置相关操作 ====================
     async getSystemSetting(key) {
         return await this.db.prepare(`

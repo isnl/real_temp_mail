@@ -9,7 +9,7 @@ export class EmailService {
         this.dbService = dbService;
         this.parserService = new EmailParserService();
     }
-    async createTempEmail(userId, request) {
+    async createTempEmail(userId, request, httpRequest) {
         // 1. 检查用户剩余配额
         const user = await this.dbService.getUserById(userId);
         if (!user) {
@@ -50,12 +50,21 @@ export class EmailService {
                 description: `创建临时邮箱: ${email}`,
                 relatedId: tempEmail.id
             });
-            // 7. 记录日志
-            await this.dbService.createLog({
-                userId,
-                action: 'CREATE_EMAIL',
-                details: `Created temp email: ${email}`
-            });
+            // 7. 记录日志（包含IP地址和User-Agent）
+            if (httpRequest) {
+                await this.dbService.createLogWithRequest(httpRequest, {
+                    userId,
+                    action: 'CREATE_EMAIL',
+                    details: `Created temp email: ${email}`
+                });
+            }
+            else {
+                await this.dbService.createLog({
+                    userId,
+                    action: 'CREATE_EMAIL',
+                    details: `Created temp email: ${email}`
+                });
+            }
             return tempEmail;
         }
         catch (error) {

@@ -148,7 +148,7 @@ export class EmailSenderService {
         </div>
         
         <p class="description">
-            如果您在注册过程中遇到任何问题，请联系我们的客服团队。
+            如果您在注册过程中遇到任何问题，请发送邮件至 admin@oooo.icu 联系我们。
         </p>
         
         <div class="footer">
