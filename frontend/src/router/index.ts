@@ -84,11 +84,6 @@ const router = createRouter({
           name: 'profile-checkin',
           component: () => import('@/views/profile/CheckinView.vue'),
         },
-        {
-          path: 'security',
-          name: 'profile-security',
-          component: () => import('@/views/profile/SecurityView.vue'),
-        },
       ],
     },
     // 管理后台路由 - 使用 AdminLayout

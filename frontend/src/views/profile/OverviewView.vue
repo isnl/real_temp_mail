@@ -232,19 +232,6 @@ onMounted(async () => {
             </div>
           </div>
         </router-link>
-
-        <router-link to="/profile/security" class="block">
-          <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <div class="text-center">
-              <font-awesome-icon
-                :icon="['fas', 'shield-alt']"
-                class="text-gray-500 text-2xl mb-2"
-              />
-              <p class="font-medium text-gray-900 dark:text-gray-100">安全设置</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">密码和安全</p>
-            </div>
-          </div>
-        </router-link>
       </div>
     </div>
 

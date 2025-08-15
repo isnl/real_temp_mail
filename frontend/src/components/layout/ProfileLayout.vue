@@ -17,14 +17,6 @@ const menuItems = [
     icon: 'tachometer-alt',
     description: '账户概览和统计'
   },
-
-  {
-    path: '/profile/security',
-    name: 'profile-security',
-    title: '安全设置',
-    icon: 'shield-alt',
-    description: '密码和安全选项'
-  },
   {
     path: '/profile/quota',
     name: 'profile-quota',
