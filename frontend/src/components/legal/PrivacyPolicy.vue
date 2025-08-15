@@ -82,9 +82,10 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
           <p class="mb-3">我们承诺不会出售、出租或以其他方式向第三方披露您的个人信息，除非：</p>
           <ul class="list-disc pl-6 space-y-2">
             <li>获得您的明确同意</li>
-            <li>法律法规要求或政府部门要求</li>
-            <li>为保护我们的合法权益</li>
-            <li>为防止紧急情况下的人身伤害</li>
+            <li>适用法律法规要求或相关监管部门要求</li>
+            <li>为保护我们、用户或公众的合法权益和安全</li>
+            <li>为防止紧急情况下的人身伤害或财产损失</li>
+            <li>为执行我们的服务条款或保护我们的知识产权</li>
           </ul>
         </section>
 
@@ -111,7 +112,15 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         </section>
 
         <section class="mb-6">
-          <h3 class="text-lg font-semibold mb-3">7. Cookie使用</h3>
+          <h3 class="text-lg font-semibold mb-3">7. 跨境数据传输</h3>
+          <p class="mb-3">
+            由于我们的服务可能涉及跨境数据传输，您的个人信息可能被传输到您所在国家/地区以外的地方进行处理和存储。
+            我们会采取适当的安全措施确保您的数据在传输过程中得到保护，并遵守相关的数据保护法律。
+          </p>
+        </section>
+
+        <section class="mb-6">
+          <h3 class="text-lg font-semibold mb-3">8. Cookie使用</h3>
           <p class="mb-3">
             我们使用Cookie和类似技术来改善用户体验，包括记住您的登录状态、
             偏好设置等。您可以通过浏览器设置管理Cookie。
@@ -119,15 +128,17 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         </section>
 
         <section class="mb-6">
-          <h3 class="text-lg font-semibold mb-3">8. 法律合规</h3>
+          <h3 class="text-lg font-semibold mb-3">9. 法律合规</h3>
+          <p class="mb-3">
+            我们严格遵守服务运营所在地区的相关法律法规，包括但不限于网络安全、个人信息保护、数据安全等法律要求，确保用户数据处理的合法性和安全性。
+          </p>
           <p class="mb-3 font-semibold text-red-600 dark:text-red-400">
-            我们严格遵守中华人民共和国相关法律法规，包括但不限于《网络安全法》、
-            《个人信息保护法》、《数据安全法》等，确保用户数据处理的合法性和安全性。
+            我们同时致力于遵守国际数据保护标准，如GDPR（欧盟通用数据保护条例）等，为全球用户提供一致的隐私保护水平。
           </p>
         </section>
 
         <section class="mb-6">
-          <h3 class="text-lg font-semibold mb-3">9. 政策更新</h3>
+          <h3 class="text-lg font-semibold mb-3">10. 政策更新</h3>
           <p class="mb-3">
             我们可能会不时更新本隐私政策。重大变更时，我们会通过网站公告等方式通知您。
             继续使用服务即表示您接受更新后的政策。
@@ -135,9 +146,9 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         </section>
 
         <section class="mb-6">
-          <h3 class="text-lg font-semibold mb-3">10. 联系我们</h3>
+          <h3 class="text-lg font-semibold mb-3">11. 联系我们</h3>
           <p class="mb-3">
-            如您对本隐私政策有任何疑问或建议，请通过网站提供的联系方式与我们联系。
+            如您对本隐私政策有任何疑问或建议，请发送邮件至 admin@oooo.icu 与我们联系。
             我们将在合理时间内回复您的询问。
           </p>
         </section>

@@ -122,19 +122,19 @@ const openPrivacyPolicy = () => {
             </p>
             <div class="text-xs text-gray-500 dark:text-gray-400">
               注册登录即表示同意
-              <button
+              <span
                 @click="openUserAgreement"
-                class="text-blue-600 dark:text-blue-400 hover:underline mx-1"
+                class="text-xs cursor-pointer text-blue-600 dark:text-blue-400 dark:text-blue-400 hover:underline mx-1"
               >
                 用户协议
-              </button>
+              </span>
               和
-              <button
+              <span
                 @click="openPrivacyPolicy"
-                class="text-blue-600 dark:text-blue-400 hover:underline mx-1"
+                class="text-xs cursor-pointer text-blue-600 dark:text-blue-400 dark:text-blue-400 hover:underline mx-1"
               >
                 隐私政策
-              </button>
+              </span>
             </div>
           </div>
         </div>

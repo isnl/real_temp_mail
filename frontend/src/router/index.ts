@@ -73,11 +73,7 @@ const router = createRouter({
           name: 'profile-overview',
           component: () => import('@/views/profile/OverviewView.vue'),
         },
-        {
-          path: 'settings',
-          name: 'profile-settings',
-          component: () => import('@/views/profile/SettingsView.vue'),
-        },
+
         {
           path: 'quota',
           name: 'profile-quota',

@@ -145,9 +145,6 @@ const handleCommand = (command: string) => {
             <router-link to="/login">
               <el-button type="primary">登录</el-button>
             </router-link>
-            <router-link to="/register">
-              <el-button>注册</el-button>
-            </router-link>
           </div>
         </div>
       </div>

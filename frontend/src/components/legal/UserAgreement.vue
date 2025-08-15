@@ -51,11 +51,12 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">2. 用户责任与义务</h3>
           <ul class="list-disc pl-6 space-y-2">
-            <li>您必须遵守当地的法律法规，不得利用本服务从事任何违法违规活动</li>
-            <li>不得使用本服务进行垃圾邮件发送、网络攻击、诈骗等恶意行为</li>
-            <li>不得滥用服务资源，包括但不限于恶意创建大量邮箱地址</li>
+            <li>您必须遵守所在国家和地区的法律法规，不得利用本服务从事任何违法违规活动</li>
+            <li>不得使用本服务进行垃圾邮件发送、网络攻击、诈骗、钓鱼等恶意行为</li>
+            <li>不得滥用服务资源，包括但不限于恶意创建大量邮箱地址或进行自动化攻击</li>
             <li>您有责任保护自己的账户安全，不得与他人共享账户信息</li>
-            <li>严格遵守当地互联网相关法律法规，包括但不限于网络安全法、数据保护法等</li>
+            <li>严格遵守所在地区的互联网相关法律法规，包括但不限于网络安全、数据保护、反垃圾邮件等法律</li>
+            <li>不得使用本服务进行任何可能损害他人权益或违反国际互联网规范的行为</li>
           </ul>
         </section>
 
@@ -80,13 +81,13 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         </section>
 
         <section class="mb-6">
-          <h3 class="text-lg font-semibold mb-3">5. 法律适用</h3>
+          <h3 class="text-lg font-semibold mb-3">5. 法律适用与争议解决</h3>
           <p class="mb-3">
-            本协议的解释、效力及纠纷的解决，适用中华人民共和国法律。
-            如发生争议，应友好协商解决；协商不成的，提交有管辖权的人民法院解决。
+            本协议的解释、效力及纠纷的解决，将根据服务提供方所在地的适用法律进行处理。
+            如发生争议，应首先通过友好协商解决；协商不成的，可通过仲裁或向有管辖权的法院提起诉讼。
           </p>
           <p class="font-semibold text-red-600 dark:text-red-400">
-            特别提醒：用户必须严格遵守所在地区的法律法规，任何违法行为将承担相应的法律责任。
+            重要提醒：用户必须严格遵守所在国家和地区的法律法规，包括但不限于网络安全、数据保护、反垃圾邮件等相关法律。任何违法行为将由用户自行承担相应的法律责任。
           </p>
         </section>
 
@@ -101,7 +102,7 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">7. 联系我们</h3>
           <p class="mb-3">
-            如您对本协议有任何疑问，请通过网站提供的联系方式与我们联系。
+            如您对本协议有任何疑问，请发送邮件至 admin@oooo.icu 与我们联系。
           </p>
         </section>
       </div>

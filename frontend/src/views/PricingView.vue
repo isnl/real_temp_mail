@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePageTitle } from '@/composables/usePageTitle'
@@ -141,13 +141,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
   window.open('https://www.zaofaka.com/links/7C5575CE', '_blank')
 }
 
-const goToLogin = () => {
-  router.push('/login')
-}
 
-const goToRegister = () => {
-  router.push('/register')
-}
 </script>
 
 <template>
@@ -184,24 +178,6 @@ const goToRegister = () => {
           <p class="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
             灵活的配额方案 · 永久有效 · 即买即用 · 安全支付
           </p>
-
-          <!-- 登录提示 -->
-          <div v-if="!isLoggedIn" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-2xl mx-auto mb-12">
-            <div class="flex items-center justify-center mb-4">
-              <font-awesome-icon :icon="['fas', 'info-circle']" class="text-blue-500 text-xl mr-2" />
-              <span class="text-blue-700 dark:text-blue-300 font-semibold">购买前请先登录</span>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3 justify-center">
-              <el-button @click="goToLogin" type="primary" size="default">
-                <font-awesome-icon :icon="['fas', 'sign-in-alt']" class="mr-2" />
-                立即登录
-              </el-button>
-              <el-button @click="goToRegister" size="default">
-                <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-2" />
-                注册账号
-              </el-button>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -350,25 +326,17 @@ const goToRegister = () => {
           还有疑问？
         </h2>
         <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
-          如果您有其他问题或需要定制化服务，欢迎联系我们的客服团队
+          如果您有其他问题或需要定制化服务，欢迎通过邮件联系我们
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <el-button
-            size="large"
-            class="px-8 py-3 text-lg font-semibold bg-white text-green-600 hover:bg-gray-50 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            <font-awesome-icon :icon="['fas', 'comments']" class="mr-2" />
-            在线客服
-          </el-button>
-
-          <el-button
-            size="large"
-            class="px-8 py-3 text-lg font-semibold bg-transparent text-white border-2 border-white hover:bg-white hover:text-green-600 transition-all duration-300"
+        <div class="flex justify-center">
+          <a
+            href="mailto:admin@oooo.icu"
+            class="inline-flex items-center px-8 py-3 text-lg font-semibold bg-white text-green-600 hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 no-underline"
           >
             <font-awesome-icon :icon="['fas', 'envelope']" class="mr-2" />
-            邮件咨询
-          </el-button>
+            admin@oooo.icu
+          </a>
         </div>
       </div>
     </section>
