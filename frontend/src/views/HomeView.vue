@@ -134,7 +134,7 @@ const stats = [
           <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <el-button
               v-if="!isLoggedIn"
-              @click="goToRegister"
+              @click="goToDashboard"
               type="primary"
               size="large"
               class="px-10 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"

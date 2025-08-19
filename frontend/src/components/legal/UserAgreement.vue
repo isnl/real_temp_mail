@@ -37,7 +37,7 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
       <div class="prose prose-sm max-w-none dark:prose-invert">
         <h2 class="text-xl font-bold mb-4">用户服务协议</h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          生效日期：{{ currentDate }}
+          生效日期：2025-08-17
         </p>
 
         <section class="mb-6">
