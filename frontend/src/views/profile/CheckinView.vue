@@ -17,7 +17,7 @@ const authStore = useAuthStore()
 const currentYear = ref(dayjs().year())
 const currentMonth = ref(dayjs().month() + 1) // dayjs月份从0开始，需要+1
 
-// 签到状态
+// 广告观看状态
 const checkinStatus = ref<CheckinStatus>({
   hasCheckedIn: false,
   checkinRecord: undefined,
@@ -172,10 +172,10 @@ const currentMonthText = computed(() => {
     .format('YYYY年MM月')
 })
 
-// 开始签到流程
+// 开始广告观看流程
 const doCheckin = async () => {
   if (checkinStatus.value.hasCheckedIn) {
-    ElMessage.warning('今天已经签到过了')
+    ElMessage.warning('今天已经观看过广告了')
     return
   }
 
@@ -192,11 +192,11 @@ const doCheckin = async () => {
       // 刷新用户信息
       await authStore.fetchCurrentUser()
     } else {
-      ElMessage.error(response.error || '签到失败')
+      ElMessage.error(response.error || '观看失败')
     }
   } catch (error: any) {
     console.error('Checkin error:', error)
-    ElMessage.error(error.message || '签到失败，请重试')
+    ElMessage.error(error.message || '观看失败，请重试')
   } finally {
     checkinLoading.value = false
   }
@@ -218,12 +218,12 @@ const getWeekdays = () => {
 <template>
   <div class="flex flex-col gap-6">
     <div class="flex gap-6">
-      <!-- 签到状态卡片 -->
+      <!-- 广告观看状态卡片 -->
       <div class="card-base flex-1 p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">每日签到</h2>
-            <p class="text-gray-600 dark:text-gray-400 mt-1">坚持签到，获得更多邮箱配额</p>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">免费获取配额</h2>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">观看广告视频，获得更多邮箱配额</p>
           </div>
           <el-button
             type="primary"
@@ -236,7 +236,7 @@ const getWeekdays = () => {
               :icon="['fas', checkinStatus.hasCheckedIn ? 'check' : 'calendar-plus']"
               class="mr-2"
             />
-            {{ checkinStatus.hasCheckedIn ? '今日已签到' : '立即签到' }}
+            {{ checkinStatus.hasCheckedIn ? '今日已观看' : '观看广告' }}
           </el-button>
         </div>
 
@@ -292,7 +292,7 @@ const getWeekdays = () => {
       <!-- 签到日历 -->
       <div class="card-base flex-1 p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">签到日历</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">观看记录</h3>
 
           <!-- 月份切换 -->
           <div class="flex items-center space-x-4">
@@ -343,22 +343,22 @@ const getWeekdays = () => {
               <div
                 class="w-3 h-3 bg-green-100 dark:bg-green-900/30 rounded border border-green-200 dark:border-green-700"
               ></div>
-              <span class="text-gray-600 dark:text-gray-400">已签到</span>
+              <span class="text-gray-600 dark:text-gray-400">已观看</span>
             </div>
             <div class="flex items-center space-x-1">
               <div
                 class="w-3 h-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded"
               ></div>
-              <span class="text-gray-600 dark:text-gray-400">未签到</span>
+              <span class="text-gray-600 dark:text-gray-400">未观看</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 签到历史 -->
+    <!-- 观看历史 -->
     <div class="card-base p-6">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">签到历史</h3>
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">观看历史</h3>
 
       <div class="space-y-3">
         <div

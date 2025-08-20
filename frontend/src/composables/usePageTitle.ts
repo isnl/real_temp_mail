@@ -23,7 +23,7 @@ const pageTitleMap: Record<string, string> = {
   // 个人中心
   'profile-overview': '个人概览',
   'profile-quota': '配额管理',
-  'profile-checkin': '每日签到',
+  'profile-checkin': '免费配额',
   'profile-security': '安全设置',
   
   // 管理后台

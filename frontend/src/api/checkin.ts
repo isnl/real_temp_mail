@@ -1,9 +1,9 @@
 import { apiClient } from './request'
 import type { ApiResponse } from '@/types'
 
-// 签到相关类型
+// 广告观看相关类型
 export interface CheckinRequest {
-  // 签到不需要额外参数
+  // 广告观看不需要额外参数
 }
 
 export interface CheckinResponse {
@@ -68,22 +68,22 @@ export interface QuotaInfo {
 }
 
 export const checkinApi = {
-  // 用户签到
+  // 用户观看广告
   async checkin(data: CheckinRequest): Promise<ApiResponse<CheckinResponse>> {
     return apiClient.post<CheckinResponse>('/api/checkin/checkin', data)
   },
 
-  // 获取签到状态
+  // 获取观看状态
   async getCheckinStatus(): Promise<ApiResponse<CheckinStatus>> {
     return apiClient.get<CheckinStatus>('/api/checkin/status')
   },
 
-  // 获取签到历史
+  // 获取观看历史
   async getCheckinHistory(limit: number = 30): Promise<ApiResponse<CheckinHistory[]>> {
     return apiClient.get<CheckinHistory[]>(`/api/checkin/history?limit=${limit}`)
   },
 
-  // 获取签到统计
+  // 获取观看统计
   async getCheckinStats(): Promise<ApiResponse<CheckinStats>> {
     return apiClient.get<CheckinStats>('/api/checkin/stats')
   },
@@ -103,7 +103,8 @@ export const checkinApi = {
 export const formatQuotaSource = (source: string): string => {
   const sourceMap: Record<string, string> = {
     'register': '注册赠送',
-    'checkin': '每日签到',
+    'checkin': '观看广告',
+    'ad_reward': '观看广告',
     'redeem_code': '兑换码',
     'admin_adjust': '管理员调整',
     'create_email': '创建邮箱'
@@ -122,7 +123,8 @@ export const getQuotaTypeColor = (type: string): string => {
 export const getQuotaSourceIcon = (source: string): string => {
   const iconMap: Record<string, string> = {
     'register': 'user-plus',
-    'checkin': 'calendar-check',
+    'checkin': 'gift',
+    'ad_reward': 'gift',
     'redeem_code': 'gift',
     'admin_adjust': 'user-cog',
     'create_email': 'envelope'

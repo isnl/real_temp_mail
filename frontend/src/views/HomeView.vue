@@ -51,9 +51,9 @@ const features = [
     description: '完美适配PC和移动设备，随时随地管理临时邮箱'
   },
   {
-    icon: 'calendar-check',
-    title: '签到奖励',
-    description: '每日签到获得配额奖励，连续签到获得更多邮箱额度'
+    icon: 'gift',
+    title: '免费配额',
+    description: '观看广告视频获得配额奖励，轻松获得更多邮箱额度'
   },
   {
     icon: 'brain',
@@ -296,10 +296,10 @@ const stats = [
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">配额管理系统</h3>
             <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
-              <div>每日签到获得配额</div>
+              <div>观看广告获得配额</div>
               <div>兑换码充值系统</div>
               <div>配额使用记录</div>
-              <div>连续签到奖励</div>
+              <div>免费配额奖励</div>
               <div>灵活的配额策略</div>
             </div>
           </div>
@@ -312,7 +312,7 @@ const stats = [
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">贴心服务</h3>
             <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
               <div>免费注册送配额</div>
-              <div>每日签到领奖励</div>
+              <div>观看广告领奖励</div>
               <div>兑换码快速充值</div>
               <div>暗色模式切换</div>
               <div>响应式界面设计</div>
@@ -329,7 +329,7 @@ const stats = [
           立即开始使用临时邮箱服务
         </h2>
         <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-          注册即送5个邮箱配额，每日签到获得更多奖励，完全免费使用
+          注册即送5个邮箱配额，观看广告获得更多奖励，完全免费使用
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
@@ -381,7 +381,7 @@ const stats = [
               <div>实时邮件接收</div>
               <div>验证码识别</div>
               <div>配额管理</div>
-              <div>签到奖励</div>
+              <div>免费配额</div>
             </div>
           </div>
 

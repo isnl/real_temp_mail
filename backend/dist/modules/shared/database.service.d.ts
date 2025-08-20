@@ -60,7 +60,7 @@ export declare class DatabaseService {
         userId: number;
         type: 'earn' | 'consume';
         amount: number;
-        source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email';
+        source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email' | 'ad_reward';
         description?: string;
         relatedId?: number;
         expiresAt?: string | null;
@@ -76,7 +76,7 @@ export declare class DatabaseService {
         quotaType: 'permanent' | 'daily' | 'custom';
         amount: number;
         expiresAt?: string | null;
-        source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust';
+        source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'ad_reward';
         sourceId?: number | null;
     }): Promise<UserQuotaBalance>;
     getUserQuotaBalances(userId: number): Promise<UserQuotaBalance[]>;

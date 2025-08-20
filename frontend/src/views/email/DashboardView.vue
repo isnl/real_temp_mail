@@ -8,8 +8,8 @@ import { ElMessage } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
-import { checkinApi } from '@/api/checkin'
-import type { CreateEmailRequest, CheckinStatus } from '@/types'
+import AdWatchDialog from '@/components/ads/AdWatchDialog.vue'
+import type { CreateEmailRequest } from '@/types'
 import { usePageTitle } from '@/composables/usePageTitle'
 
 // 设置页面标题
@@ -26,9 +26,8 @@ const showRedeemDialog = ref(false)
 const isCreatingInline = ref(false)
 const selectedDomainId = ref(0)
 
-// 签到相关状态
-const checkinLoading = ref(false)
-const checkinStatus = ref<CheckinStatus | null>(null)
+// 免费获取配额相关状态
+const showAdDialog = ref(false)
 
 
 
@@ -39,7 +38,6 @@ onMounted(async () => {
   // 🎯 优化：并行加载数据，提高页面加载速度
   await Promise.all([
     loadData(),
-    loadCheckinStatus(),
     fetchQuotaInfo() // 确保配额信息被正确获取
   ])
 
@@ -108,48 +106,23 @@ const handleRedeemSuccess = async (data?: { quota: number }) => {
   }
 }
 
-// 签到相关方法
-const loadCheckinStatus = async () => {
-  try {
-    const response = await checkinApi.getCheckinStatus()
-    if (response.success && response.data) {
-      checkinStatus.value = response.data
-    }
-  } catch (error) {
-    console.error('Load checkin status error:', error)
-  }
+// 免费获取配额相关方法
+const handleFreeQuota = async () => {
+  showAdDialog.value = true
 }
 
-const handleCheckin = async () => {
-  if (checkinStatus.value?.hasCheckedIn) {
-    ElMessage.info('今日已签到，请明天再来')
-    return
-  }
+// 广告观看成功处理
+const handleAdSuccess = async (data: { quota: number; message: string }) => {
+  // 更新用户配额（乐观更新）
+  updateUserQuotaOptimistic(data.quota)
 
-  checkinLoading.value = true
-  try {
-    const response = await checkinApi.checkin({})
+  // 刷新配额信息缓存，确保数据同步
+  await refreshQuotaInfo()
 
-    if (response.success && response.data) {
-      // 更新签到状态
-      await loadCheckinStatus()
+  // 刷新用户信息
+  await authStore.fetchCurrentUser()
 
-      // 🔥 更新用户配额（乐观更新）
-      updateUserQuotaOptimistic(response.data.total_quota)
-
-      // 🎯 刷新配额信息缓存，确保数据同步
-      await refreshQuotaInfo()
-
-      ElMessage.success(response.data.message)
-    } else {
-      ElMessage.error(response.error || '签到失败')
-    }
-  } catch (error: any) {
-    console.error('Checkin error:', error)
-    ElMessage.error(error.message || '签到失败')
-  } finally {
-    checkinLoading.value = false
-  }
+  ElMessage.success(data.message)
 }
 
 const copyToClipboard = async (text: string) => {
@@ -330,14 +303,12 @@ const handleRandomCreateEmail = async () => {
           <!-- Action Buttons -->
           <div class="flex items-center gap-3">
             <el-button
-              @click="handleCheckin"
+              @click="handleFreeQuota"
               type="success"
               size="default"
-              :loading="checkinLoading"
-              :disabled="checkinStatus?.hasCheckedIn"
             >
-              <font-awesome-icon :icon="['fas', 'calendar-check']" class="mr-2" />
-              {{ checkinStatus?.hasCheckedIn ? '今日已签到' : '每日签到' }}
+              <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
+              免费获取配额
             </el-button>
 
             <el-button @click="showRedeemDialog = true" type="primary" size="default">
@@ -583,6 +554,7 @@ const handleRandomCreateEmail = async () => {
 
     <!-- Dialogs -->
     <RedeemCodeDialog v-model="showRedeemDialog" @success="handleRedeemSuccess" />
+    <AdWatchDialog v-model="showAdDialog" @success="handleAdSuccess" />
 
 
   </div>

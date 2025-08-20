@@ -23,13 +23,6 @@ const menuItems = [
     title: '配额管理',
     icon: 'chart-pie',
     description: '查看配额使用情况'
-  },
-  {
-    path: '/profile/checkin',
-    name: 'profile-checkin',
-    title: '签到中心',
-    icon: 'calendar-check',
-    description: '签到统计和管理'
   }
 ]
 

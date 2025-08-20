@@ -4,6 +4,7 @@ import { AdminHandler } from '@/handlers/admin.handler';
 import { CheckinHandler } from '@/handlers/checkin.handler';
 import { QuotaHandler } from '@/handlers/quota.handler';
 import { AnnouncementHandler } from '@/handlers/announcement.handler';
+import { AdsHandler } from '@/handlers/ads.handler';
 import { handleEmailProcessing } from '@/modules/email/email-processor';
 // 添加CORS头的工具函数
 function addCorsHeaders(response) {
@@ -43,6 +44,7 @@ export default {
             const checkinHandler = new CheckinHandler(env);
             const quotaHandler = new QuotaHandler(env);
             const announcementHandler = new AnnouncementHandler(env);
+            const adsHandler = new AdsHandler(env);
             // 路由匹配
             let response;
             if (pathname.startsWith('/api/auth/')) {
@@ -62,6 +64,9 @@ export default {
             }
             else if (pathname.startsWith('/api/quota/')) {
                 response = await handleQuotaRoutes(pathname, method, request, quotaHandler);
+            }
+            else if (pathname.startsWith('/api/ads/')) {
+                response = await handleAdsRoutes(pathname, method, request, adsHandler);
             }
             else if (pathname === '/api/health') {
                 response = new Response(JSON.stringify({
@@ -362,6 +367,26 @@ async function handleAnnouncementRoutes(pathname, method, request, handler) {
     if (pathname.match(/^\/api\/announcements\/admin\/\d+\/toggle$/)) {
         if (method === 'POST')
             return await handler.toggleAnnouncementStatus(request);
+    }
+    return new Response(JSON.stringify({
+        success: false,
+        error: 'Method Not Allowed'
+    }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+// 广告路由处理
+async function handleAdsRoutes(pathname, method, request, handler) {
+    // 生成广告二维码
+    if (pathname === '/api/ads/qrcode') {
+        if (method === 'POST')
+            return await handler.generateQRCode(request);
+    }
+    // 验证广告观看状态
+    if (pathname === '/api/ads/verify') {
+        if (method === 'POST')
+            return await handler.verifyAdStatus(request);
     }
     return new Response(JSON.stringify({
         success: false,

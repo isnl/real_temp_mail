@@ -220,15 +220,15 @@ onMounted(async () => {
           </div>
         </router-link>
 
-        <router-link to="/profile/checkin" class="block">
+        <router-link to="/dashboard" class="block">
           <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <div class="text-center">
-              <font-awesome-icon 
-                :icon="['fas', 'calendar-check']" 
+              <font-awesome-icon
+                :icon="['fas', 'gift']"
                 class="text-purple-500 text-2xl mb-2"
               />
-              <p class="font-medium text-gray-900 dark:text-gray-100">签到中心</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">每日签到</p>
+              <p class="font-medium text-gray-900 dark:text-gray-100">免费配额</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">观看广告获取</p>
             </div>
           </div>
         </router-link>

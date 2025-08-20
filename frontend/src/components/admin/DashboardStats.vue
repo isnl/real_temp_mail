@@ -232,18 +232,18 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 签到统计 -->
+      <!-- 广告观看统计 -->
       <div class="card-base p-6">
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <font-awesome-icon
-              icon="calendar-check"
+              icon="gift"
               class="text-3xl text-blue-500 dark:text-blue-400"
             />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              签到统计
+              广告观看统计
             </p>
             <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {{ formatNumber(stats.checkinActivity.totalCheckins) }}

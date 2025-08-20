@@ -74,7 +74,7 @@ export interface QuotaLog {
     user_id: number;
     type: 'earn' | 'consume';
     amount: number;
-    source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email';
+    source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email' | 'ad_reward';
     description: string | null;
     related_id: number | null;
     created_at: string;
@@ -334,5 +334,27 @@ export interface AdminAnnouncementListParams {
     limit?: number;
     search?: string;
     status?: 'active' | 'inactive';
+}
+export interface AdRecord {
+    id: number;
+    code: string;
+    user_id: number;
+    source: string;
+    open_id: string | null;
+    status: boolean;
+    created_at: string;
+    updated_at: string;
+}
+export interface GenerateQRCodeResponse {
+    qrCodeUrl: string;
+    code: string;
+}
+export interface VerifyAdStatusRequest {
+    code: string;
+}
+export interface VerifyAdStatusResponse {
+    success: boolean;
+    message: string;
+    quota?: number;
 }
 //# sourceMappingURL=index.d.ts.map

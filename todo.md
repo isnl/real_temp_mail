@@ -4,24 +4,8 @@
 
 例如：code=N87b0GvU
 
-携带固定 秘钥 调用 express-mp 新增一条看广告记录数据
+携带固定 秘钥 调用 express-mp 接口生成小程序二维码
 
-```json
-{
-  "code"："N87b0GvU",
-  "userId": 1,
-  "source": "temp-email"
-}
-
-```
-
-调用 worker api
-
-判断小程序access_token是否有效，无效则调用 worker api 先获取 access_token:
-https://developers.weixin.qq.com/miniprogram/dev/platform-capabilities/miniapp/openapi/getaccesstoken.html
-
-再生成带参数的小程序二维码:
-https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/qr-code/getUnlimitedQRCode.html
 
 
 微信扫码打开，引导用户看广告，获取进入场景值、参数code

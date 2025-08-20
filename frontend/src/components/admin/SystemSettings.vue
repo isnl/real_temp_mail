@@ -56,7 +56,7 @@ const handleSave = async () => {
 
 const getSettingDisplayName = (key: string): string => {
   const nameMap: Record<string, string> = {
-    'daily_checkin_quota': '每日签到奖励配额',
+    'daily_checkin_quota': '每日广告奖励配额',
     'default_user_quota': '注册默认配额'
   }
   return nameMap[key] || key
@@ -66,7 +66,7 @@ const getSettingDescription = (setting: SystemSetting): string => {
   if (setting.description) return setting.description
 
   const descMap: Record<string, string> = {
-    'daily_checkin_quota': '用户每日签到可获得的配额数量',
+    'daily_checkin_quota': '用户每日观看广告可获得的配额数量',
     'default_user_quota': '用户注册时默认赠送的配额数量'
   }
   return descMap[setting.setting_key] || '系统配置项'
