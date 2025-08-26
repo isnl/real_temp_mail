@@ -126,8 +126,8 @@ export class AdsService {
         }
       }
 
-      // 发放2个永久配额奖励
-      const rewardQuota = 2
+      // 发放1个永久配额奖励
+      const rewardQuota = 1
 
       // 创建配额记录
       await this.db.createQuotaLog({

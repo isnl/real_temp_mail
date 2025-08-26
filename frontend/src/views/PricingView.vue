@@ -24,8 +24,8 @@ const plans = [
     popular: false, 
     description: '新用户专享',
     features: [
-      '注册送5个配额',
-      '观看广告送2个配额'
+      '免费注册',
+      '观看广告免费获取配额'
     ],
     buttonText: '观看广告获取',
     buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',

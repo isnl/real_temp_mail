@@ -65,8 +65,11 @@ export class AnnouncementService {
       .bind(...queryParams, limit, offset)
       .all()
 
+    // 兼容不同环境下的返回结果格式
+    const announcementData = announcements.results || announcements
+
     return {
-      data: announcements.results as unknown as Announcement[],
+      data: announcementData as unknown as Announcement[],
       total,
       page,
       limit,
@@ -79,12 +82,14 @@ export class AnnouncementService {
    */
   async getActiveAnnouncements(): Promise<Announcement[]> {
     const query = `
-      SELECT * FROM announcements 
+      SELECT * FROM announcements
       WHERE is_active = 1
       ORDER BY created_at DESC
     `
     const result = await this.env.DB.prepare(query).all()
-    return result.results as unknown as Announcement[]
+    // 兼容不同环境下的返回结果格式
+    const announcementData = result.results || result
+    return announcementData as unknown as Announcement[]
   }
 
   /**

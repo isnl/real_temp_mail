@@ -123,7 +123,7 @@ const handleClose = () => {
           扫码观看广告视频
         </h3>
         <p class="text-sm text-gray-600 dark:text-gray-400">
-          使用微信扫描下方二维码，观看完整广告视频即可获得 <span class="font-semibold text-blue-500">2个永久配额</span>
+          使用微信扫描下方二维码，观看完整广告视频即可获得 <span class="font-semibold text-blue-500">1个永久配额</span>
         </p>
       </div>
 

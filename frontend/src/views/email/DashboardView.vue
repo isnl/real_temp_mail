@@ -4,6 +4,7 @@ import { useEmailStore } from '@/stores/email'
 import { useAuthStore } from '@/stores/auth'
 import { useUserQueries } from '@/composables/useUserQueries'
 import { useQuota } from '@/composables/useQuota'
+import { useAnnouncement } from '@/composables/useAnnouncement'
 import { ElMessage } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
@@ -19,6 +20,7 @@ const emailStore = useEmailStore()
 const authStore = useAuthStore()
 const { updateUserQuotaOptimistic } = useUserQueries()
 const { quotaInfo, fetchQuotaInfo, refreshQuotaInfo } = useQuota()
+const { checkAndShowAnnouncement } = useAnnouncement()
 
 const loading = ref(false)
 
@@ -45,6 +47,11 @@ onMounted(async () => {
   if (emailStore.availableDomains.length > 0) {
     selectedDomainId.value = emailStore.availableDomains[0].id
   }
+
+  // 检查并显示公告
+  setTimeout(() => {
+    checkAndShowAnnouncement()
+  }, 1000) // 延迟1秒显示，确保页面加载完成
 })
 
 const loadData = async () => {

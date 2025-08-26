@@ -37,8 +37,10 @@ export class AnnouncementService {
         const announcements = await this.env.DB.prepare(dataQuery)
             .bind(...queryParams, limit, offset)
             .all();
+        // 兼容不同环境下的返回结果格式
+        const announcementData = announcements.results || announcements;
         return {
-            data: announcements.results,
+            data: announcementData,
             total,
             page,
             limit,
@@ -50,12 +52,14 @@ export class AnnouncementService {
      */
     async getActiveAnnouncements() {
         const query = `
-      SELECT * FROM announcements 
+      SELECT * FROM announcements
       WHERE is_active = 1
       ORDER BY created_at DESC
     `;
         const result = await this.env.DB.prepare(query).all();
-        return result.results;
+        // 兼容不同环境下的返回结果格式
+        const announcementData = result.results || result;
+        return announcementData;
     }
     /**
      * 根据ID获取公告

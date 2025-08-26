@@ -48,8 +48,8 @@ const handleSaveCreate = async () => {
     return
   }
   
-  // 简单的域名格式验证
-  const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/
+  // 域名格式验证 - 支持多级域名（如 json.edu.kg）
+  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
   if (!domainRegex.test(createForm.domain)) {
     ElMessage.error('请输入有效的域名格式')
     return
