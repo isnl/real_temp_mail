@@ -55,11 +55,11 @@ export const RATE_LIMIT_RULES: RateLimitRule[] = [
     requireTurnstile: true
   },
 
-  // 公开收件箱查询限流：每 15 分钟最多 20 次
+  // 公开收件箱查询限流：每 5 分钟最多 30 次
   {
     endpoint: '/api/email/public-inbox',
-    windowMs: 15 * 60 * 1000,
-    maxRequests: 20,
+    windowMs: 5 * 60 * 1000,
+    maxRequests: 30,
     requireAuth: false,
     requireTurnstile: true
   }
