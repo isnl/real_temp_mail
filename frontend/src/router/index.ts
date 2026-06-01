@@ -33,6 +33,11 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'public-inbox',
+          name: 'public-inbox',
+          component: () => import('@/views/email/PublicInboxView.vue'),
+        },
+        {
           path: 'features',
           name: 'features',
           component: () => import('@/views/FeaturesView.vue'),

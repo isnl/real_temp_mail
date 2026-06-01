@@ -10,6 +10,7 @@ interface Props {
 
 interface Emits {
   (e: 'select', tempEmail: TempEmail): void
+  (e: 'togglePublicInbox', tempEmail: TempEmail, enabled: boolean): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -26,6 +27,18 @@ const selectedTempEmail = computed(() => emailStore.selectedTempEmail)
 const handleSelect = (tempEmail: TempEmail) => {
   emailStore.setSelectedTempEmail(tempEmail)
   emit('select', tempEmail)
+}
+
+const getPublicInboxUrl = (email: string) => {
+  return `${window.location.origin}/public-inbox?email=${encodeURIComponent(email)}`
+}
+
+const handleTogglePublicInbox = (tempEmail: TempEmail, enabled: boolean) => {
+  emit('togglePublicInbox', tempEmail, enabled)
+}
+
+const copyPublicInboxUrl = async (email: string) => {
+  await copyToClipboard(getPublicInboxUrl(email))
 }
 
 
@@ -186,8 +199,8 @@ const formatDate = (dateString: string) => {
             </div>
 
             <!-- 操作按钮区域 -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-2">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-2">
                 <!-- 状态标签 -->
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
                       :class="{
@@ -197,6 +210,33 @@ const formatDate = (dateString: string) => {
                   <font-awesome-icon :icon="['fas', 'circle']" class="mr-1 text-xs" />
                   活跃中
                 </span>
+                <span
+                  v-if="tempEmail.public_inbox_enabled"
+                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                >
+                  <font-awesome-icon :icon="['fas', 'share-nodes']" class="mr-1 text-xs" />
+                  公开收件箱
+                </span>
+              </div>
+
+              <div class="flex items-center gap-2" @click.stop>
+                <el-switch
+                  :model-value="Boolean(tempEmail.public_inbox_enabled)"
+                  size="small"
+                  inline-prompt
+                  active-text="公开"
+                  inactive-text="私密"
+                  @change="(value: string | number | boolean) => handleTogglePublicInbox(tempEmail, Boolean(value))"
+                />
+                <el-button
+                  v-if="tempEmail.public_inbox_enabled"
+                  @click.stop="copyPublicInboxUrl(tempEmail.email)"
+                  size="small"
+                  circle
+                  title="复制公开收件箱链接"
+                >
+                  <font-awesome-icon :icon="['fas', 'link']" class="text-xs text-amber-600 dark:text-amber-400" />
+                </el-button>
               </div>
             </div>
           </div>

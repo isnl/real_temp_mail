@@ -4,6 +4,7 @@ export class EmailService {
     env;
     dbService;
     parserService;
+    PUBLIC_INBOX_ACCESS_EXPIRES = 10 * 60; // 10 minutes
     constructor(env, dbService) {
         this.env = env;
         this.dbService = dbService;
@@ -88,6 +89,18 @@ export class EmailService {
             details: `Deleted temp email ID: ${emailId}`
         });
     }
+    async updateTempEmailPublicInbox(userId, emailId, publicInboxEnabled) {
+        const tempEmail = await this.dbService.updateTempEmailPublicInbox(emailId, userId, publicInboxEnabled);
+        if (!tempEmail) {
+            throw new NotFoundError('临时邮箱不存在或无权限修改');
+        }
+        await this.dbService.createLog({
+            userId,
+            action: 'UPDATE_PUBLIC_INBOX',
+            details: `${publicInboxEnabled ? 'Enabled' : 'Disabled'} public inbox for ${tempEmail.email}`
+        });
+        return tempEmail;
+    }
     async getEmailsForTempEmail(userId, tempEmailId, pagination) {
         // 验证临时邮箱是否属于当前用户
         const tempEmails = await this.dbService.getTempEmailsByUserId(userId);
@@ -96,6 +109,119 @@ export class EmailService {
             throw new NotFoundError('临时邮箱不存在或无权限访问');
         }
         return await this.dbService.getEmailsForTempEmail(tempEmailId, pagination);
+    }
+    async getPublicInbox(emailAddress, pagination) {
+        const normalizedEmail = (emailAddress || '').trim().toLowerCase();
+        if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            throw new ValidationError('请输入有效的邮箱地址');
+        }
+        const tempEmail = await this.dbService.getPublicTempEmailByEmail(normalizedEmail);
+        if (!tempEmail) {
+            throw new NotFoundError('公开收件箱不存在或未开启');
+        }
+        const emails = await this.dbService.getEmailsForTempEmail(tempEmail.id, pagination);
+        const tokenPayload = this.createPublicInboxAccessPayload(tempEmail.email);
+        return {
+            tempEmail: {
+                email: tempEmail.email,
+                created_at: tempEmail.created_at,
+                public_inbox_enabled: tempEmail.public_inbox_enabled
+            },
+            emails,
+            publicAccessToken: await this.signPublicInboxAccessToken(tokenPayload),
+            publicAccessTokenExpiresAt: new Date(tokenPayload.exp * 1000).toISOString()
+        };
+    }
+    async verifyPublicInboxAccessToken(token, emailAddress) {
+        if (!token || !emailAddress) {
+            return false;
+        }
+        try {
+            const parts = token.split('.');
+            if (parts.length !== 3) {
+                return false;
+            }
+            const [encodedPayload, encodedSignature, tokenEmailHash] = parts;
+            if (!encodedPayload || !encodedSignature || !tokenEmailHash) {
+                return false;
+            }
+            const payload = JSON.parse(this.base64UrlDecodeString(encodedPayload));
+            const normalizedEmail = emailAddress.trim().toLowerCase();
+            if (payload.type !== 'public-inbox' ||
+                payload.email !== normalizedEmail ||
+                !payload.exp ||
+                payload.exp < Math.floor(Date.now() / 1000)) {
+                return false;
+            }
+            const expectedEmailHash = await this.hashPublicInboxEmail(normalizedEmail);
+            if (expectedEmailHash !== tokenEmailHash) {
+                return false;
+            }
+            const expectedSignature = await this.signPublicInboxAccessPayload(encodedPayload, tokenEmailHash);
+            return this.safeCompare(expectedSignature, encodedSignature);
+        }
+        catch (error) {
+            console.error('Public inbox token verification error:', error);
+            return false;
+        }
+    }
+    createPublicInboxAccessPayload(emailAddress) {
+        const now = Math.floor(Date.now() / 1000);
+        return {
+            type: 'public-inbox',
+            email: emailAddress.trim().toLowerCase(),
+            iat: now,
+            exp: now + this.PUBLIC_INBOX_ACCESS_EXPIRES
+        };
+    }
+    async signPublicInboxAccessToken(payload) {
+        const encodedPayload = this.base64UrlEncode(JSON.stringify(payload));
+        const emailHash = await this.hashPublicInboxEmail(payload.email);
+        const signature = await this.signPublicInboxAccessPayload(encodedPayload, emailHash);
+        return `${encodedPayload}.${signature}.${emailHash}`;
+    }
+    async signPublicInboxAccessPayload(encodedPayload, emailHash) {
+        const signature = await this.hmacSha256(`${encodedPayload}.${emailHash}`);
+        return this.base64UrlEncode(signature);
+    }
+    async hashPublicInboxEmail(emailAddress) {
+        const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(emailAddress.trim().toLowerCase()));
+        return this.base64UrlEncode(hash);
+    }
+    async hmacSha256(value) {
+        if (!this.env.JWT_SECRET) {
+            throw new Error('JWT_SECRET is not configured');
+        }
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', encoder.encode(this.env.JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        return await crypto.subtle.sign('HMAC', key, encoder.encode(value));
+    }
+    base64UrlEncode(data) {
+        let base64;
+        if (typeof data === 'string') {
+            base64 = btoa(data);
+        }
+        else {
+            const bytes = new Uint8Array(data);
+            const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
+            base64 = btoa(binary);
+        }
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+    base64UrlDecodeString(data) {
+        const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        return atob(padded);
+    }
+    safeCompare(a, b) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        let result = 0;
+        for (let i = 0; i < a.length; i++) {
+            result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+        }
+        return result === 0;
     }
     async getEmailDetail(userId, emailId) {
         // 获取邮件详情

@@ -115,6 +115,22 @@ export class DatabaseService {
       SELECT * FROM temp_emails WHERE email = ? AND active = 1
     `).bind(email).first();
     }
+    async getPublicTempEmailByEmail(email) {
+        return await this.db.prepare(`
+      SELECT * FROM temp_emails
+      WHERE LOWER(email) = LOWER(?)
+        AND active = 1
+        AND public_inbox_enabled = 1
+    `).bind(email).first();
+    }
+    async updateTempEmailPublicInbox(id, userId, publicInboxEnabled) {
+        return await this.db.prepare(`
+      UPDATE temp_emails
+      SET public_inbox_enabled = ?
+      WHERE id = ? AND user_id = ? AND active = 1
+      RETURNING *
+    `).bind(publicInboxEnabled ? 1 : 0, id, userId).first();
+    }
     async deleteTempEmail(id, userId) {
         const result = await this.db.prepare(`
       UPDATE temp_emails SET active = 0 WHERE id = ? AND user_id = ?

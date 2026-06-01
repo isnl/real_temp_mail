@@ -5,7 +5,10 @@ import type {
   Domain,
   CreateEmailRequest,
   CreateEmailResponse,
+  PublicInboxRequest,
+  PublicInboxResponse,
   RedeemRequest,
+  UpdateTempEmailPublicInboxRequest,
   ApiResponse,
   PaginatedResponse,
   PaginationParams
@@ -25,6 +28,14 @@ export const emailApi = {
   // 删除临时邮箱
   async deleteTempEmail(emailId: number): Promise<ApiResponse<void>> {
     return apiClient.delete<void>(`/api/email/temp-emails/${emailId}`)
+  },
+
+  // 更新临时邮箱公开收件箱状态
+  async updateTempEmailPublicInbox(
+    emailId: number,
+    data: UpdateTempEmailPublicInboxRequest
+  ): Promise<ApiResponse<TempEmail>> {
+    return apiClient.put<TempEmail>(`/api/email/temp-emails/${emailId}/public-inbox`, data)
   },
 
   // 获取指定临时邮箱的邮件列表
@@ -61,6 +72,11 @@ export const emailApi = {
   // 获取用户配额信息
   async getQuotaInfo(): Promise<ApiResponse<{ quota: number; used: number }>> {
     return apiClient.get<{ quota: number; used: number }>('/api/email/quota')
+  },
+
+  // 获取公开收件箱邮件列表
+  async getPublicInbox(data: PublicInboxRequest): Promise<ApiResponse<PublicInboxResponse>> {
+    return apiClient.post<PublicInboxResponse>('/api/email/public-inbox', data)
   },
 
   // 标记邮件为已读

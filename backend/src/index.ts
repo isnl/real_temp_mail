@@ -164,6 +164,11 @@ async function handleEmailRoutes(
     if (method === 'GET') return await handler.getDomains(request)
   }
 
+  // 公开收件箱（公开，但需要 Turnstile）
+  if (pathname === '/api/email/public-inbox') {
+    if (method === 'POST') return await handler.getPublicInbox(request)
+  }
+
   // 临时邮箱相关路由（需要认证）
   if (pathname === '/api/email/temp-emails') {
     if (method === 'GET') return await handler.getTempEmails(request)
@@ -176,6 +181,11 @@ async function handleEmailRoutes(
   // 删除临时邮箱 /api/email/temp-emails/:id
   if (pathname.match(/^\/api\/email\/temp-emails\/\d+$/)) {
     if (method === 'DELETE') return await handler.deleteTempEmail(request)
+  }
+
+  // 开关公开收件箱 /api/email/temp-emails/:id/public-inbox
+  if (pathname.match(/^\/api\/email\/temp-emails\/\d+\/public-inbox$/)) {
+    if (method === 'PUT') return await handler.updateTempEmailPublicInbox(request)
   }
 
   // 获取临时邮箱的邮件列表 /api/email/temp-emails/:id/emails

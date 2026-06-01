@@ -1,6 +1,7 @@
 import type { ParsedEmail } from '@/types';
 export declare class EmailParserService {
     parseEmail(rawEmail: string | ArrayBuffer): Promise<ParsedEmail>;
+    private normalizeContentForCodeExtraction;
     private extractVerificationCode;
     extractLinks(content: string): string[];
     extractPhoneNumbers(content: string): string[];

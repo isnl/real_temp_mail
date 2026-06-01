@@ -66,6 +66,28 @@ export const useEmailStore = defineStore('email', {
       }
     },
 
+    async updateTempEmailPublicInbox(emailId: number, publicInboxEnabled: boolean) {
+      try {
+        const response = await emailApi.updateTempEmailPublicInbox(emailId, {
+          publicInboxEnabled
+        })
+
+        if (response.data) {
+          this.tempEmails = this.tempEmails.map(email =>
+            email.id === emailId ? response.data! : email
+          )
+
+          if (this.selectedTempEmail?.id === emailId) {
+            this.selectedTempEmail = response.data
+          }
+        }
+
+        return response
+      } catch (error) {
+        throw error
+      }
+    },
+
     async fetchEmailsForTempEmail(tempEmailId: number) {
       this.isLoading = true
       try {

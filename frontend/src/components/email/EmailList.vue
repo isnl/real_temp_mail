@@ -9,10 +9,12 @@ interface Props {
   tempEmailId: number
   emails: Email[]
   loading?: boolean
+  readonly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  readonly: false,
 })
 
 const emailStore = useEmailStore()
@@ -227,7 +229,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
   <div class="flex flex-col h-full">
     <!-- Toolbar -->
     <div
-      v-if="emails.length > 0"
+      v-if="emails.length > 0 && !readonly"
       class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10"
     >
       <div class="flex items-center justify-between">
@@ -351,7 +353,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 
           <div class="flex items-start space-x-4">
             <!-- Checkbox -->
-            <div class="flex-shrink-0 mt-1">
+            <div v-if="!readonly" class="flex-shrink-0 mt-1">
               <el-checkbox
                 :model-value="selectedEmails.includes(email.id)"
                 @change="(checked: boolean) => handleSelectEmail(email.id, checked)"
@@ -495,6 +497,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
                   </el-button>
 
                   <el-button
+                    v-if="!readonly"
                     @click.stop="handleDeleteEmail(email.id)"
                     size="small"
                     circle

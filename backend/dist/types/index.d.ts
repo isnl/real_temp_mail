@@ -42,6 +42,7 @@ export interface TempEmail {
     domain_id: number;
     created_at: string;
     active: boolean;
+    public_inbox_enabled: boolean;
 }
 export interface Email {
     id: number;
@@ -177,6 +178,27 @@ export interface GitHubOAuthResponse {
 }
 export interface CreateEmailRequest {
     domainId: number;
+}
+export interface UpdateTempEmailPublicInboxRequest {
+    publicInboxEnabled: boolean;
+}
+export interface PublicInboxRequest {
+    email: string;
+    turnstileToken?: string;
+    publicAccessToken?: string;
+    page?: number;
+    limit?: number;
+}
+export interface PublicInboxTempEmail {
+    email: string;
+    created_at: string;
+    public_inbox_enabled: boolean;
+}
+export interface PublicInboxResponse {
+    tempEmail: PublicInboxTempEmail;
+    emails: PaginatedResponse<Email>;
+    publicAccessToken: string;
+    publicAccessTokenExpiresAt: string;
 }
 export interface RedeemRequest {
     code: string;

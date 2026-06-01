@@ -4,6 +4,7 @@ import type {
   Email,
   Domain,
   CreateEmailRequest,
+  PublicInboxResponse,
   RedeemRequest,
   PaginationParams,
   PaginatedResponse
@@ -14,6 +15,7 @@ import { EmailParserService } from './parser.service'
 
 export class EmailService {
   private parserService: EmailParserService
+  private readonly PUBLIC_INBOX_ACCESS_EXPIRES = 10 * 60 // 10 minutes
 
   constructor(
     private env: Env,
@@ -113,6 +115,30 @@ export class EmailService {
     })
   }
 
+  async updateTempEmailPublicInbox(
+    userId: number,
+    emailId: number,
+    publicInboxEnabled: boolean
+  ): Promise<TempEmail> {
+    const tempEmail = await this.dbService.updateTempEmailPublicInbox(
+      emailId,
+      userId,
+      publicInboxEnabled
+    )
+
+    if (!tempEmail) {
+      throw new NotFoundError('临时邮箱不存在或无权限修改')
+    }
+
+    await this.dbService.createLog({
+      userId,
+      action: 'UPDATE_PUBLIC_INBOX',
+      details: `${publicInboxEnabled ? 'Enabled' : 'Disabled'} public inbox for ${tempEmail.email}`
+    })
+
+    return tempEmail
+  }
+
   async getEmailsForTempEmail(
     userId: number, 
     tempEmailId: number, 
@@ -127,6 +153,173 @@ export class EmailService {
     }
 
     return await this.dbService.getEmailsForTempEmail(tempEmailId, pagination)
+  }
+
+  async getPublicInbox(
+    emailAddress: string,
+    pagination: PaginationParams
+  ): Promise<PublicInboxResponse> {
+    const normalizedEmail = (emailAddress || '').trim().toLowerCase()
+
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      throw new ValidationError('请输入有效的邮箱地址')
+    }
+
+    const tempEmail = await this.dbService.getPublicTempEmailByEmail(normalizedEmail)
+    if (!tempEmail) {
+      throw new NotFoundError('公开收件箱不存在或未开启')
+    }
+
+    const emails = await this.dbService.getEmailsForTempEmail(tempEmail.id, pagination)
+
+    const tokenPayload = this.createPublicInboxAccessPayload(tempEmail.email)
+
+    return {
+      tempEmail: {
+        email: tempEmail.email,
+        created_at: tempEmail.created_at,
+        public_inbox_enabled: tempEmail.public_inbox_enabled
+      },
+      emails,
+      publicAccessToken: await this.signPublicInboxAccessToken(tokenPayload),
+      publicAccessTokenExpiresAt: new Date(tokenPayload.exp * 1000).toISOString()
+    }
+  }
+
+  async verifyPublicInboxAccessToken(token: string | undefined, emailAddress: string): Promise<boolean> {
+    if (!token || !emailAddress) {
+      return false
+    }
+
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        return false
+      }
+
+      const [encodedPayload, encodedSignature, tokenEmailHash] = parts
+      if (!encodedPayload || !encodedSignature || !tokenEmailHash) {
+        return false
+      }
+
+      const payload = JSON.parse(this.base64UrlDecodeString(encodedPayload)) as {
+        type?: string
+        email?: string
+        exp?: number
+      }
+
+      const normalizedEmail = emailAddress.trim().toLowerCase()
+      if (
+        payload.type !== 'public-inbox' ||
+        payload.email !== normalizedEmail ||
+        !payload.exp ||
+        payload.exp < Math.floor(Date.now() / 1000)
+      ) {
+        return false
+      }
+
+      const expectedEmailHash = await this.hashPublicInboxEmail(normalizedEmail)
+      if (expectedEmailHash !== tokenEmailHash) {
+        return false
+      }
+
+      const expectedSignature = await this.signPublicInboxAccessPayload(encodedPayload, tokenEmailHash)
+      return this.safeCompare(expectedSignature, encodedSignature)
+    } catch (error) {
+      console.error('Public inbox token verification error:', error)
+      return false
+    }
+  }
+
+  private createPublicInboxAccessPayload(emailAddress: string): {
+    type: 'public-inbox'
+    email: string
+    iat: number
+    exp: number
+  } {
+    const now = Math.floor(Date.now() / 1000)
+    return {
+      type: 'public-inbox',
+      email: emailAddress.trim().toLowerCase(),
+      iat: now,
+      exp: now + this.PUBLIC_INBOX_ACCESS_EXPIRES
+    }
+  }
+
+  private async signPublicInboxAccessToken(payload: {
+    type: 'public-inbox'
+    email: string
+    iat: number
+    exp: number
+  }): Promise<string> {
+    const encodedPayload = this.base64UrlEncode(JSON.stringify(payload))
+    const emailHash = await this.hashPublicInboxEmail(payload.email)
+    const signature = await this.signPublicInboxAccessPayload(encodedPayload, emailHash)
+
+    return `${encodedPayload}.${signature}.${emailHash}`
+  }
+
+  private async signPublicInboxAccessPayload(encodedPayload: string, emailHash: string): Promise<string> {
+    const signature = await this.hmacSha256(`${encodedPayload}.${emailHash}`)
+    return this.base64UrlEncode(signature)
+  }
+
+  private async hashPublicInboxEmail(emailAddress: string): Promise<string> {
+    const hash = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(emailAddress.trim().toLowerCase())
+    )
+    return this.base64UrlEncode(hash)
+  }
+
+  private async hmacSha256(value: string): Promise<ArrayBuffer> {
+    if (!this.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured')
+    }
+
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(this.env.JWT_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+
+    return await crypto.subtle.sign('HMAC', key, encoder.encode(value))
+  }
+
+  private base64UrlEncode(data: string | ArrayBuffer): string {
+    let base64: string
+
+    if (typeof data === 'string') {
+      base64 = btoa(data)
+    } else {
+      const bytes = new Uint8Array(data)
+      const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+      base64 = btoa(binary)
+    }
+
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+  }
+
+  private base64UrlDecodeString(data: string): string {
+    const base64 = data.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
+    return atob(padded)
+  }
+
+  private safeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) {
+      return false
+    }
+
+    let result = 0
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+    }
+
+    return result === 0
   }
 
   async getEmailDetail(userId: number, emailId: number): Promise<Email> {

@@ -19,6 +19,7 @@ const pageTitleMap: Record<string, string> = {
   
   // 邮箱管理
   'dashboard': '邮箱管理',
+  'public-inbox': '公开收件箱',
   
   // 个人中心
   'profile-overview': '个人概览',

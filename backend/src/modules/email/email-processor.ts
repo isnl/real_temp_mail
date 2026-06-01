@@ -1,6 +1,7 @@
 // 邮件处理器
 import PostalMime from 'postal-mime'
 import type { Env } from '@/types'
+import { extractVerificationCodeFromEmailContent } from '@/modules/email/verification-code'
 
 export async function handleEmailProcessing(message: any, env: Env) {
   try {
@@ -35,7 +36,7 @@ export async function handleEmailProcessing(message: any, env: Env) {
     const fromName = parsedEmail.from?.name || ''
 
     // 尝试提取验证码
-    const verificationCode = extractVerificationCode(textContent + ' ' + htmlContent)
+    const verificationCode = extractVerificationCodeFromEmailContent(textContent, htmlContent)
 
     // 保存邮件到数据库
     const result = await env.DB.prepare(`
@@ -105,29 +106,3 @@ async function parseEmailWithPostalMime(rawEmail: any) {
   }
 }
 
-// 提取验证码的函数
-function extractVerificationCode(content: string): string | null {
-  if (!content) return null
-
-  // 常见的验证码模式
-  const patterns = [
-    /验证码[：:\s]*([0-9]{4,8})/i,
-    /verification code[：:\s]*([0-9]{4,8})/i,
-    /code[：:\s]*([0-9]{4,8})/i,
-    /pin[：:\s]*([0-9]{4,8})/i,
-    /\b([0-9]{4,8})\b.*验证/i,
-    /\b([0-9]{4,8})\b.*code/i,
-    /您的验证码是[：:\s]*([0-9]{4,8})/i,
-    /your verification code is[：:\s]*([0-9]{4,8})/i,
-    /\b([0-9]{6})\b/g // 6位数字（最常见的验证码格式）
-  ]
-
-  for (const pattern of patterns) {
-    const match = content.match(pattern)
-    if (match && match[1]) {
-      return match[1]
-    }
-  }
-
-  return null
-}

@@ -137,8 +137,12 @@ const handlePurchase = (plan: typeof plans[0]) => {
     return
   }
 
-  // 跳转到固定的购买链接
-  window.open('https://www.zaofaka.com/links/7C5575CE', '_blank')
+  ElMessage({
+    message: '购买配额请发送邮件联系 admin@oooo.icu',
+    type: 'info',
+    duration: 5000,
+    showClose: true
+  })
 }
 
 

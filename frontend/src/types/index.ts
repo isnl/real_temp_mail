@@ -18,6 +18,7 @@ export interface TempEmail {
   domain_id: number
   created_at: string
   active: boolean
+  public_inbox_enabled: boolean
 }
 
 // 邮件类型
@@ -198,6 +199,32 @@ export interface CreateEmailRequest {
 export interface CreateEmailResponse {
   tempEmail: TempEmail
   userQuota: number
+}
+
+// 更新公开收件箱状态请求
+export interface UpdateTempEmailPublicInboxRequest {
+  publicInboxEnabled: boolean
+}
+
+// 公开收件箱请求
+export interface PublicInboxRequest {
+  email: string
+  turnstileToken?: string
+  publicAccessToken?: string
+  page?: number
+  limit?: number
+}
+
+// 公开收件箱响应
+export interface PublicInboxResponse {
+  tempEmail: {
+    email: string
+    created_at: string
+    public_inbox_enabled: boolean
+  }
+  emails: PaginatedResponse<Email>
+  publicAccessToken: string
+  publicAccessTokenExpiresAt: string
 }
 
 // 兑换码使用请求

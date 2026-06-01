@@ -88,7 +88,8 @@ export function useTurnstile() {
       '/api/auth/register',
       '/api/auth/login',
       '/api/email/create',
-      '/api/email/redeem'
+      '/api/email/redeem',
+      '/api/email/public-inbox'
     ]
     return requiredEndpoints.includes(endpoint)
   }

@@ -13,6 +13,8 @@ export declare class DatabaseService {
     createTempEmail(userId: number, email: string, domainId: number): Promise<TempEmail>;
     getTempEmailsByUserId(userId: number): Promise<TempEmail[]>;
     getTempEmailByEmail(email: string): Promise<TempEmail | null>;
+    getPublicTempEmailByEmail(email: string): Promise<TempEmail | null>;
+    updateTempEmailPublicInbox(id: number, userId: number, publicInboxEnabled: boolean): Promise<TempEmail | null>;
     deleteTempEmail(id: number, userId: number): Promise<boolean>;
     createEmail(emailData: {
         tempEmailId: number;

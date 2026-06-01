@@ -1,7 +1,9 @@
 import type { 
   Env, 
   CreateEmailRequest, 
+  PublicInboxRequest,
   RedeemRequest, 
+  UpdateTempEmailPublicInboxRequest,
   ApiResponse,
   PaginationParams 
 } from '@/types'
@@ -16,7 +18,9 @@ export class EmailHandler {
   public createTempEmail: (request: Request) => Promise<Response>
   public getTempEmails: (request: Request) => Promise<Response>
   public deleteTempEmail: (request: Request) => Promise<Response>
+  public updateTempEmailPublicInbox: (request: Request) => Promise<Response>
   public getEmailsForTempEmail: (request: Request) => Promise<Response>
+  public getPublicInbox: (request: Request) => Promise<Response>
   public getEmailDetail: (request: Request) => Promise<Response>
   public deleteEmail: (request: Request) => Promise<Response>
   public redeemCode: (request: Request) => Promise<Response>
@@ -39,9 +43,17 @@ export class EmailHandler {
       return this.handleDeleteTempEmail(request, user)
     })
 
+    this.updateTempEmailPublicInbox = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
+      return this.handleUpdateTempEmailPublicInbox(request, user)
+    })
+
     this.getEmailsForTempEmail = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
       return this.handleGetEmailsForTempEmail(request, user)
     })
+
+    this.getPublicInbox = (request: Request) => {
+      return this.handleGetPublicInbox(request)
+    }
 
     this.getEmailDetail = withAuth(this.env)((request: AuthenticatedRequest, user: JWTPayload) => {
       return this.handleGetEmailDetail(request, user)
@@ -139,6 +151,34 @@ export class EmailHandler {
     }
   }
 
+  private async handleUpdateTempEmailPublicInbox(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
+    try {
+      const url = new URL(request.url)
+      const pathParts = url.pathname.split('/')
+      const emailId = parseInt(pathParts[pathParts.length - 2] || '0')
+
+      if (!emailId) {
+        return this.errorResponse('无效的邮箱ID', 400)
+      }
+
+      const data: UpdateTempEmailPublicInboxRequest = await request.json()
+      if (typeof data.publicInboxEnabled !== 'boolean') {
+        return this.errorResponse('公开收件箱状态无效', 400)
+      }
+
+      const tempEmail = await this.emailService.updateTempEmailPublicInbox(
+        user.userId,
+        emailId,
+        data.publicInboxEnabled
+      )
+
+      return this.successResponse(tempEmail, data.publicInboxEnabled ? '公开收件箱已开启' : '公开收件箱已关闭')
+    } catch (error: any) {
+      console.error('Update public inbox error:', error)
+      return this.errorResponse(error.message || '更新公开收件箱失败', error.statusCode || 500)
+    }
+  }
+
   private async handleGetEmailsForTempEmail(request: AuthenticatedRequest, user: JWTPayload): Promise<Response> {
     try {
       const url = new URL(request.url)
@@ -161,6 +201,45 @@ export class EmailHandler {
     } catch (error: any) {
       console.error('Get emails for temp email error:', error)
       return this.errorResponse(error.message || '获取邮件列表失败', error.statusCode || 500)
+    }
+  }
+
+  private async handleGetPublicInbox(request: Request): Promise<Response> {
+    try {
+      const requestForRateLimit = request.clone() as Request
+      const data: PublicInboxRequest = await request.json()
+      const hasValidAccessToken = await this.emailService.verifyPublicInboxAccessToken(
+        data.publicAccessToken,
+        data.email
+      )
+
+      if (!hasValidAccessToken) {
+        const rateLimitedHandler = withRateLimit(this.env, '/api/email/public-inbox')(
+          async (_request: Request) => this.successResponse(null)
+        )
+        const rateLimitResponse = await rateLimitedHandler(requestForRateLimit)
+        if (!rateLimitResponse.ok) {
+          return rateLimitResponse
+        }
+      }
+
+      // 解析分页参数。公开接口使用 POST，是为了和 Turnstile token 一起提交。
+      const url = new URL(request.url)
+      const page = Math.max(1, parseInt(String(data.page || url.searchParams.get('page') || '1')))
+      const requestedLimit = parseInt(String(data.limit || url.searchParams.get('limit') || '20'))
+      const limit = Math.min(Math.max(1, requestedLimit || 20), 50)
+      const offset = (page - 1) * limit
+
+      const publicInbox = await this.emailService.getPublicInbox(data.email, {
+        page,
+        limit,
+        offset
+      })
+
+      return this.successResponse(publicInbox)
+    } catch (error: any) {
+      console.error('Get public inbox error:', error)
+      return this.errorResponse(error.message || '获取公开收件箱失败', error.statusCode || 500)
     }
   }
 

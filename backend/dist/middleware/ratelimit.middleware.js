@@ -39,6 +39,14 @@ export const RATE_LIMIT_RULES = [
         maxRequests: 10,
         requireAuth: true,
         requireTurnstile: true
+    },
+    // 公开收件箱查询限流：每 15 分钟最多 20 次
+    {
+        endpoint: '/api/email/public-inbox',
+        windowMs: 15 * 60 * 1000,
+        maxRequests: 20,
+        requireAuth: false,
+        requireTurnstile: true
     }
 ];
 export function createRateLimitMiddleware(env) {

@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUserQueries } from '@/composables/useUserQueries'
 import { useQuota } from '@/composables/useQuota'
 import { useAnnouncement } from '@/composables/useAnnouncement'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
@@ -72,6 +72,36 @@ const handleSelectEmail = async (tempEmail: any) => {
   } catch (error: any) {
     console.error('Fetch emails error:', error)
     ElMessage.error('获取邮件列表失败')
+  }
+}
+
+const handleTogglePublicInbox = async (tempEmail: any, enabled: boolean) => {
+  try {
+    if (enabled) {
+      await ElMessageBox.confirm(
+        '开启后，任何知道该邮箱地址并通过人机验证的人，都可以查看此邮箱收到的邮件和验证码。',
+        '开启公开收件箱',
+        {
+          confirmButtonText: '开启',
+          cancelButtonText: '取消',
+          type: 'warning',
+        },
+      )
+    }
+
+    const response = await emailStore.updateTempEmailPublicInbox(tempEmail.id, enabled)
+    const updatedEmail = response.data
+
+    if (updatedEmail && emailStore.selectedTempEmail?.id === updatedEmail.id) {
+      emailStore.setSelectedTempEmail(updatedEmail)
+    }
+
+    ElMessage.success(enabled ? '公开收件箱已开启' : '公开收件箱已关闭')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Toggle public inbox error:', error)
+      ElMessage.error(error.message || '更新公开收件箱失败')
+    }
   }
 }
 
@@ -458,7 +488,11 @@ const handleRandomCreateEmail = async () => {
             </div>
 
             <div class="flex-1 overflow-hidden">
-              <TempEmailList :loading="loading" @select="handleSelectEmail" />
+              <TempEmailList
+                :loading="loading"
+                @select="handleSelectEmail"
+                @toggle-public-inbox="handleTogglePublicInbox"
+              />
             </div>
           </div>
         </div>

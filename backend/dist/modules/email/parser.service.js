@@ -1,4 +1,5 @@
 import PostalMime from 'postal-mime';
+import { extractVerificationCode, extractVerificationCodeFromEmailContent, normalizeContentForCodeExtraction } from '@/modules/email/verification-code';
 export class EmailParserService {
     async parseEmail(rawEmail) {
         try {
@@ -14,7 +15,7 @@ export class EmailParserService {
             const text = email.text || '';
             const html = email.html || '';
             // 尝试提取验证码
-            const verificationCode = this.extractVerificationCode(text + ' ' + html);
+            const verificationCode = extractVerificationCodeFromEmailContent(text, html);
             return {
                 from,
                 to,
@@ -76,50 +77,11 @@ export class EmailParserService {
             };
         }
     }
+    normalizeContentForCodeExtraction(text, html) {
+        return normalizeContentForCodeExtraction(text, html);
+    }
     extractVerificationCode(content) {
-        if (!content)
-            return undefined;
-        // 常见的验证码模式
-        const patterns = [
-            // 中文验证码模式
-            /验证码[：:\s]*([0-9]{4,8})/i,
-            /您的验证码是[：:\s]*([0-9]{4,8})/i,
-            /验证码为[：:\s]*([0-9]{4,8})/i,
-            /动态码[：:\s]*([0-9]{4,8})/i,
-            /安全码[：:\s]*([0-9]{4,8})/i,
-            // 英文验证码模式
-            /verification code[：:\s]*([0-9]{4,8})/i,
-            /your verification code is[：:\s]*([0-9]{4,8})/i,
-            /code[：:\s]*([0-9]{4,8})/i,
-            /pin[：:\s]*([0-9]{4,8})/i,
-            /otp[：:\s]*([0-9]{4,8})/i,
-            /security code[：:\s]*([0-9]{4,8})/i,
-            /access code[：:\s]*([0-9]{4,8})/i,
-            // 通用数字模式
-            /\b([0-9]{4,8})\b.*验证/i,
-            /\b([0-9]{4,8})\b.*code/i,
-            /\b([0-9]{6})\b/g, // 6位数字（最常见的验证码格式）
-            // 特殊格式
-            /(\d{3}[-\s]\d{3})/g, // 123-456 或 123 456 格式
-            /(\d{2}[-\s]\d{2}[-\s]\d{2})/g, // 12-34-56 格式
-        ];
-        for (const pattern of patterns) {
-            const match = content.match(pattern);
-            if (match && match[1]) {
-                const code = match[1].replace(/[-\s]/g, ''); // 移除分隔符
-                // 验证码长度检查
-                if (code.length >= 4 && code.length <= 8) {
-                    return code;
-                }
-            }
-        }
-        // 如果没有找到明确的验证码模式，尝试查找独立的4-8位数字
-        const standaloneNumbers = content.match(/\b\d{4,8}\b/g);
-        if (standaloneNumbers && standaloneNumbers.length > 0) {
-            // 返回第一个找到的4-8位数字
-            return standaloneNumbers[0];
-        }
-        return undefined;
+        return extractVerificationCode(content);
     }
     // 提取邮件中的链接
     extractLinks(content) {
@@ -187,19 +149,6 @@ export class EmailParserService {
     }
     // 清理HTML内容，提取纯文本
     stripHtml(html) {
-        if (!html)
-            return '';
-        return html
-            .replace(/<script[^>]*>.*?<\/script>/gi, '') // 移除脚本
-            .replace(/<style[^>]*>.*?<\/style>/gi, '') // 移除样式
-            .replace(/<[^>]+>/g, '') // 移除HTML标签
-            .replace(/&nbsp;/g, ' ') // 替换空格实体
-            .replace(/&amp;/g, '&') // 替换&实体
-            .replace(/&lt;/g, '<') // 替换<实体
-            .replace(/&gt;/g, '>') // 替换>实体
-            .replace(/&quot;/g, '"') // 替换"实体
-            .replace(/&#39;/g, "'") // 替换'实体
-            .replace(/\s+/g, ' ') // 合并多个空格
-            .trim();
+        return normalizeContentForCodeExtraction('', html);
     }
 }
