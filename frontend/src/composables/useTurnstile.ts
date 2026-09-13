@@ -1,111 +1,109 @@
-import { ref, computed, readonly } from 'vue'
+import { computed, readonly, ref, toValue, type MaybeRefOrGetter } from 'vue'
 import { useThemeStore } from '@/stores/theme'
+import { usePublicSettings } from '@/composables/usePublicSettings'
 
-// Turnstile 配置
-const isDev = import.meta.env.DEV
-const TURNSTILE_SITE_KEY = isDev
-  ? (import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA') // 开发环境测试密钥
-  : (import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAABo_hK-8xkK5jEPM') // 生产环境密钥
+export type TurnstileScope = 'login' | 'register' | 'redeem' | 'public-inbox' | 'general'
 
-export function useTurnstile() {
+export function useTurnstile(
+  scope: TurnstileScope = 'general',
+  requiredOverride?: MaybeRefOrGetter<boolean>,
+) {
   const themeStore = useThemeStore()
-  const turnstileToken = ref<string>('')
-  const isVerified = ref(false)
-  const isLoading = ref(false) // 初始状态为未加载
-  const error = ref<string>('')
+  const publicSettings = usePublicSettings()
+  const turnstileToken = ref('')
+  const verified = ref(false)
+  const isLoading = ref(false)
+  const error = ref('')
 
-  // 根据当前主题设置 Turnstile 主题
-  const turnstileTheme = computed(() => {
-    if (themeStore.theme === 'auto') {
-      return 'auto'
+  // 公开配置有请求级缓存，多处使用不会造成重复请求。
+  void publicSettings.load().catch(() => {
+    error.value = '人机验证配置加载失败，请刷新页面重试'
+  })
+
+  const required = computed(() => {
+    if (requiredOverride !== undefined) return Boolean(toValue(requiredOverride))
+    if (scope === 'login') return publicSettings.loginTurnstileRequired.value
+    if (scope === 'register') return publicSettings.registerTurnstileRequired.value
+    if (scope === 'redeem') {
+      return publicSettings.settings.value.turnstileEnabled
+        && publicSettings.settings.value.turnstileRedeemEnabled
     }
+    if (scope === 'public-inbox') {
+      return publicSettings.settings.value.turnstileEnabled
+        && publicSettings.settings.value.turnstilePublicInboxEnabled
+    }
+    return publicSettings.settings.value.turnstileEnabled
+  })
+
+  const siteKey = computed(() => publicSettings.settings.value.turnstileSiteKey)
+  const isVerified = computed(() => !required.value || verified.value)
+  const configurationError = computed(() => (
+    required.value && !siteKey.value ? '管理员已开启人机验证，但尚未配置 Site Key' : ''
+  ))
+
+  const theme = computed(() => {
+    if (themeStore.theme === 'auto') return 'auto'
     return themeStore.theme === 'dark' ? 'dark' : 'light'
   })
 
-  // 处理验证成功
   const handleSuccess = (token: string) => {
-    // 开发环境使用虚拟token
-    turnstileToken.value = isDev ? 'XXXX.DUMMY.TOKEN.XXXX' : token
-    isVerified.value = true
+    turnstileToken.value = token
+    verified.value = Boolean(token)
     isLoading.value = false
     error.value = ''
   }
 
-  // 处理验证失败
-  const handleError = (errorMessage: string) => {
+  const handleError = (message: string) => {
     turnstileToken.value = ''
-    isVerified.value = false
+    verified.value = false
     isLoading.value = false
-    error.value = errorMessage || '人机验证失败'
+    error.value = message || '人机验证失败，请重试'
   }
 
-  // 处理验证过期
-  const handleExpired = () => {
-    turnstileToken.value = ''
-    isVerified.value = false
-    isLoading.value = false
-    error.value = '验证已过期，请重新验证'
-  }
+  const handleExpired = () => handleError('验证已过期，请重新验证')
+  const handleTimeout = () => handleError('验证超时，请重新尝试')
 
-  // 处理验证超时
-  const handleTimeout = () => {
-    turnstileToken.value = ''
-    isVerified.value = false
-    isLoading.value = false
-    error.value = '验证超时，请重新尝试'
-  }
-
-  // 处理交互前回调
   const handleBeforeInteractive = () => {
     isLoading.value = true
     error.value = ''
   }
 
-  // 处理交互后回调
   const handleAfterInteractive = () => {
     isLoading.value = false
   }
 
-  // 处理不支持的情况
-  const handleUnsupported = () => {
-    turnstileToken.value = ''
-    isVerified.value = false
-    isLoading.value = false
-    error.value = '您的浏览器不支持人机验证'
-  }
+  const handleUnsupported = () => handleError('当前浏览器不支持人机验证')
 
-  // 重置验证状态
   const reset = () => {
     turnstileToken.value = ''
-    isVerified.value = false
+    verified.value = false
     isLoading.value = false
     error.value = ''
   }
 
-  // 验证是否需要 Turnstile（根据接口路径判断）
   const isRequired = (endpoint: string): boolean => {
-    const requiredEndpoints = [
-      '/api/auth/register',
-      '/api/auth/login',
-      '/api/email/create',
-      '/api/email/redeem',
-      '/api/email/public-inbox'
-    ]
-    return requiredEndpoints.includes(endpoint)
+    if (endpoint === '/api/auth/login') return publicSettings.loginTurnstileRequired.value
+    if (endpoint === '/api/auth/register') return publicSettings.registerTurnstileRequired.value
+    if (endpoint === '/api/email/redeem') {
+      return publicSettings.settings.value.turnstileEnabled
+        && publicSettings.settings.value.turnstileRedeemEnabled
+    }
+    if (endpoint === '/api/email/public-inbox') {
+      return publicSettings.settings.value.turnstileEnabled
+        && publicSettings.settings.value.turnstilePublicInboxEnabled
+    }
+    return publicSettings.settings.value.turnstileEnabled
   }
 
   return {
-    // 状态
     turnstileToken: readonly(turnstileToken),
-    isVerified: readonly(isVerified),
+    isVerified,
     isLoading: readonly(isLoading),
     error: readonly(error),
-    
-    // 配置
-    siteKey: TURNSTILE_SITE_KEY,
-    theme: turnstileTheme,
-    
-    // 方法
+    required,
+    siteKey,
+    configurationError,
+    theme,
     handleSuccess,
     handleError,
     handleExpired,
@@ -114,6 +112,6 @@ export function useTurnstile() {
     handleAfterInteractive,
     handleUnsupported,
     reset,
-    isRequired
+    isRequired,
   }
 }

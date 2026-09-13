@@ -1,17 +1,18 @@
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { ElMessage } from 'element-plus'
+import { usePublicSettings } from '@/composables/usePublicSettings'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+const publicSettings = usePublicSettings()
 
-const isLoggedIn = computed(() => authStore.isAuthenticated)
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 const user = computed(() => authStore.user)
-const userQuota = computed(() => authStore.user?.quota || 0)
 
 const handleLogout = async () => {
   try {
@@ -36,7 +37,7 @@ const goToProfile = () => {
 }
 
 const goToAdmin = () => {
-  window.open('/admin/dashboard', '_blank')
+  router.push('/admin/dashboard')
 }
 
 const handleCommand = (command: string) => {
@@ -52,20 +53,25 @@ const handleCommand = (command: string) => {
       break
   }
 }
+
+onMounted(() => {
+  void publicSettings.load().catch(() => undefined)
+})
 </script>
 
 <template>
-  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+  <header class="app-header">
     <div class="max-w-1500px mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <!-- Logo -->
         <div class="flex items-center space-x-4">
           <router-link
             to="/"
-            class="flex items-center space-x-3 no-underline hover:no-underline focus:no-underline p-2 rounded-xl bg-gradient-to-br backdrop-blur-sm border border-white/20 dark:border-gray-700/30"
+            class="app-brand"
+            aria-label="四欧临时邮箱首页"
           >
-            <img class="w-60px" src="@/assets/logo.png" />
-            <div class="flex flex-col justify-center">
+            <img class="app-brand-logo" src="/favicon.png" alt="" width="60" height="48" />
+            <div class="app-brand-copy">
               <h1
                 class="text-lg m0 font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400"
               >
@@ -88,7 +94,7 @@ const handleCommand = (command: string) => {
               class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
             >
               <font-awesome-icon :icon="['fas', 'chart-pie']" class="mr-1" />
-              配额购买
+              配额中心
             </router-link>
           </nav>
 
@@ -98,6 +104,7 @@ const handleCommand = (command: string) => {
             circle
             class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
             :title="`切换主题 (当前: ${themeDisplayName})`"
+            :aria-label="`切换主题，当前为${themeDisplayName}`"
           >
             <font-awesome-icon
               :icon="['fas', themeIcon]"
@@ -109,8 +116,10 @@ const handleCommand = (command: string) => {
           <div v-if="isLoggedIn" class="flex items-center space-x-4">
             <!-- User Dropdown -->
             <el-dropdown @command="handleCommand">
-              <div
-                class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              <button
+                type="button"
+                class="user-menu-trigger"
+                aria-label="打开用户菜单"
               >
                 <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                   <font-awesome-icon :icon="['fas', 'user']" class="text-white text-sm" />
@@ -119,7 +128,7 @@ const handleCommand = (command: string) => {
                   {{ user?.email }}
                 </span>
                 <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-gray-400 text-xs" />
-              </div>
+              </button>
 
               <template #dropdown>
                 <el-dropdown-menu>
@@ -143,7 +152,10 @@ const handleCommand = (command: string) => {
           <!-- Login/Register Buttons -->
           <div v-else class="flex items-center space-x-2">
             <router-link to="/login">
-              <el-button type="primary">登录</el-button>
+              <el-button>登录</el-button>
+            </router-link>
+            <router-link v-if="publicSettings.settings.value.registrationEnabled" to="/register">
+              <el-button type="primary">注册</el-button>
             </router-link>
           </div>
         </div>

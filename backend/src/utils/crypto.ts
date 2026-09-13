@@ -7,12 +7,23 @@
 export function generateRandomString(length: number, charset?: string): string {
   const defaultCharset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   const chars = charset || defaultCharset
+  if (!Number.isSafeInteger(length) || length < 0) throw new Error('Invalid random string length')
+  if (chars.length < 2 || chars.length > 256) throw new Error('Invalid random string character set')
   let result = ''
-  
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
+
+  // Rejection sampling avoids modulo bias for character sets whose size does
+  // not evenly divide 256.
+  const acceptanceLimit = 256 - (256 % chars.length)
+  while (result.length < length) {
+    const bytes = new Uint8Array(Math.max(16, length - result.length))
+    crypto.getRandomValues(bytes)
+    for (const byte of bytes) {
+      if (byte >= acceptanceLimit) continue
+      result += chars[byte % chars.length]!
+      if (result.length === length) break
+    }
   }
-  
+
   return result
 }
 
@@ -80,14 +91,7 @@ export function generateJWTSecret(): string {
  */
 export function generateUUID(): string {
   const array = new Uint8Array(16)
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(array)
-  } else {
-    // Fallback for environments without crypto.getRandomValues
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256)
-    }
-  }
+  crypto.getRandomValues(array)
 
   // 设置版本号 (4) 和变体位
   array[6] = (array[6]! & 0x0f) | 0x40
@@ -130,7 +134,21 @@ export function safeCompare(a: string, b: string): boolean {
  * @returns 随机数字
  */
 export function generateRandomNumber(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+  if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min > max) {
+    throw new Error('Invalid random number range')
+  }
+  const range = max - min + 1
+  if (!Number.isSafeInteger(range) || range > 0x100000000) {
+    throw new Error('Random number range is too large')
+  }
+
+  const sampleSpace = 0x100000000
+  const acceptanceLimit = sampleSpace - (sampleSpace % range)
+  const bytes = new Uint32Array(1)
+  do {
+    crypto.getRandomValues(bytes)
+  } while (bytes[0]! >= acceptanceLimit)
+  return min + (bytes[0]! % range)
 }
 
 /**

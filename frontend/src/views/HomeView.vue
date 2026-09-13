@@ -3,14 +3,18 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePageTitle } from '@/composables/usePageTitle'
+import { usePublicSettings } from '@/composables/usePublicSettings'
 
 // 设置页面标题
 usePageTitle()
 
 const router = useRouter()
 const authStore = useAuthStore()
+const publicSettings = usePublicSettings()
+void publicSettings.load().catch(() => undefined)
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
+const currentYear = new Date().getFullYear()
 
 const goToRegister = () => {
   router.push('/register')
@@ -33,7 +37,7 @@ const features = [
   {
     icon: 'shield-alt',
     title: '隐私保护',
-    description: '无需提供真实邮箱，完全匿名使用，保护个人隐私安全'
+    description: '用临时地址隔离常用邮箱，减少在外部网站暴露长期联系方式'
   },
   {
     icon: 'bolt',
@@ -42,23 +46,23 @@ const features = [
   },
   {
     icon: 'eye',
-    title: '实时接收',
-    description: '邮件实时推送，智能识别验证码，自动解析邮件内容'
+    title: '集中收件',
+    description: '集中查看临时邮箱来信，刷新列表即可获取新邮件并识别常见验证码'
   },
   {
     icon: 'mobile-alt',
     title: '响应式设计',
-    description: '完美适配PC和移动设备，随时随地管理临时邮箱'
+    description: '针对桌面与移动设备优化布局，方便随时管理临时邮箱'
   },
   {
-    icon: 'gift',
-    title: '免费配额',
-    description: '观看广告视频获得配额奖励，轻松获得更多邮箱额度'
+    icon: 'ticket',
+    title: '灵活配额',
+    description: '清晰查看配额变化，并可使用兑换码补充邮箱额度'
   },
   {
     icon: 'brain',
-    title: '智能解析',
-    description: '自动识别验证码、邮件类型检测、链接提取，智能化处理邮件内容'
+    title: '安全阅读',
+    description: '自动识别常见验证码，并在隔离容器中展示邮件 HTML 内容'
   }
 ]
 
@@ -86,13 +90,14 @@ const useCases = [
   }
 ]
 
-// 统计数据
+// 使用可验证的系统边界，避免展示无法核实的运营数字。
 const stats = [
-  { number: '10000+', label: '用户信赖' },
-  { number: '50000+', label: '邮件处理' },
-  { number: '99.9%', label: '服务可用性' },
-  { number: '24/7', label: '全天候服务' }
+  { number: '7 天', label: '邮件可见期限' },
+  { number: '50 封', label: '单箱邮件上限' },
+  { number: '4 MiB', label: '单箱内容上限' },
+  { number: '1 套', label: '统一 Worker 部署' }
 ]
+
 </script>
 
 <template>
@@ -133,14 +138,28 @@ const stats = [
           <!-- CTA Buttons -->
           <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <el-button
-              v-if="!isLoggedIn"
-              @click="goToDashboard"
+              v-if="!isLoggedIn && publicSettings.loading.value && !publicSettings.loaded.value"
+              loading
+              disabled
+              size="large"
+              class="px-10 py-4 text-lg font-semibold"
+            >
+              正在加载访问策略
+            </el-button>
+
+            <el-button
+              v-if="
+                !isLoggedIn &&
+                publicSettings.loaded.value &&
+                publicSettings.settings.value.registrationEnabled
+              "
+              @click="goToRegister"
               type="primary"
               size="large"
               class="px-10 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <font-awesome-icon :icon="['fas', 'rocket']" class="mr-2" />
-              立即开始使用
+              免费创建账号
             </el-button>
 
             <el-button
@@ -155,8 +174,9 @@ const stats = [
             </el-button>
 
             <el-button
-              v-if="!isLoggedIn"
+              v-if="!isLoggedIn && !publicSettings.loading.value"
               @click="goToLogin"
+              :type="publicSettings.settings.value.registrationEnabled ? undefined : 'primary'"
               size="large"
               class="px-10 py-4 text-lg font-semibold border-2 border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-300"
             >
@@ -170,7 +190,7 @@ const stats = [
               class="px-10 py-4 text-lg font-semibold border-2 border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300"
             >
               <font-awesome-icon :icon="['fas', 'chart-pie']" class="mr-2" />
-              配额购买
+              配额方案
             </el-button>
           </div>
 
@@ -283,7 +303,7 @@ const stats = [
             <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
               <div>一键创建临时邮箱</div>
               <div>多域名后缀选择</div>
-              <div>实时邮件接收</div>
+              <div>邮件集中接收</div>
               <div>验证码智能识别</div>
               <div>邮件导出和转发</div>
             </div>
@@ -296,10 +316,10 @@ const stats = [
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">配额管理系统</h3>
             <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
-              <div>观看广告获得配额</div>
-              <div>兑换码充值系统</div>
+              <div>兑换码快速补充</div>
+              <div>透明的余额统计</div>
               <div>配额使用记录</div>
-              <div>免费配额奖励</div>
+              <div>新用户初始配额</div>
               <div>灵活的配额策略</div>
             </div>
           </div>
@@ -311,8 +331,8 @@ const stats = [
             </div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">贴心服务</h3>
             <div class="text-gray-600 dark:text-gray-400 space-y-2 text-center">
-              <div>免费注册送配额</div>
-              <div>观看广告领奖励</div>
+              <div>账号初始配额</div>
+              <div>兑换码灵活补充</div>
               <div>兑换码快速充值</div>
               <div>暗色模式切换</div>
               <div>响应式界面设计</div>
@@ -329,18 +349,29 @@ const stats = [
           立即开始使用临时邮箱服务
         </h2>
         <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-          注册即送5个邮箱配额，观看广告获得更多奖励，完全免费使用
+          {{ publicSettings.settings.value.registrationEnabled ? '注册后即可集中管理临时邮箱' : '登录后即可集中管理临时邮箱' }}，配额余额与使用记录清晰可查
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <el-button
-            v-if="!isLoggedIn"
+            v-if="!isLoggedIn && publicSettings.settings.value.registrationEnabled"
             @click="goToRegister"
             size="large"
             class="px-10 py-4 text-lg font-semibold bg-white text-blue-600 hover:bg-gray-50 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <font-awesome-icon :icon="['fas', 'rocket']" class="mr-2" />
             免费注册使用
+          </el-button>
+
+          <el-button
+            v-else-if="!isLoggedIn"
+            type="primary"
+            size="large"
+            class="px-10 py-4 text-lg font-semibold bg-white text-blue-600 hover:bg-gray-50 border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+            @click="goToLogin"
+          >
+            <font-awesome-icon :icon="['fas', 'sign-in-alt']" class="mr-2" />
+            前往登录
           </el-button>
 
           <el-button
@@ -378,10 +409,10 @@ const stats = [
             <h3 class="text-lg font-semibold mb-4">核心功能</h3>
             <div class="space-y-2 text-gray-400">
               <div>临时邮箱创建</div>
-              <div>实时邮件接收</div>
+              <div>邮件集中接收</div>
               <div>验证码识别</div>
               <div>配额管理</div>
-              <div>免费配额</div>
+              <div>兑换码补充配额</div>
             </div>
           </div>
 
@@ -400,7 +431,7 @@ const stats = [
         </div>
 
         <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 临时邮箱管理系统. 保护隐私，安全可靠.</p>
+          <p>&copy; {{ currentYear }} 临时邮箱管理系统。保护隐私，安全可靠。</p>
         </div>
       </div>
     </footer>

@@ -1,21 +1,325 @@
 import type { Env } from '@/types'
+import { AdminHandler } from '@/handlers/admin.handler'
+import { AnnouncementHandler } from '@/handlers/announcement.handler'
 import { AuthHandler } from '@/handlers/auth.handler'
 import { EmailHandler } from '@/handlers/email.handler'
-import { AdminHandler } from '@/handlers/admin.handler'
-import { CheckinHandler } from '@/handlers/checkin.handler'
 import { QuotaHandler } from '@/handlers/quota.handler'
-import { AnnouncementHandler } from '@/handlers/announcement.handler'
-import { AdsHandler } from '@/handlers/ads.handler'
+import { SettingsHandler } from '@/handlers/settings.handler'
 import { handleEmailProcessing } from '@/modules/email/email-processor'
+import { DatabaseService } from '@/modules/shared/database.service'
 
-// 添加CORS头的工具函数
-function addCorsHeaders(response: Response): Response {
+export default {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname } = url
+
+    if (request.method === 'OPTIONS') return preflightResponse(request, env)
+
+    try {
+      let response: Response
+      if (pathname === '/api/health') {
+        response = request.method === 'GET'
+          ? Response.json({ success: true, message: 'Service is healthy', timestamp: new Date().toISOString() })
+          : methodNotAllowed('GET')
+      } else if (pathname === '/api/public/settings') {
+        response = request.method === 'GET'
+          ? await new SettingsHandler(env).getPublicSettings()
+          : methodNotAllowed('GET')
+      } else if (pathname.startsWith('/api/auth/')) {
+        response = await handleAuthRoutes(pathname, request, new AuthHandler(env))
+      } else if (pathname.startsWith('/api/email/')) {
+        response = await handleEmailRoutes(pathname, request, new EmailHandler(env))
+      } else if (pathname.startsWith('/api/admin/')) {
+        response = await handleAdminRoutes(pathname, request, new AdminHandler(env))
+      } else if (pathname.startsWith('/api/announcements/')) {
+        response = await handleAnnouncementRoutes(pathname, request, new AnnouncementHandler(env))
+      } else if (pathname.startsWith('/api/quota/')) {
+        response = await handleQuotaRoutes(pathname, request, new QuotaHandler(env))
+      } else if (pathname === '/api' || pathname.startsWith('/api/')) {
+        response = notFound()
+      } else if (env.ASSETS) {
+        response = await env.ASSETS.fetch(request)
+        // A path listed in assets.run_worker_first reaches this binding before
+        // the platform's SPA fallback. Reproduce that fallback for HTML
+        // navigations so privacy headers can be attached without turning
+        // /public-inbox into a JSON 404.
+        if (
+          response.status === 404 &&
+          request.method === 'GET' &&
+          request.headers.get('Accept')?.includes('text/html')
+        ) {
+          const indexUrl = new URL('/index.html', request.url)
+          response = await env.ASSETS.fetch(new Request(indexUrl, {
+            method: 'GET',
+            headers: request.headers
+          }))
+        }
+      } else {
+        response = notFound()
+      }
+      return finalizeResponse(request, env, response)
+    } catch (error) {
+      if (error instanceof Response) return finalizeResponse(request, env, error)
+      console.error('Unhandled request error:', error)
+      return finalizeResponse(
+        request,
+        env,
+        Response.json({ success: false, error: 'Internal Server Error' }, { status: 500 })
+      )
+    }
+  },
+
+  async email(message: ForwardableEmailMessage, env: Env, _ctx: ExecutionContext): Promise<void> {
+    await handleEmailProcessing(message, env)
+  },
+
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<void> {
+    ctx.waitUntil((async () => {
+      const deleted = await new DatabaseService(env.DB).cleanupRetainedData()
+      console.info('Scheduled retention cleanup completed', deleted)
+    })())
+  }
+}
+
+async function handleAuthRoutes(pathname: string, request: Request, handler: AuthHandler): Promise<Response> {
+  const method = request.method
+  switch (pathname) {
+    case '/api/auth/login':
+      return method === 'POST' ? await handler.login(request) : methodNotAllowed('POST')
+    case '/api/auth/register':
+      return method === 'POST' ? await handler.register(request) : methodNotAllowed('POST')
+    case '/api/auth/bootstrap':
+      return method === 'POST' ? await handler.bootstrapAdmin(request) : methodNotAllowed('POST')
+    case '/api/auth/bootstrap-status':
+      return method === 'GET' ? await handler.getBootstrapStatus() : methodNotAllowed('GET')
+    case '/api/auth/github':
+      return method === 'GET' ? await handler.githubAuth(request) : methodNotAllowed('GET')
+    case '/api/auth/github/callback':
+      return method === 'GET' ? await handler.githubCallback(request) : methodNotAllowed('GET')
+    case '/api/auth/refresh':
+      return method === 'POST' ? await handler.refreshToken(request) : methodNotAllowed('POST')
+    case '/api/auth/logout':
+      return method === 'POST' ? await handler.logout(request) : methodNotAllowed('POST')
+    case '/api/auth/me':
+      return method === 'GET' ? await handler.getCurrentUser(request) : methodNotAllowed('GET')
+    case '/api/auth/change-password':
+      return method === 'POST' ? await handler.changePassword(request) : methodNotAllowed('POST')
+    default:
+      return notFound()
+  }
+}
+
+async function handleEmailRoutes(pathname: string, request: Request, handler: EmailHandler): Promise<Response> {
+  const method = request.method
+  if (pathname === '/api/email/domains') {
+    return method === 'GET' ? await handler.getDomains(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/email/public-inbox') {
+    return method === 'POST' ? await handler.getPublicInbox(request) : methodNotAllowed('POST')
+  }
+  if (/^\/api\/email\/public-inbox\/emails\/\d+$/.test(pathname)) {
+    return method === 'POST' ? await handler.getPublicEmailDetail(request) : methodNotAllowed('POST')
+  }
+  if (pathname === '/api/email/temp-emails') {
+    return method === 'GET' ? await handler.getTempEmails(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/email/create') {
+    return method === 'POST' ? await handler.createTempEmail(request) : methodNotAllowed('POST')
+  }
+  if (/^\/api\/email\/temp-emails\/\d+$/.test(pathname)) {
+    return method === 'DELETE' ? await handler.deleteTempEmail(request) : methodNotAllowed('DELETE')
+  }
+  if (/^\/api\/email\/temp-emails\/\d+\/public-inbox$/.test(pathname)) {
+    return method === 'PUT' ? await handler.updateTempEmailPublicInbox(request) : methodNotAllowed('PUT')
+  }
+  if (/^\/api\/email\/temp-emails\/\d+\/emails$/.test(pathname)) {
+    return method === 'GET' ? await handler.getEmailsForTempEmail(request) : methodNotAllowed('GET')
+  }
+  if (/^\/api\/email\/emails\/\d+$/.test(pathname)) {
+    if (method === 'GET') return await handler.getEmailDetail(request)
+    if (method === 'DELETE') return await handler.deleteEmail(request)
+    return methodNotAllowed('GET, DELETE')
+  }
+  if (/^\/api\/email\/emails\/\d+\/read$/.test(pathname)) {
+    return method === 'PATCH' ? await handler.markEmailRead(request) : methodNotAllowed('PATCH')
+  }
+  if (pathname === '/api/email/emails/batch-delete') {
+    return method === 'POST' ? await handler.batchDeleteEmails(request) : methodNotAllowed('POST')
+  }
+  if (pathname === '/api/email/search') {
+    return method === 'GET' ? await handler.searchEmails(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/email/redeem') {
+    return method === 'POST' ? await handler.redeemCode(request) : methodNotAllowed('POST')
+  }
+  if (pathname === '/api/email/quota') {
+    return method === 'GET' ? await handler.getQuotaInfo(request) : methodNotAllowed('GET')
+  }
+  return notFound()
+}
+
+async function handleAdminRoutes(pathname: string, request: Request, handler: AdminHandler): Promise<Response> {
+  const method = request.method
+  if (pathname === '/api/admin/dashboard/stats') {
+    return method === 'GET' ? await handler.getDashboardStats(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/admin/users') {
+    return method === 'GET' ? await handler.getUsers(request) : methodNotAllowed('GET')
+  }
+  if (/^\/api\/admin\/users\/\d+$/.test(pathname)) {
+    if (method === 'GET') return await handler.getUserById(request)
+    if (method === 'PUT') return await handler.updateUser(request)
+    if (method === 'DELETE') return await handler.deleteUser(request)
+    return methodNotAllowed('GET, PUT, DELETE')
+  }
+  if (/^\/api\/admin\/users\/\d+\/quota$/.test(pathname)) {
+    return method === 'POST' ? await handler.allocateQuotaToUser(request) : methodNotAllowed('POST')
+  }
+  if (pathname === '/api/admin/domains') {
+    if (method === 'GET') return await handler.getDomains(request)
+    if (method === 'POST') return await handler.createDomain(request)
+    return methodNotAllowed('GET, POST')
+  }
+  if (/^\/api\/admin\/domains\/\d+$/.test(pathname)) {
+    if (method === 'PUT') return await handler.updateDomain(request)
+    if (method === 'DELETE') return await handler.deleteDomain(request)
+    return methodNotAllowed('PUT, DELETE')
+  }
+  if (pathname === '/api/admin/emails') {
+    return method === 'GET' ? await handler.getEmails(request) : methodNotAllowed('GET')
+  }
+  if (/^\/api\/admin\/emails\/\d+$/.test(pathname)) {
+    if (method === 'GET') return await handler.getEmailById(request)
+    if (method === 'DELETE') return await handler.deleteEmail(request)
+    return methodNotAllowed('GET, DELETE')
+  }
+  if (pathname === '/api/admin/logs') {
+    return method === 'GET' ? await handler.getLogs(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/admin/logs/actions') {
+    return method === 'GET' ? await handler.getLogActions(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/admin/redeem-codes') {
+    if (method === 'GET') return await handler.getRedeemCodes(request)
+    if (method === 'POST') return await handler.createRedeemCode(request)
+    return methodNotAllowed('GET, POST')
+  }
+  if (pathname === '/api/admin/redeem-codes/batch') {
+    return method === 'POST' ? await handler.createBatchRedeemCodes(request) : methodNotAllowed('POST')
+  }
+  if (/^\/api\/admin\/redeem-codes\/[A-Za-z0-9_-]+$/.test(pathname)) {
+    return method === 'DELETE' ? await handler.deleteRedeemCode(request) : methodNotAllowed('DELETE')
+  }
+  if (pathname === '/api/admin/settings') {
+    if (method === 'GET') return await handler.getSystemSettings(request)
+    if (method === 'PUT') return await handler.updateSystemSettings(request)
+    return methodNotAllowed('GET, PUT')
+  }
+  if (/^\/api\/admin\/settings\/[a-z_]+$/.test(pathname)) {
+    return method === 'PUT' ? await handler.updateSystemSetting(request) : methodNotAllowed('PUT')
+  }
+  if (pathname === '/api/admin/quota-logs') {
+    return method === 'GET' ? await handler.getQuotaLogs(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/admin/quota-stats') {
+    return method === 'GET' ? await handler.getQuotaStats(request) : methodNotAllowed('GET')
+  }
+  return notFound()
+}
+
+async function handleQuotaRoutes(pathname: string, request: Request, handler: QuotaHandler): Promise<Response> {
+  if (pathname === '/api/quota/logs') {
+    return request.method === 'GET' ? await handler.getQuotaLogs(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/quota/info') {
+    return request.method === 'GET' ? await handler.getQuotaInfo(request) : methodNotAllowed('GET')
+  }
+  return notFound()
+}
+
+async function handleAnnouncementRoutes(
+  pathname: string,
+  request: Request,
+  handler: AnnouncementHandler
+): Promise<Response> {
+  const method = request.method
+  if (pathname === '/api/announcements/active') {
+    return method === 'GET' ? await handler.getActiveAnnouncements(request) : methodNotAllowed('GET')
+  }
+  if (pathname === '/api/announcements/admin') {
+    if (method === 'GET') return await handler.getAnnouncements(request)
+    if (method === 'POST') return await handler.createAnnouncement(request)
+    return methodNotAllowed('GET, POST')
+  }
+  if (/^\/api\/announcements\/admin\/\d+$/.test(pathname)) {
+    if (method === 'GET') return await handler.getAnnouncementById(request)
+    if (method === 'PUT') return await handler.updateAnnouncement(request)
+    if (method === 'DELETE') return await handler.deleteAnnouncement(request)
+    return methodNotAllowed('GET, PUT, DELETE')
+  }
+  if (/^\/api\/announcements\/admin\/\d+\/toggle$/.test(pathname)) {
+    return method === 'POST' ? await handler.toggleAnnouncementStatus(request) : methodNotAllowed('POST')
+  }
+  return notFound()
+}
+
+function methodNotAllowed(allow: string): Response {
+  return Response.json(
+    { success: false, error: 'Method Not Allowed' },
+    { status: 405, headers: { Allow: allow } }
+  )
+}
+
+function notFound(): Response {
+  return Response.json({ success: false, error: 'Not Found' }, { status: 404 })
+}
+
+function preflightResponse(request: Request, env: Env): Response {
+  const origin = request.headers.get('Origin')
+  if (!origin || !allowedOrigin(origin, request, env)) {
+    return new Response(null, { status: 403 })
+  }
+  return finalizeResponse(request, env, new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    }
+  }))
+}
+
+function finalizeResponse(request: Request, env: Env, response: Response): Response {
   const headers = new Headers(response.headers)
-  headers.set('Access-Control-Allow-Origin', '*')
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  headers.set('Access-Control-Max-Age', '86400')
+  // Route handlers from the legacy architecture may still emit wildcard
+  // CORS. Strip it before applying the single origin policy here.
+  headers.delete('Access-Control-Allow-Origin')
+  headers.delete('Access-Control-Allow-Credentials')
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  headers.set('X-Frame-Options', 'DENY')
+  const pathname = new URL(request.url).pathname
+  if (pathname === '/public-inbox' || pathname.startsWith('/public-inbox/')) {
+    // Public inbox links contain the mailbox address by design. Keep that
+    // address out of search indexes and cross-site Referer headers.
+    headers.set('Referrer-Policy', 'no-referrer')
+    headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+    headers.set('Cache-Control', 'no-store')
+  }
+  if ((pathname === '/api' || pathname.startsWith('/api/')) && !headers.has('Cache-Control')) {
+    headers.set('Cache-Control', 'no-store')
+  }
 
+  const origin = request.headers.get('Origin')
+  if (origin && allowedOrigin(origin, request, env)) {
+    headers.set('Access-Control-Allow-Origin', origin)
+    headers.set('Access-Control-Allow-Credentials', 'true')
+    headers.append('Vary', 'Origin')
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -23,405 +327,15 @@ function addCorsHeaders(response: Response): Response {
   })
 }
 
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url)
-    const { pathname } = url
-    const method = request.method
-
-    // CORS 预检请求处理
-    if (method === 'OPTIONS') {
-      return new Response(null, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Max-Age': '86400'
-        }
-      })
-    }
-
-    try {
-      // 初始化处理器
-      const authHandler = new AuthHandler(env)
-      const emailHandler = new EmailHandler(env)
-      const adminHandler = new AdminHandler(env)
-      const checkinHandler = new CheckinHandler(env)
-      const quotaHandler = new QuotaHandler(env)
-      const announcementHandler = new AnnouncementHandler(env)
-      const adsHandler = new AdsHandler(env)
-
-      // 路由匹配
-      let response: Response
-      if (pathname.startsWith('/api/auth/')) {
-        response = await handleAuthRoutes(pathname, method, request, authHandler)
-      } else if (pathname.startsWith('/api/email/')) {
-        response = await handleEmailRoutes(pathname, method, request, emailHandler)
-      } else if (pathname.startsWith('/api/admin/')) {
-        response = await handleAdminRoutes(pathname, method, request, adminHandler)
-      } else if (pathname.startsWith('/api/announcements/')) {
-        response = await handleAnnouncementRoutes(pathname, method, request, announcementHandler)
-      } else if (pathname.startsWith('/api/checkin/')) {
-        response = await handleCheckinRoutes(pathname, method, request, checkinHandler)
-      } else if (pathname.startsWith('/api/quota/')) {
-        response = await handleQuotaRoutes(pathname, method, request, quotaHandler)
-      } else if (pathname.startsWith('/api/ads/')) {
-        response = await handleAdsRoutes(pathname, method, request, adsHandler)
-      } else if (pathname === '/api/health') {
-        response = new Response(JSON.stringify({
-          success: true,
-          message: 'Service is healthy',
-          timestamp: new Date().toISOString()
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        })
-
-      } else {
-        response = new Response(JSON.stringify({
-          success: false,
-          error: 'Not Found'
-        }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-
-      return addCorsHeaders(response)
-    } catch (error) {
-      console.error('Unhandled error:', error)
-      const errorResponse = new Response(JSON.stringify({
-        success: false,
-        error: 'Internal Server Error'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      })
-      return addCorsHeaders(errorResponse)
-    }
-  },
-
-  // 邮件处理功能 - Email Routing 入口
-  async email(message: any, env: Env, ctx: ExecutionContext) {
-    return await handleEmailProcessing(message, env)
+function allowedOrigin(origin: string, request: Request, env: Env): boolean {
+  if (origin === new URL(request.url).origin) return true
+  if (!env.FRONTEND_DOMAIN) return false
+  const configured = /^https?:\/\//.test(env.FRONTEND_DOMAIN)
+    ? env.FRONTEND_DOMAIN
+    : `${env.ENVIRONMENT === 'production' ? 'https' : 'http'}://${env.FRONTEND_DOMAIN}`
+  try {
+    return origin === new URL(configured).origin
+  } catch {
+    return false
   }
-}
-
-async function handleAuthRoutes(
-  pathname: string,
-  method: string,
-  request: Request,
-  handler: AuthHandler
-): Promise<Response> {
-  switch (pathname) {
-    case '/api/auth/login':
-      if (method === 'POST') return await handler.login(request)
-      break
-
-    case '/api/auth/github':
-      if (method === 'GET') return await handler.githubAuth(request)
-      break
-
-    case '/api/auth/github/callback':
-      if (method === 'GET') return await handler.githubCallback(request)
-      break
-
-    case '/api/auth/refresh':
-      if (method === 'POST') return await handler.refreshToken(request)
-      break
-
-    case '/api/auth/logout':
-      if (method === 'POST') return await handler.logout(request)
-      break
-
-    case '/api/auth/me':
-      if (method === 'GET') return await handler.getCurrentUser(request)
-      break
-    
-    case '/api/auth/change-password':
-      if (method === 'POST') return await handler.changePassword(request)
-      break
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
-
-async function handleEmailRoutes(
-  pathname: string, 
-  method: string, 
-  request: Request, 
-  handler: EmailHandler
-): Promise<Response> {
-  // 域名相关路由（公开）
-  if (pathname === '/api/email/domains') {
-    if (method === 'GET') return await handler.getDomains(request)
-  }
-
-  // 公开收件箱（公开，但需要 Turnstile）
-  if (pathname === '/api/email/public-inbox') {
-    if (method === 'POST') return await handler.getPublicInbox(request)
-  }
-
-  // 临时邮箱相关路由（需要认证）
-  if (pathname === '/api/email/temp-emails') {
-    if (method === 'GET') return await handler.getTempEmails(request)
-  }
-
-  if (pathname === '/api/email/create') {
-    if (method === 'POST') return await handler.createTempEmail(request)
-  }
-
-  // 删除临时邮箱 /api/email/temp-emails/:id
-  if (pathname.match(/^\/api\/email\/temp-emails\/\d+$/)) {
-    if (method === 'DELETE') return await handler.deleteTempEmail(request)
-  }
-
-  // 开关公开收件箱 /api/email/temp-emails/:id/public-inbox
-  if (pathname.match(/^\/api\/email\/temp-emails\/\d+\/public-inbox$/)) {
-    if (method === 'PUT') return await handler.updateTempEmailPublicInbox(request)
-  }
-
-  // 获取临时邮箱的邮件列表 /api/email/temp-emails/:id/emails
-  if (pathname.match(/^\/api\/email\/temp-emails\/\d+\/emails$/)) {
-    if (method === 'GET') return await handler.getEmailsForTempEmail(request)
-  }
-
-  // 获取邮件详情 /api/email/emails/:id
-  if (pathname.match(/^\/api\/email\/emails\/\d+$/)) {
-    if (method === 'GET') return await handler.getEmailDetail(request)
-    if (method === 'DELETE') return await handler.deleteEmail(request)
-  }
-
-  // 兑换码相关路由
-  if (pathname === '/api/email/redeem') {
-    if (method === 'POST') return await handler.redeemCode(request)
-  }
-
-  // 配额信息
-  if (pathname === '/api/email/quota') {
-    if (method === 'GET') return await handler.getQuotaInfo(request)
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
-
-async function handleAdminRoutes(
-  pathname: string,
-  method: string,
-  request: Request,
-  handler: AdminHandler
-): Promise<Response> {
-  // 仪表板统计
-  if (pathname === '/api/admin/dashboard/stats') {
-    if (method === 'GET') return await handler.getDashboardStats(request)
-  }
-
-  // 用户管理
-  if (pathname === '/api/admin/users') {
-    if (method === 'GET') return await handler.getUsers(request)
-  }
-
-  if (pathname.match(/^\/api\/admin\/users\/\d+$/)) {
-    if (method === 'GET') return await handler.getUserById(request)
-    if (method === 'PUT') return await handler.updateUser(request)
-    if (method === 'DELETE') return await handler.deleteUser(request)
-  }
-
-  if (pathname.match(/^\/api\/admin\/users\/\d+\/quota$/)) {
-    if (method === 'POST') return await handler.allocateQuotaToUser(request)
-  }
-
-  // 域名管理
-  if (pathname === '/api/admin/domains') {
-    if (method === 'GET') return await handler.getDomains(request)
-    if (method === 'POST') return await handler.createDomain(request)
-  }
-
-  if (pathname.match(/^\/api\/admin\/domains\/\d+$/)) {
-    if (method === 'PUT') return await handler.updateDomain(request)
-    if (method === 'DELETE') return await handler.deleteDomain(request)
-  }
-
-  // 邮件审查
-  if (pathname === '/api/admin/emails') {
-    if (method === 'GET') return await handler.getEmails(request)
-  }
-
-  if (pathname.match(/^\/api\/admin\/emails\/\d+$/)) {
-    if (method === 'DELETE') return await handler.deleteEmail(request)
-  }
-
-  // 日志审计
-  if (pathname === '/api/admin/logs') {
-    if (method === 'GET') return await handler.getLogs(request)
-  }
-
-  if (pathname === '/api/admin/logs/actions') {
-    if (method === 'GET') return await handler.getLogActions(request)
-  }
-
-  // 兑换码管理
-  if (pathname === '/api/admin/redeem-codes') {
-    if (method === 'GET') return await handler.getRedeemCodes(request)
-    if (method === 'POST') return await handler.createRedeemCode(request)
-  }
-
-  if (pathname === '/api/admin/redeem-codes/batch') {
-    if (method === 'POST') return await handler.createBatchRedeemCodes(request)
-  }
-
-  if (pathname.match(/^\/api\/admin\/redeem-codes\/[A-Z0-9]+$/)) {
-    if (method === 'DELETE') return await handler.deleteRedeemCode(request)
-  }
-
-  // 系统设置管理
-  if (pathname === '/api/admin/settings') {
-    if (method === 'GET') return await handler.getSystemSettings(request)
-  }
-
-  if (pathname.match(/^\/api\/admin\/settings\/[a-zA-Z_]+$/)) {
-    if (method === 'PUT') return await handler.updateSystemSetting(request)
-  }
-
-  // 配额记录管理
-  if (pathname === '/api/admin/quota-logs') {
-    if (method === 'GET') return await handler.getQuotaLogs(request)
-  }
-
-  if (pathname === '/api/admin/quota-stats') {
-    if (method === 'GET') return await handler.getQuotaStats(request)
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
-
-// 签到路由处理
-async function handleCheckinRoutes(pathname: string, method: string, request: Request, handler: CheckinHandler): Promise<Response> {
-  // 用户签到
-  if (pathname === '/api/checkin/checkin') {
-    if (method === 'POST') return await handler.checkin(request)
-  }
-
-  // 获取签到状态
-  if (pathname === '/api/checkin/status') {
-    if (method === 'GET') return await handler.getCheckinStatus(request)
-  }
-
-  // 获取签到历史
-  if (pathname === '/api/checkin/history') {
-    if (method === 'GET') return await handler.getCheckinHistory(request)
-  }
-
-  // 获取签到统计
-  if (pathname === '/api/checkin/stats') {
-    if (method === 'GET') return await handler.getCheckinStats(request)
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
-
-// 配额路由处理
-async function handleQuotaRoutes(pathname: string, method: string, request: Request, handler: QuotaHandler): Promise<Response> {
-  // 获取配额记录
-  if (pathname === '/api/quota/logs') {
-    if (method === 'GET') return await handler.getQuotaLogs(request)
-  }
-
-  // 获取配额信息
-  if (pathname === '/api/quota/info') {
-    if (method === 'GET') return await handler.getQuotaInfo(request)
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
-
-// 公告路由处理
-async function handleAnnouncementRoutes(
-  pathname: string,
-  method: string,
-  request: Request,
-  handler: AnnouncementHandler
-): Promise<Response> {
-  // 获取活跃公告列表（用户端）
-  if (pathname === '/api/announcements/active') {
-    if (method === 'GET') return await handler.getActiveAnnouncements(request)
-  }
-
-  // 管理员公告管理
-  if (pathname === '/api/announcements/admin') {
-    if (method === 'GET') return await handler.getAnnouncements(request)
-    if (method === 'POST') return await handler.createAnnouncement(request)
-  }
-
-  // 单个公告操作
-  if (pathname.match(/^\/api\/announcements\/admin\/\d+$/)) {
-    if (method === 'GET') return await handler.getAnnouncementById(request)
-    if (method === 'PUT') return await handler.updateAnnouncement(request)
-    if (method === 'DELETE') return await handler.deleteAnnouncement(request)
-  }
-
-  // 切换公告状态
-  if (pathname.match(/^\/api\/announcements\/admin\/\d+\/toggle$/)) {
-    if (method === 'POST') return await handler.toggleAnnouncementStatus(request)
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
-}
-
-// 广告路由处理
-async function handleAdsRoutes(pathname: string, method: string, request: Request, handler: AdsHandler): Promise<Response> {
-  // 生成广告二维码
-  if (pathname === '/api/ads/qrcode') {
-    if (method === 'POST') return await handler.generateQRCode(request)
-  }
-
-  // 验证广告观看状态
-  if (pathname === '/api/ads/verify') {
-    if (method === 'POST') return await handler.verifyAdStatus(request)
-  }
-
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'Method Not Allowed'
-  }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' }
-  })
 }

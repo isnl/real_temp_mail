@@ -14,8 +14,8 @@ CREATE TABLE user_quota_balances_new (
   expires_at TIMESTAMP NULL,
   source TEXT NOT NULL CHECK (source IN ('register', 'checkin', 'redeem_code', 'admin_adjust', 'ad_reward')),
   source_id INTEGER NULL,
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
-  updated_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -48,7 +48,7 @@ CREATE TABLE quota_logs_new (
   related_id INTEGER NULL,
   expires_at TIMESTAMP NULL,
   quota_type TEXT DEFAULT 'permanent' CHECK (quota_type IN ('permanent', 'daily', 'custom')),
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

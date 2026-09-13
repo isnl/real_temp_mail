@@ -22,9 +22,9 @@ usePageTitle()
           :icon="['fas', 'shield-alt']" 
           class="text-blue-500 text-3xl mb-4"
         />
-        <h3 class="text-xl font-semibold mb-2">安全加密</h3>
+        <h3 class="text-xl font-semibold mb-2">隔离阅读</h3>
         <p class="text-gray-600 dark:text-gray-400">
-          端到端加密保护您的邮件内容，确保隐私安全
+          HTML 邮件在受限 iframe 中展示，并禁止脚本、表单和外部资源加载
         </p>
       </div>
 
@@ -33,9 +33,9 @@ usePageTitle()
           :icon="['fas', 'clock']" 
           class="text-green-500 text-3xl mb-4"
         />
-        <h3 class="text-xl font-semibold mb-2">实时接收</h3>
+        <h3 class="text-xl font-semibold mb-2">集中收件</h3>
         <p class="text-gray-600 dark:text-gray-400">
-          邮件实时推送，无需刷新页面即可查看最新邮件
+          在一个控制台管理多个临时地址，并可随时刷新查看最新来信
         </p>
       </div>
 

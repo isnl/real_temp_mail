@@ -20,7 +20,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const emailStore = useEmailStore()
-const turnstile = useTurnstile()
+const turnstile = useTurnstile('redeem')
 
 const formRef = ref<FormInstance>()
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
@@ -42,7 +42,6 @@ const handleSubmit = async () => {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
 
-  // 检查 Turnstile 验证
   if (!turnstile.isVerified.value) {
     ElMessage.warning('请完成人机验证')
     return
@@ -51,8 +50,9 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    // 设置 Turnstile token
-    form.value.turnstileToken = turnstile.turnstileToken.value
+    form.value.turnstileToken = turnstile.required.value
+      ? turnstile.turnstileToken.value
+      : undefined
 
     const response = await emailStore.redeemCode(form.value)
 
@@ -62,9 +62,9 @@ const handleSubmit = async () => {
 
     // 重置表单
     resetForm()
-  } catch (error: any) {
+  } catch (error) {
     console.error('Redeem code error:', error)
-    ElMessage.error(error.message || '兑换失败')
+    ElMessage.error(error instanceof Error ? error.message : '兑换失败')
 
     // 重置 Turnstile
     turnstileRef.value?.reset()
@@ -155,22 +155,27 @@ const handleTurnstileError = (error: string) => {
           <el-input
             v-model="form.code"
             placeholder="请输入您的兑换码"
-            :prefix-icon="ElIconTicket"
             autocomplete="off"
             class="redeem-input"
             size="large"
-          />
+          >
+            <template #prefix>
+              <font-awesome-icon :icon="['fas', 'ticket-alt']" />
+            </template>
+          </el-input>
           <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
             兑换码通常为 6-20 位字符，区分大小写
           </div>
         </el-form-item>
 
         <!-- Turnstile 人机验证 -->
-        <el-form-item label="人机验证" required>
+        <el-form-item v-if="turnstile.required.value" label="人机验证" required>
           <div class="w-full">
             <TurnstileWidget
+              v-if="turnstile.siteKey.value"
               ref="turnstileRef"
-              :site-key="turnstile.siteKey"
+              :site-key="turnstile.siteKey.value"
+              action="redeem"
               :theme="turnstile.theme.value"
               @success="handleTurnstileSuccess"
               @error="handleTurnstileError"
@@ -182,9 +187,13 @@ const handleTurnstileError = (error: string) => {
             />
 
             <!-- 仅显示错误信息 -->
-            <div v-if="turnstile.error.value" class="text-red-500 text-sm mt-2">
-              <i class="fas fa-exclamation-triangle mr-1"></i>
-              {{ turnstile.error.value }}
+            <div
+              v-if="turnstile.configurationError.value || turnstile.error.value"
+              class="text-red-600 dark:text-red-400 text-sm mt-2"
+              role="alert"
+            >
+              <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1" />
+              {{ turnstile.configurationError.value || turnstile.error.value }}
             </div>
           </div>
         </el-form-item>
@@ -223,7 +232,7 @@ const handleTurnstileError = (error: string) => {
             type="primary"
             @click="handleSubmit"
             :loading="loading"
-            :disabled="!turnstile.isVerified.value || loading"
+            :disabled="!turnstile.isVerified.value || !!turnstile.configurationError.value || loading"
             size="large"
             class="redeem-button"
           >
@@ -305,13 +314,3 @@ const handleTurnstileError = (error: string) => {
   border-color: #60a5fa;
 }
 </style>
-
-<script lang="ts">
-import { Ticket as ElIconTicket } from '@element-plus/icons-vue'
-
-export default {
-  components: {
-    ElIconTicket
-  }
-}
-</script>

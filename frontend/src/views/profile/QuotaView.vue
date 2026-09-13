@@ -1,482 +1,278 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useQuota } from '@/composables/useQuota'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { checkinApi, formatQuotaSource, formatQuotaType, getQuotaSourceIcon } from '@/api/checkin'
-import type { QuotaLog } from '@/types'
+import { quotaApi, formatQuotaSource, formatQuotaType, getQuotaSourceIcon } from '@/api/quota'
+import { useQuota } from '@/composables/useQuota'
 import { usePageTitle } from '@/composables/usePageTitle'
+import type { QuotaLog } from '@/types'
 
-// 设置页面标题
 usePageTitle()
 
-const authStore = useAuthStore()
-const { quotaInfo, fetchQuotaInfo } = useQuota()
+type QuotaTab = 'all' | 'permanent' | 'expiring' | 'expired'
 
-const user = computed(() => authStore.user)
-
-// 配额记录相关状态
+const { quotaInfo, loading: quotaLoading, ready: quotaReady, refreshing, fetchQuotaInfo, refreshQuotaInfo } = useQuota()
 const quotaLogs = ref<QuotaLog[]>([])
-const quotaLoading = ref(false)
+const logsLoading = ref(false)
+const logsLoaded = ref(false)
 const quotaTotal = ref(0)
 const quotaPage = ref(1)
-const quotaPageSize = ref(50) // 增加每页显示数量
-const activeTab = ref('all') // 当前激活的标签页
+const quotaPageSize = 50
+const activeTab = ref<QuotaTab>('all')
+let logsRequestVersion = 0
 
-// 计算过滤后的配额记录
-const filteredQuotaLogs = computed(() => {
-  const now = new Date()
-
-  return quotaLogs.value.filter(log => {
-    if (activeTab.value === 'all') return true
-
-    if (log.type !== 'earn') return false // 只显示获得的配额
-
-    if (activeTab.value === 'expired') {
-      // 已过期：有过期时间且已过期
-      return log.expires_at && new Date(log.expires_at) <= now
-    }
-
-    if (activeTab.value === 'expiring') {
-      // 即将过期：有过期时间且在24小时内过期
-      if (!log.expires_at) return false
-      const expiresAt = new Date(log.expires_at)
-      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-      return expiresAt > now && expiresAt <= tomorrow
-    }
-
-    if (activeTab.value === 'permanent') {
-      // 永不过期：没有过期时间
-      return !log.expires_at
-    }
-
-    return true
-  })
-})
-
-// 切换标签页
-const handleTabChange = (tab: string) => {
-  activeTab.value = tab
+const safeAmount = (value: unknown) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.abs(Math.trunc(number))) : 0
 }
 
-// 判断配额是否已过期
-const isQuotaExpired = (log: QuotaLog): boolean => {
+const formatDateTime = (value: string | null) => {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('zh-CN')
+}
+
+const isQuotaExpired = (log: QuotaLog) => {
   if (!log.expires_at) return false
-  return new Date(log.expires_at) <= new Date()
+  const expiresAt = new Date(log.expires_at).getTime()
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now()
 }
 
-// 判断配额是否即将过期（24小时内）
-const isQuotaExpiring = (log: QuotaLog): boolean => {
+const isQuotaExpiring = (log: QuotaLog) => {
   if (!log.expires_at) return false
-  const now = new Date()
-  const expiresAt = new Date(log.expires_at)
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-  return expiresAt > now && expiresAt <= tomorrow
+  const expiresAt = new Date(log.expires_at).getTime()
+  const now = Date.now()
+  return Number.isFinite(expiresAt) && expiresAt > now && expiresAt <= now + 86_400_000
 }
 
-onMounted(async () => {
-  await fetchQuotaInfo()
-  await loadQuotaLogs()
-})
+const filteredQuotaLogs = computed(() => quotaLogs.value.filter((log) => {
+  if (activeTab.value === 'all') return true
+  if (log.type !== 'earn') return false
+  if (activeTab.value === 'expired') return isQuotaExpired(log)
+  if (activeTab.value === 'expiring') return isQuotaExpiring(log)
+  return !log.expires_at
+}))
 
-// 加载配额记录
-const loadQuotaLogs = async (reset = true) => {
-  if (reset) {
-    quotaPage.value = 1
-    quotaLogs.value = []
-  }
-
-  quotaLoading.value = true
-  try {
-    const response = await checkinApi.getQuotaLogs(quotaPage.value, quotaPageSize.value)
-    if (response.success && response.data) {
-      if (reset) {
-        quotaLogs.value = response.data.logs
-      } else {
-        quotaLogs.value.push(...response.data.logs)
-      }
-      quotaTotal.value = response.data.total
-    }
-  } catch (error) {
-    console.error('Load quota logs error:', error)
-    ElMessage.error('加载配额记录失败')
-  } finally {
-    quotaLoading.value = false
-  }
-}
-
-// 加载更多配额记录
-const loadMoreQuotaLogs = async () => {
-  quotaPage.value++
-  await loadQuotaLogs(false)
-}
-
-
-// 获取配额类型统计
-const quotaStats = computed(() => {
-  const stats = {
-    earn: { count: 0, amount: 0 },
-    use: { count: 0, amount: 0 }
-  }
-  
-  quotaLogs.value.forEach(log => {
-    if (log.type === 'earn') {
-      stats.earn.count++
-      stats.earn.amount += log.amount
-    } else {
-      stats.use.count++
-      stats.use.amount += log.amount
-    }
-  })
-  
+const quotaStats = computed(() => quotaLogs.value.reduce((stats, log) => {
+  const bucket = log.type === 'earn' ? stats.earn : stats.use
+  bucket.count += 1
+  bucket.amount += safeAmount(log.amount)
   return stats
+}, {
+  earn: { count: 0, amount: 0 },
+  use: { count: 0, amount: 0 },
+}))
+
+const sourceStats = computed(() => {
+  const result = new Map<string, { count: number; amount: number }>()
+  for (const log of quotaLogs.value) {
+    const current = result.get(log.source) ?? { count: 0, amount: 0 }
+    current.count += 1
+    current.amount += safeAmount(log.amount)
+    result.set(log.source, current)
+  }
+  return [...result.entries()]
+    .map(([source, data]) => ({ source, name: formatQuotaSource(source), ...data }))
+    .sort((left, right) => right.amount - left.amount)
 })
 
-// 获取配额来源统计
-const sourceStats = computed(() => {
-  const stats: Record<string, { count: number; amount: number }> = {}
-  
-  quotaLogs.value.forEach(log => {
-    if (!stats[log.source]) {
-      stats[log.source] = { count: 0, amount: 0 }
+const usagePercent = computed(() => {
+  if (quotaInfo.value.total <= 0) return 0
+  return Math.min(100, Math.max(0, Math.round((quotaInfo.value.used / quotaInfo.value.total) * 100)))
+})
+
+const overviewCards = computed(() => [
+  { key: 'remaining', label: '剩余配额', value: quotaInfo.value.remaining, icon: 'inbox', tone: 'cyan' },
+  { key: 'used', label: '已使用', value: quotaInfo.value.used, icon: 'arrow-trend-up', tone: 'amber' },
+  { key: 'total', label: '累计有效配额', value: quotaInfo.value.total, icon: 'layer-group', tone: 'teal' },
+  { key: 'expired', label: '已过期', value: quotaInfo.value.expired ?? 0, icon: 'clock-rotate-left', tone: 'slate' },
+])
+
+const loadQuotaLogs = async (reset = true) => {
+  if (logsLoading.value) return
+  const requestVersion = ++logsRequestVersion
+  const requestedPage = reset ? 1 : quotaPage.value + 1
+  logsLoading.value = true
+
+  try {
+    const response = await quotaApi.getQuotaLogs(requestedPage, quotaPageSize)
+    if (requestVersion !== logsRequestVersion) return
+    if (!response.success || !response.data) throw new Error(response.error || '加载配额记录失败')
+
+    const incoming = response.data.logs ?? []
+    if (reset) {
+      quotaLogs.value = incoming
+    } else {
+      const existingIds = new Set(quotaLogs.value.map((log) => log.id))
+      quotaLogs.value = [...quotaLogs.value, ...incoming.filter((log) => !existingIds.has(log.id))]
     }
-    stats[log.source].count++
-    stats[log.source].amount += log.amount
-  })
-  
-  return Object.entries(stats).map(([source, data]) => ({
-    source,
-    ...data,
-    name: formatQuotaSource(source)
-  }))
+    quotaPage.value = requestedPage
+    quotaTotal.value = Math.max(0, Number(response.data.total) || 0)
+    logsLoaded.value = true
+  } catch (error) {
+    if (requestVersion === logsRequestVersion) {
+      ElMessage.error(error instanceof Error ? error.message : '加载配额记录失败')
+    }
+  } finally {
+    if (requestVersion === logsRequestVersion) logsLoading.value = false
+  }
+}
+
+const refreshAll = async () => {
+  await Promise.allSettled([refreshQuotaInfo(), loadQuotaLogs(true)])
+}
+
+onMounted(() => {
+  void Promise.allSettled([fetchQuotaInfo(), loadQuotaLogs(true)])
 })
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- 配额概览 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <!-- 剩余配额 -->
-      <div class="card-base p-6">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon
-              :icon="['fas', 'envelope']"
-              class="text-blue-600 dark:text-blue-400 text-xl"
-            />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm text-gray-600 dark:text-gray-400">剩余配额</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.remaining }}
-            </p>
-          </div>
-        </div>
+  <div class="quota-page">
+    <div class="page-heading-row">
+      <div>
+        <p class="page-eyebrow">Quota overview</p>
+        <h2>配额管理</h2>
+        <p>查看当前余额、使用情况及每一笔配额变动。</p>
       </div>
-
-      <!-- 已使用 -->
-      <div class="card-base p-6">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon 
-              :icon="['fas', 'chart-line']" 
-              class="text-orange-600 dark:text-orange-400 text-xl"
-            />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm text-gray-600 dark:text-gray-400">已使用</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.used }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 剩余配额 -->
-      <div class="card-base p-6">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon
-              :icon="['fas', 'battery-three-quarters']"
-              class="text-green-600 dark:text-green-400 text-xl"
-            />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm text-gray-600 dark:text-gray-400">剩余配额</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ quotaInfo.remaining }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 已过期配额 -->
-      <div class="card-base p-6" v-if="quotaInfo.expired && quotaInfo.expired > 0">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-            <font-awesome-icon
-              :icon="['fas', 'clock']"
-              class="text-red-600 dark:text-red-400 text-xl"
-            />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm text-gray-600 dark:text-gray-400">已过期配额</p>
-            <p class="text-2xl font-bold text-red-600 dark:text-red-400">
-              {{ quotaInfo.expired }}
-            </p>
-            <p class="text-xs text-red-500 dark:text-red-400 mt-1">
-              这些配额已过期无法使用
-            </p>
-          </div>
-        </div>
-      </div>
+      <el-button :loading="refreshing || logsLoading" @click="refreshAll">
+        <font-awesome-icon :icon="['fas', 'rotate']" />
+        刷新数据
+      </el-button>
     </div>
 
-    <!-- 即将过期配额警告 -->
-    <div v-if="quotaInfo.expiring && quotaInfo.expiring > 0" class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-      <div class="flex items-center space-x-3">
-        <font-awesome-icon
-          :icon="['fas', 'exclamation-triangle']"
-          class="text-orange-600 dark:text-orange-400 text-xl"
-        />
-        <div class="flex-1">
-          <h3 class="text-lg font-semibold text-orange-800 dark:text-orange-200">
-            配额即将过期提醒
-          </h3>
-          <p class="text-orange-700 dark:text-orange-300 mt-1">
-            您有 <span class="font-bold">{{ quotaInfo.expiring }}</span> 个配额将在24小时内过期，请尽快使用！
-          </p>
-          <p class="text-sm text-orange-600 dark:text-orange-400 mt-2">
-            💡 提示：签到获得的配额会在当天24点过期，建议优先使用即将过期的配额创建临时邮箱。
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 使用情况详情 -->
-    <div class="card-base p-6">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-        使用情况
-      </h3>
-      
-      <div class="space-y-6">
-
-
-        <!-- 统计信息 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div class="flex items-center space-x-3">
-              <font-awesome-icon 
-                :icon="['fas', 'plus-circle']" 
-                class="text-green-600 dark:text-green-400 text-xl"
-              />
-              <div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">获得配额</p>
-                <p class="text-xl font-bold text-green-600 dark:text-green-400">
-                  +{{ quotaStats.earn.amount }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ quotaStats.earn.count }} 次记录
-                </p>
+    <div v-if="quotaLoading && !quotaReady" class="quota-overview-grid" aria-label="正在加载配额概览">
+      <div v-for="index in 4" :key="index" class="metric-card metric-card-skeleton">
+        <el-skeleton animated>
+          <template #template>
+            <div class="metric-skeleton-row">
+              <el-skeleton-item variant="circle" class="metric-skeleton-icon" />
+              <div class="metric-skeleton-copy">
+                <el-skeleton-item variant="text" style="width: 46%" />
+                <el-skeleton-item variant="h1" style="width: 68%" />
               </div>
             </div>
-          </div>
-
-          <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-            <div class="flex items-center space-x-3">
-              <font-awesome-icon 
-                :icon="['fas', 'minus-circle']" 
-                class="text-orange-600 dark:text-orange-400 text-xl"
-              />
-              <div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">使用配额</p>
-                <p class="text-xl font-bold text-orange-600 dark:text-orange-400">
-                  -{{ quotaStats.use.amount }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ quotaStats.use.count }} 次记录
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- 配额来源统计 -->
-    <div class="card-base p-6" v-if="sourceStats.length > 0">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-        配额来源统计
-      </h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          v-for="stat in sourceStats"
-          :key="stat.source"
-          class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg"
-        >
-          <div class="flex items-center space-x-3">
-            <font-awesome-icon
-              :icon="['fas', getQuotaSourceIcon(stat.source)]"
-              class="text-blue-600 dark:text-blue-400 text-lg"
-            />
-            <div class="flex-1">
-              <p class="font-medium text-gray-900 dark:text-gray-100">{{ stat.name }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ stat.count }} 次 · {{ stat.amount }} 配额
-              </p>
-            </div>
-          </div>
-        </div>
+          </template>
+        </el-skeleton>
       </div>
     </div>
 
-    <!-- 配额记录 -->
-    <div class="card-base p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          配额记录
-        </h3>
-        <el-button @click="loadQuotaLogs" size="small" :loading="quotaLoading">
-          <font-awesome-icon :icon="['fas', 'refresh']" class="mr-1" />
-          刷新
-        </el-button>
-      </div>
+    <div v-else class="quota-overview-grid">
+      <article v-for="card in overviewCards" :key="card.key" class="metric-card" :data-tone="card.tone">
+        <div class="metric-icon" aria-hidden="true"><font-awesome-icon :icon="['fas', card.icon]" /></div>
+        <div>
+          <p>{{ card.label }}</p>
+          <strong>{{ card.value.toLocaleString('zh-CN') }}</strong>
+        </div>
+      </article>
+    </div>
 
-      <!-- Tab 切换 -->
-      <el-tabs v-model="activeTab" class="mb-4" @tab-change="handleTabChange">
-        <el-tab-pane label="全部记录" name="all">
-          <template #label>
-            <span class="flex items-center">
-              <font-awesome-icon icon="list" class="mr-2" />
-              全部记录
-            </span>
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="permanent">
-          <template #label>
-            <span class="flex items-center text-green-600">
-              <font-awesome-icon icon="infinity" class="mr-2" />
-              永不过期
-            </span>
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="expiring">
-          <template #label>
-            <span class="flex items-center text-orange-600">
-              <font-awesome-icon icon="exclamation-triangle" class="mr-2" />
-              即将过期
-            </span>
-          </template>
-        </el-tab-pane>
-        <el-tab-pane name="expired">
-          <template #label>
-            <span class="flex items-center text-red-600">
-              <font-awesome-icon icon="times-circle" class="mr-2" />
-              已过期
-            </span>
-          </template>
-        </el-tab-pane>
+    <section
+      v-if="quotaLoading && !quotaReady"
+      class="quota-usage-card"
+      aria-label="正在加载配额使用率"
+    >
+      <el-skeleton :rows="3" animated />
+    </section>
+
+    <section v-else class="quota-usage-card" aria-labelledby="usage-title">
+      <div>
+        <p class="page-eyebrow">Usage</p>
+        <h3 id="usage-title">配额使用率</h3>
+        <p>已使用 {{ quotaInfo.used.toLocaleString('zh-CN') }}，剩余 {{ quotaInfo.remaining.toLocaleString('zh-CN') }}</p>
+      </div>
+      <div class="quota-progress-copy"><strong>{{ usagePercent }}%</strong><span>已使用</span></div>
+      <el-progress :percentage="usagePercent" :show-text="false" :stroke-width="10" />
+    </section>
+
+    <div v-if="quotaReady && (quotaInfo.expiring ?? 0) > 0" class="quota-warning" role="status">
+      <font-awesome-icon :icon="['fas', 'triangle-exclamation']" />
+      <div>
+        <strong>有 {{ quotaInfo.expiring }} 个配额将在 24 小时内过期</strong>
+        <p>建议优先使用临近到期的配额创建临时邮箱。</p>
+      </div>
+    </div>
+
+    <div v-if="logsLoading && !logsLoaded" class="quota-insights-grid" aria-label="正在加载配额统计">
+      <section v-for="index in 2" :key="index" class="surface-card">
+        <el-skeleton :rows="4" animated />
+      </section>
+    </div>
+
+    <div v-else class="quota-insights-grid">
+      <section class="surface-card">
+        <header class="section-heading"><div><p class="page-eyebrow">Loaded records</p><h3>已加载记录统计</h3></div></header>
+        <div class="quota-stat-pair">
+          <div><span class="quota-stat-icon success"><font-awesome-icon :icon="['fas', 'plus']" /></span><p>获得配额</p><strong>+{{ quotaStats.earn.amount.toLocaleString('zh-CN') }}</strong><small>{{ quotaStats.earn.count }} 笔</small></div>
+          <div><span class="quota-stat-icon warning"><font-awesome-icon :icon="['fas', 'minus']" /></span><p>使用配额</p><strong>-{{ quotaStats.use.amount.toLocaleString('zh-CN') }}</strong><small>{{ quotaStats.use.count }} 笔</small></div>
+        </div>
+      </section>
+
+      <section class="surface-card">
+        <header class="section-heading"><div><p class="page-eyebrow">Sources</p><h3>配额来源</h3></div></header>
+        <div v-if="sourceStats.length" class="quota-source-list">
+          <div v-for="stat in sourceStats.slice(0, 5)" :key="stat.source">
+            <span><font-awesome-icon :icon="['fas', getQuotaSourceIcon(stat.source)]" /></span>
+            <div><strong>{{ stat.name }}</strong><small>{{ stat.count }} 笔记录</small></div>
+            <b>{{ stat.amount.toLocaleString('zh-CN') }}</b>
+          </div>
+        </div>
+        <el-empty v-else :image-size="56" description="暂无来源统计" />
+      </section>
+    </div>
+
+    <section class="surface-card quota-history">
+      <header class="section-heading quota-history-heading">
+        <div><p class="page-eyebrow">History</p><h3>配额记录</h3></div>
+        <span v-if="logsLoaded" class="record-count">共 {{ quotaTotal.toLocaleString('zh-CN') }} 笔</span>
+      </header>
+
+      <el-tabs v-model="activeTab" class="quota-tabs">
+        <el-tab-pane label="全部记录" name="all" />
+        <el-tab-pane label="永不过期" name="permanent" />
+        <el-tab-pane label="即将过期" name="expiring" />
+        <el-tab-pane label="已过期" name="expired" />
       </el-tabs>
 
-      <div v-if="filteredQuotaLogs.length === 0 && !quotaLoading" class="text-center py-8">
-        <font-awesome-icon :icon="['fas', 'inbox']" class="text-4xl text-gray-400 mb-4" />
-        <p class="text-gray-500 dark:text-gray-400">
-          {{ activeTab === 'all' ? '暂无配额记录' :
-             activeTab === 'permanent' ? '暂无永不过期的配额' :
-             activeTab === 'expiring' ? '暂无即将过期的配额' :
-             '暂无已过期的配额' }}
-        </p>
+      <div v-if="logsLoading && !logsLoaded" class="quota-log-skeletons" aria-label="正在加载配额记录">
+        <el-skeleton v-for="index in 5" :key="index" :rows="2" animated />
       </div>
 
-      <div v-else class="space-y-3">
-        <div
+      <el-empty
+        v-else-if="!filteredQuotaLogs.length"
+        :image-size="72"
+        :description="activeTab === 'all' ? '暂无配额记录' : '当前分类暂无记录'"
+      />
+
+      <div v-else class="quota-log-list">
+        <article
           v-for="log in filteredQuotaLogs"
           :key="log.id"
-          :class="[
-            'flex items-center justify-between p-4 rounded-lg border-l-4',
-            isQuotaExpired(log)
-              ? 'bg-red-50 dark:bg-red-900/20 border-l-red-500'
-              : isQuotaExpiring(log)
-              ? 'bg-orange-50 dark:bg-orange-900/20 border-l-orange-500'
-              : 'bg-gray-50 dark:bg-gray-700/50 border-l-blue-500'
-          ]"
+          :class="{ expired: isQuotaExpired(log), expiring: isQuotaExpiring(log) }"
         >
-          <div class="flex items-center space-x-4">
-            <div
-              :class="[
-                'w-10 h-10 rounded-full flex items-center justify-center',
-                log.type === 'earn' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-orange-100 dark:bg-orange-900/30'
-              ]"
-            >
-              <font-awesome-icon
-                :icon="['fas', getQuotaSourceIcon(log.source)]"
-                :class="[
-                  'text-sm',
-                  log.type === 'earn' ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
-                ]"
-              />
-            </div>
-            <div>
-              <p class="font-medium text-gray-900 dark:text-gray-100">
-                {{ log.description || formatQuotaSource(log.source) }}
-              </p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ new Date(log.created_at).toLocaleString('zh-CN') }}
-              </p>
-              <!-- 显示过期时间信息 -->
-              <p v-if="log.type === 'earn'" class="text-xs mt-1">
-                <span v-if="log.expires_at">
-                  <span v-if="isQuotaExpired(log)" class="text-red-600 dark:text-red-400 font-medium">
-                    <font-awesome-icon icon="times-circle" class="mr-1" />
-                    已过期 - {{ new Date(log.expires_at).toLocaleString('zh-CN') }}
-                  </span>
-                  <span v-else-if="isQuotaExpiring(log)" class="text-orange-600 dark:text-orange-400 font-medium">
-                    <font-awesome-icon icon="exclamation-triangle" class="mr-1" />
-                    即将过期 - {{ new Date(log.expires_at).toLocaleString('zh-CN') }}
-                  </span>
-                  <span v-else class="text-blue-600 dark:text-blue-400">
-                    <font-awesome-icon icon="clock" class="mr-1" />
-                    {{ new Date(log.expires_at).toLocaleString('zh-CN') }} 过期
-                  </span>
-                </span>
-                <span v-else class="text-green-600 dark:text-green-400 font-medium">
-                  <font-awesome-icon icon="infinity" class="mr-1" />
-                  永不过期
-                </span>
-              </p>
-            </div>
+          <div class="quota-log-icon" :data-type="log.type">
+            <font-awesome-icon :icon="['fas', getQuotaSourceIcon(log.source)]" />
           </div>
-
-          <div class="text-right">
-            <p
-              :class="[
-                'text-lg font-semibold',
-                log.type === 'earn' ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'
-              ]"
-            >
-              {{ log.type === 'earn' ? '+' : '-' }}{{ log.amount }}
-            </p>
-            <el-tag
-              :type="log.type === 'earn' ? 'success' : 'warning'"
-              size="small"
-            >
-              {{ formatQuotaType(log.type) }}
-            </el-tag>
+          <div class="quota-log-copy">
+            <strong>{{ log.description || formatQuotaSource(log.source) }}</strong>
+            <span>{{ formatDateTime(log.created_at) }}</span>
+            <small v-if="log.type === 'earn'">
+              <template v-if="!log.expires_at">永不过期</template>
+              <template v-else-if="isQuotaExpired(log)">已于 {{ formatDateTime(log.expires_at) }} 过期</template>
+              <template v-else>有效期至 {{ formatDateTime(log.expires_at) }}</template>
+            </small>
           </div>
-        </div>
-
-        <!-- 分页 -->
-        <div v-if="quotaTotal > quotaLogs.length" class="flex justify-center mt-6">
-          <el-button
-            @click="loadMoreQuotaLogs"
-            :loading="quotaLoading"
-            size="small"
-          >
-            <font-awesome-icon :icon="['fas', 'chevron-down']" class="mr-1" />
-            加载更多 ({{ quotaLogs.length }}/{{ quotaTotal }})
-          </el-button>
-        </div>
+          <div class="quota-log-value" :data-type="log.type">
+            <strong>{{ log.type === 'earn' ? '+' : '-' }}{{ safeAmount(log.amount) }}</strong>
+            <span>{{ formatQuotaType(log.type) }}</span>
+          </div>
+        </article>
       </div>
-    </div>
+
+      <div v-if="quotaTotal > quotaLogs.length" class="load-more-row">
+        <el-button :loading="logsLoading" @click="loadQuotaLogs(false)">
+          加载更多（{{ quotaLogs.length }}/{{ quotaTotal }}）
+        </el-button>
+      </div>
+    </section>
   </div>
 </template>

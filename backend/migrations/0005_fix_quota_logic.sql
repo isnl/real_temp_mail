@@ -2,7 +2,7 @@
 
 -- 1. 清理重复的注册配额记录
 DELETE FROM quota_logs 
-WHERE id NOT IN (
+WHERE source = 'register' AND id NOT IN (
   SELECT MIN(id) 
   FROM quota_logs 
   WHERE source = 'register' 

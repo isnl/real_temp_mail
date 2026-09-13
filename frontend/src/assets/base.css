@@ -1,86 +1,180 @@
-/* color palette from <https://github.com/vuejs/theme> */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  color-scheme: light;
+  --brand-50: #ecfeff;
+  --brand-100: #cffafe;
+  --brand-200: #a5f3fc;
+  --brand-400: #22d3ee;
+  --brand-500: #06b6d4;
+  --brand-600: #0e7490;
+  --brand-700: #155e75;
+  --brand-800: #164e63;
+  --page-bg: #f5fafb;
+  --page-bg-accent: #ecfeff;
+  --surface: #ffffff;
+  --surface-muted: #f1f7f8;
+  --surface-elevated: rgba(255, 255, 255, 0.92);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #52677d;
+  --border: #d8e5e8;
+  --border-strong: #b9cdd2;
+  --focus: #0891b2;
+  --success: #047857;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 5px 16px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 18px 45px rgba(15, 84, 99, 0.10), 0 2px 8px rgba(15, 23, 42, 0.05);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --transition-fast: 160ms ease;
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
-
-  --vt-c-indigo: #2c3e50;
-
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
-
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --el-color-primary: #0e7490;
+  --el-color-primary-light-3: #2790a8;
+  --el-color-primary-light-5: #55a9ba;
+  --el-color-primary-light-7: #91ccd6;
+  --el-color-primary-light-8: #b9e1e7;
+  --el-color-primary-light-9: #e7f6f8;
+  --el-color-primary-dark-2: #155e75;
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-border-color: var(--border);
+  --el-border-color-light: #e4edef;
+  --el-fill-color-light: #f1f7f8;
+  --el-bg-color-page: var(--page-bg);
 }
 
-/* semantic color variables for this project */
-:root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
+html.dark {
+  color-scheme: dark;
+  --page-bg: #081317;
+  --page-bg-accent: #092229;
+  --surface: #102126;
+  --surface-muted: #142a30;
+  --surface-elevated: rgba(16, 33, 38, 0.94);
+  --text-primary: #edfafa;
+  --text-secondary: #b3c8cc;
+  --text-tertiary: #91aeb4;
+  --border: #29434a;
+  --border-strong: #3b5c64;
+  --focus: #22d3ee;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 22px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 22px 55px rgba(0, 0, 0, 0.32);
 
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
-
-  --section-gap: 160px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
-
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
-
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
-  }
+  --el-color-primary: #22d3ee;
+  --el-color-primary-light-3: #56deef;
+  --el-color-primary-light-5: #80e6f3;
+  --el-color-primary-light-7: #176271;
+  --el-color-primary-light-8: #154b56;
+  --el-color-primary-light-9: #11353d;
+  --el-color-primary-dark-2: #67e8f9;
+  --el-bg-color: var(--surface);
+  --el-bg-color-page: var(--page-bg);
+  --el-bg-color-overlay: #162b31;
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-tertiary);
+  --el-border-color: var(--border);
+  --el-border-color-light: #223a40;
+  --el-fill-color-light: var(--surface-muted);
+  --el-fill-color-blank: var(--surface);
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-  margin: 0;
-  font-weight: normal;
 }
 
-body {
-  min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-  font-size: 15px;
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--page-bg);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+  color: var(--text-primary);
+  background: var(--page-bg);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+[role="button"],
+a,
+.el-button,
+.el-switch,
+.el-dropdown,
+.el-menu-item {
+  cursor: pointer;
+}
+
+a {
+  color: var(--brand-600);
+  text-decoration: none;
+}
+
+.dark a {
+  color: var(--brand-400);
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 72%, transparent);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: #083344;
+  background: #a5f3fc;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #91aeb4;
+  background-clip: padding-box;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #45656d;
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

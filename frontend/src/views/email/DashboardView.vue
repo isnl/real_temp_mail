@@ -5,12 +5,12 @@ import { useAuthStore } from '@/stores/auth'
 import { useUserQueries } from '@/composables/useUserQueries'
 import { useQuota } from '@/composables/useQuota'
 import { useAnnouncement } from '@/composables/useAnnouncement'
+import { usePublicSettings } from '@/composables/usePublicSettings'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TempEmailList from '@/components/email/TempEmailList.vue'
 import EmailList from '@/components/email/EmailList.vue'
 import RedeemCodeDialog from '@/components/email/RedeemCodeDialog.vue'
-import AdWatchDialog from '@/components/ads/AdWatchDialog.vue'
-import type { CreateEmailRequest } from '@/types'
+import type { CreateEmailRequest, TempEmail } from '@/types'
 import { usePageTitle } from '@/composables/usePageTitle'
 
 // 设置页面标题
@@ -19,28 +19,37 @@ usePageTitle()
 const emailStore = useEmailStore()
 const authStore = useAuthStore()
 const { updateUserQuotaOptimistic } = useUserQueries()
-const { quotaInfo, fetchQuotaInfo, refreshQuotaInfo } = useQuota()
+const {
+  quotaInfo,
+  loading: quotaLoading,
+  ready: quotaReady,
+  fetchQuotaInfo,
+  refreshQuotaInfo,
+} = useQuota()
 const { checkAndShowAnnouncement } = useAnnouncement()
+const publicSettings = usePublicSettings()
 
 const loading = ref(false)
 
 const showRedeemDialog = ref(false)
 const isCreatingInline = ref(false)
 const selectedDomainId = ref(0)
-
-// 免费获取配额相关状态
-const showAdDialog = ref(false)
-
-
+const deletingEmailId = ref<number | null>(null)
 
 const selectedTempEmail = computed(() => emailStore.selectedTempEmail)
 const currentEmails = computed(() => emailStore.currentEmails)
+const publicInboxRequiresTurnstile = computed(
+  () =>
+    publicSettings.settings.value.turnstileEnabled &&
+    publicSettings.settings.value.turnstilePublicInboxEnabled,
+)
 
 onMounted(async () => {
-  // 🎯 优化：并行加载数据，提高页面加载速度
-  await Promise.all([
+  await Promise.allSettled([
     loadData(),
-    fetchQuotaInfo() // 确保配额信息被正确获取
+    fetchQuotaInfo(), // 确保配额信息被正确获取
+    // 配置读取失败时按“不需要验证”展示警告，避免给用户虚假的安全承诺。
+    publicSettings.load().catch(() => undefined),
   ])
 
   // 设置默认选中的域名
@@ -48,17 +57,15 @@ onMounted(async () => {
     selectedDomainId.value = emailStore.availableDomains[0].id
   }
 
-  // 检查并显示公告
-  setTimeout(() => {
-    checkAndShowAnnouncement()
-  }, 1000) // 延迟1秒显示，确保页面加载完成
+  // 页面主数据就绪后异步检查公告，不遗留跨页面定时器。
+  void checkAndShowAnnouncement()
 })
 
 const loadData = async () => {
   loading.value = true
   try {
     await Promise.all([emailStore.fetchTempEmails(), emailStore.fetchDomains()])
-  } catch (error: any) {
+  } catch (error) {
     console.error('Load data error:', error)
     ElMessage.error('加载数据失败')
   } finally {
@@ -66,20 +73,65 @@ const loadData = async () => {
   }
 }
 
-const handleSelectEmail = async (tempEmail: any) => {
+const handleSelectEmail = async (tempEmail: TempEmail) => {
   try {
     await emailStore.fetchEmailsForTempEmail(tempEmail.id)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Fetch emails error:', error)
     ElMessage.error('获取邮件列表失败')
   }
 }
 
-const handleTogglePublicInbox = async (tempEmail: any, enabled: boolean) => {
+const handleEmailPageChange = async (page: number) => {
+  if (!selectedTempEmail.value || emailStore.isLoading) return
+  try {
+    await emailStore.fetchEmailsForTempEmail(selectedTempEmail.value.id, page)
+  } catch (error) {
+    console.error('Fetch email page error:', error)
+    ElMessage.error(error instanceof Error ? error.message : '获取邮件分页失败')
+  }
+}
+
+const handleDeleteTempEmail = async (tempEmail: TempEmail) => {
+  if (deletingEmailId.value !== null) return
+  try {
+    await ElMessageBox.confirm(
+      `确定删除 ${tempEmail.email} 吗？该地址会立即停止收信，并在下一轮清理中连同邮件永久删除；已消耗配额不会返还。`,
+      '删除临时邮箱',
+      {
+        confirmButtonText: '删除邮箱',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+    deletingEmailId.value = tempEmail.id
+    const wasSelected = selectedTempEmail.value?.id === tempEmail.id
+    await emailStore.deleteTempEmail(tempEmail.id)
+    if (wasSelected) {
+      const nextEmail = emailStore.activeTempEmails[0]
+      if (nextEmail) {
+        emailStore.setSelectedTempEmail(nextEmail)
+        await emailStore.fetchEmailsForTempEmail(nextEmail.id)
+      }
+    }
+    ElMessage.success('临时邮箱已停用，将在下一轮清理中永久删除')
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      console.error('Delete temp email error:', error)
+      ElMessage.error(error instanceof Error ? error.message : '删除临时邮箱失败')
+    }
+  } finally {
+    deletingEmailId.value = null
+  }
+}
+
+const handleTogglePublicInbox = async (tempEmail: TempEmail, enabled: boolean) => {
   try {
     if (enabled) {
       await ElMessageBox.confirm(
-        '开启后，任何知道该邮箱地址并通过人机验证的人，都可以查看此邮箱收到的邮件和验证码。',
+        publicInboxRequiresTurnstile.value
+          ? '开启后，任何知道该邮箱地址并通过人机验证的人，都可以查看此邮箱收到的邮件和验证码。'
+          : '开启后，任何知道该邮箱地址的人无需登录或人机验证，就可以查看此邮箱收到的邮件和验证码。请勿用于接收敏感信息。',
         '开启公开收件箱',
         {
           confirmButtonText: '开启',
@@ -97,30 +149,23 @@ const handleTogglePublicInbox = async (tempEmail: any, enabled: boolean) => {
     }
 
     ElMessage.success(enabled ? '公开收件箱已开启' : '公开收件箱已关闭')
-  } catch (error: any) {
-    if (error !== 'cancel') {
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
       console.error('Toggle public inbox error:', error)
-      ElMessage.error(error.message || '更新公开收件箱失败')
+      ElMessage.error(error instanceof Error ? error.message : '更新公开收件箱失败')
     }
   }
 }
 
-// 🔥 全局刷新方法（保留以备后用）
-const handleRefresh = async () => {
-  await loadData()
-  if (selectedTempEmail.value) {
-    await emailStore.fetchEmailsForTempEmail(selectedTempEmail.value.id)
-  }
-  ElMessage.success('刷新成功')
-}
-
-// 🎯 新增：只刷新邮件列表的方法
 const handleEmailRefresh = async () => {
   if (selectedTempEmail.value) {
     try {
-      await emailStore.fetchEmailsForTempEmail(selectedTempEmail.value.id)
+      await emailStore.fetchEmailsForTempEmail(
+        selectedTempEmail.value.id,
+        emailStore.currentEmailPage,
+      )
       ElMessage.success('邮件列表刷新成功')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Refresh emails error:', error)
       ElMessage.error('刷新邮件列表失败')
     }
@@ -133,7 +178,6 @@ const handleRedeemSuccess = async (data?: { quota: number }) => {
   // 如果有返回配额信息，直接更新；否则刷新用户信息
   if (data?.quota !== undefined) {
     updateUserQuotaOptimistic(data.quota)
-    // 🎯 刷新配额信息缓存，确保数据同步
     await refreshQuotaInfo()
     ElMessage.success('兑换码使用成功')
   } else {
@@ -141,25 +185,6 @@ const handleRedeemSuccess = async (data?: { quota: number }) => {
     await refreshQuotaInfo() // 同时刷新配额缓存
     ElMessage.success('兑换码使用成功')
   }
-}
-
-// 免费获取配额相关方法
-const handleFreeQuota = async () => {
-  showAdDialog.value = true
-}
-
-// 广告观看成功处理
-const handleAdSuccess = async (data: { quota: number; message: string }) => {
-  // 更新用户配额（乐观更新）
-  updateUserQuotaOptimistic(data.quota)
-
-  // 刷新配额信息缓存，确保数据同步
-  await refreshQuotaInfo()
-
-  // 刷新用户信息
-  await authStore.fetchCurrentUser()
-
-  ElMessage.success(data.message)
 }
 
 const copyToClipboard = async (text: string) => {
@@ -197,9 +222,6 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     return
   }
 
-  console.log('Creating email with domain ID:', targetDomainId)
-
-  // 直接创建邮箱
   isCreatingInline.value = true
 
   try {
@@ -207,22 +229,15 @@ const handleInlineCreateEmail = async (domainId?: number) => {
       domainId: targetDomainId
     }
 
-    console.log('Sending create email request:', request)
     const response = await emailStore.createTempEmail(request)
-    console.log('Create email response:', response)
 
-    // 🔥 使用后端返回的最新配额信息更新前端
     if (response.data?.userQuota !== undefined) {
       updateUserQuotaOptimistic(response.data.userQuota)
-      // 🎯 刷新配额信息缓存，确保数据同步
-      await refreshQuotaInfo()
     }
 
-    // 刷新邮箱数据和配额信息
-    await loadData()
-    await fetchQuotaInfo() // 确保配额信息是最新的
+    await refreshQuotaInfo()
 
-    // 🎯 新增功能：自动选中新创建的邮箱并复制地址
+    // 自动选中新创建的邮箱并复制地址
     if (response.data?.tempEmail) {
       const newTempEmail = response.data.tempEmail
 
@@ -258,28 +273,27 @@ const handleInlineCreateEmail = async (domainId?: number) => {
       ElMessage.success('临时邮箱创建成功')
     }
 
-    // 成功后重置状态
-    isCreatingInline.value = false
-  } catch (error: any) {
+  } catch (error) {
     console.error('Create email error:', error)
 
     // 提供更详细的错误信息
     let errorMessage = '创建失败'
-    if (error.message) {
-      if (error.message.includes('配额不足')) {
+    const message = error instanceof Error ? error.message : ''
+    if (message) {
+      if (message.includes('配额不足')) {
         errorMessage = '配额不足，请先兑换配额码'
-      } else if (error.message.includes('域名')) {
+      } else if (message.includes('域名')) {
         errorMessage = '域名无效，请重新选择'
-      } else if (error.message.includes('网络')) {
+      } else if (message.includes('网络')) {
         errorMessage = '网络连接失败，请检查网络后重试'
       } else {
-        errorMessage = error.message
+        errorMessage = message
       }
     }
 
     ElMessage.error(errorMessage)
 
-    // 错误后重置状态
+  } finally {
     isCreatingInline.value = false
   }
 }
@@ -312,9 +326,6 @@ const handleRandomCreateEmail = async () => {
   const randomIndex = Math.floor(Math.random() * emailStore.availableDomains.length)
   const randomDomainId = emailStore.availableDomains[randomIndex].id
 
-  console.log('Creating random email with domain ID:', randomDomainId)
-
-  // 调用创建邮箱方法
   await handleInlineCreateEmail(randomDomainId)
 }
 
@@ -324,13 +335,13 @@ const handleRandomCreateEmail = async () => {
 </script>
 
 <template>
-  <div class="max-w-1500px mx-auto px-4 sm:px-6 lg:px-8 flex flex-col h-full">
+  <div class="dashboard-page max-w-1500px mx-auto px-4 sm:px-6 lg:px-8 flex flex-col min-h-full lg:h-full">
     <!-- Header -->
     <div
       class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 mt-4"
     >
       <div class="px-6 py-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <!-- Title Section -->
           <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">邮箱管理</h1>
@@ -339,15 +350,6 @@ const handleRandomCreateEmail = async () => {
 
           <!-- Action Buttons -->
           <div class="flex items-center gap-3">
-            <el-button
-              @click="handleFreeQuota"
-              type="success"
-              size="default"
-            >
-              <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
-              免费获取配额
-            </el-button>
-
             <el-button @click="showRedeemDialog = true" type="primary" size="default">
               <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
               兑换配额
@@ -356,9 +358,21 @@ const handleRandomCreateEmail = async () => {
         </div>
 
         <!-- Quota Cards -->
-        <div class="grid grid-cols-3 gap-4 mt-6">
+        <div v-if="quotaLoading && !quotaReady" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6" aria-label="正在加载配额">
+          <div v-for="index in 3" :key="index" class="quota-summary-skeleton">
+            <el-skeleton animated>
+              <template #template>
+                <div class="flex items-center gap-4">
+                  <el-skeleton-item variant="circle" style="width: 48px; height: 48px" />
+                  <div class="flex-1"><el-skeleton-item variant="text" style="width: 54%" /><el-skeleton-item variant="h1" style="width: 72%; margin-top: 8px" /></div>
+                </div>
+              </template>
+            </el-skeleton>
+          </div>
+        </div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
           <div
-            class="transition-all duration-300 hover:shadow-xl hover:scale-[1.01] bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700"
+            class="quota-summary-card"
           >
             <div class="flex items-center">
               <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
@@ -374,7 +388,7 @@ const handleRandomCreateEmail = async () => {
           </div>
 
           <div
-            class="transition-all duration-300 hover:shadow-xl hover:scale-[1.01] bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700"
+            class="quota-summary-card"
           >
             <div class="flex items-center">
               <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mr-4">
@@ -390,7 +404,7 @@ const handleRandomCreateEmail = async () => {
           </div>
 
           <div
-            class="transition-all duration-300 hover:shadow-xl hover:scale-[1.01] bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700"
+            class="quota-summary-card"
           >
             <div class="flex items-center">
               <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-4">
@@ -409,18 +423,18 @@ const handleRandomCreateEmail = async () => {
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 py-6 overflow-hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full overflow-hidden">
+    <div class="dashboard-content flex-1 py-6 lg:min-h-0 lg:overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 lg:h-full lg:min-h-0 lg:overflow-hidden">
         <!-- Temp Email List -->
-        <div class="group relative h-ful overflow-hidden">
+        <div class="group relative min-h-[34rem] lg:min-h-0 lg:h-full overflow-hidden">
           <div
-            class="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border border-gray-200/50 dark:border-gray-700/50 flex flex-col h-full overflow-hidden"
+            class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
           >
             <!-- 顶部装饰条 -->
             <div class="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500"></div>
 
             <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
-              <div class="flex items-center justify-between mb-6">
+              <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-2">
                 <div class="flex items-center space-x-3">
                   <div
                     class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg"
@@ -432,13 +446,13 @@ const handleRandomCreateEmail = async () => {
                     <p class="text-sm text-gray-600 dark:text-gray-400">点击邮箱查看收到的邮件</p>
                   </div>
                 </div>
-                <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-3 min-w-0 xl:min-w-[23rem]">
                   <!-- 指定域名创建 -->
-                  <div class="flex items-center gap-3">
+                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <el-select
                       v-model="selectedDomainId"
                       placeholder="选择域名"
-                      style="width: 180px"
+                      class="w-full sm:w-44 flex-shrink-0"
                       :disabled="emailStore.availableDomains.length === 0"
                       size="default"
                     >
@@ -452,7 +466,7 @@ const handleRandomCreateEmail = async () => {
                     <el-button
                       type="primary"
                       :loading="isCreatingInline"
-                      :disabled="quotaInfo.remaining <= 0 || !selectedDomainId"
+                      :disabled="!quotaReady || quotaInfo.remaining <= 0 || !selectedDomainId"
                       @click="handleInlineCreateEmail()"
                       class="flex-1"
                     >
@@ -470,7 +484,7 @@ const handleRandomCreateEmail = async () => {
                     <el-button
                       type="success"
                       :loading="isCreatingInline"
-                      :disabled="quotaInfo.remaining <= 0"
+                      :disabled="!quotaReady || quotaInfo.remaining <= 0"
                       @click="handleRandomCreateEmail()"
                       class="w-full"
                       plain
@@ -490,17 +504,19 @@ const handleRandomCreateEmail = async () => {
             <div class="flex-1 overflow-hidden">
               <TempEmailList
                 :loading="loading"
+                :deleting-id="deletingEmailId"
                 @select="handleSelectEmail"
                 @toggle-public-inbox="handleTogglePublicInbox"
+                @delete="handleDeleteTempEmail"
               />
             </div>
           </div>
         </div>
 
         <!-- Email List -->
-        <div class="group relative h-ful overflow-hidden">
+        <div class="group relative min-h-[34rem] lg:min-h-0 lg:h-full overflow-hidden">
           <div
-            class="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border border-gray-200/50 dark:border-gray-700/50 flex flex-col h-full overflow-hidden"
+            class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
           >
             <!-- 顶部装饰条 -->
             <div class="h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
@@ -564,6 +580,10 @@ const handleRandomCreateEmail = async () => {
                 :temp-email-id="selectedTempEmail.id"
                 :emails="currentEmails"
                 :loading="emailStore.isLoading"
+                :page="emailStore.currentEmailPage"
+                :page-size="emailStore.currentEmailPageSize"
+                :total="emailStore.currentEmailTotal"
+                @page-change="handleEmailPageChange"
               />
 
               <div v-else class="flex items-center justify-center h-full">
@@ -595,7 +615,6 @@ const handleRandomCreateEmail = async () => {
 
     <!-- Dialogs -->
     <RedeemCodeDialog v-model="showRedeemDialog" @success="handleRedeemSuccess" />
-    <AdWatchDialog v-model="showAdDialog" @success="handleAdSuccess" />
 
 
   </div>

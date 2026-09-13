@@ -7,94 +7,64 @@ import type {
   PublicInboxResponse,
   RedeemRequest,
   PaginationParams,
-  PaginatedResponse
+  PaginatedResponse,
+  PublicEmailDetail
 } from '@/types'
-import { ValidationError, NotFoundError } from '@/types'
+import { AppError, ValidationError, NotFoundError } from '@/types'
 import { DatabaseService } from '@/modules/shared/database.service'
-import { EmailParserService } from './parser.service'
+import { generateEmailPrefix } from '@/utils/crypto'
 
 export class EmailService {
-  private parserService: EmailParserService
-  private readonly PUBLIC_INBOX_ACCESS_EXPIRES = 10 * 60 // 10 minutes
+  private readonly PUBLIC_INBOX_ACCESS_EXPIRES = 10 * 60
+  private readonly EMAIL_GENERATION_ATTEMPTS = 8
 
   constructor(
     private env: Env,
     private dbService: DatabaseService
-  ) {
-    this.parserService = new EmailParserService()
-  }
+  ) {}
 
   async createTempEmail(userId: number, request: CreateEmailRequest, httpRequest?: Request): Promise<TempEmail> {
-    // 1. 检查用户剩余配额
-    const user = await this.dbService.getUserById(userId)
-    if (!user) {
-      throw new NotFoundError('用户不存在')
+    if (!request || !Number.isSafeInteger(request.domainId) || request.domainId <= 0) {
+      throw new ValidationError('无效的域名')
     }
 
-    console.log(`用户 ${userId} 当前剩余配额: ${user.quota}`)
-
-    if (user.quota <= 0) {
-      console.log(`用户 ${userId} 配额不足，当前剩余: ${user.quota}`)
-      throw new ValidationError('剩余配额不足，无法创建临时邮箱')
-    }
-
-    // 2. 验证域名
     const domain = await this.dbService.getDomainById(request.domainId)
     if (!domain || domain.status !== 1) {
       throw new ValidationError('无效的域名')
     }
 
-    // 3. 生成随机邮箱前缀
-    const prefix = this.generateEmailPrefix()
-    const email = `${prefix}@${domain.domain}`
+    const audit = httpRequest
+      ? {
+          ipAddress: this.clientIp(httpRequest).slice(0, 128),
+          userAgent: (httpRequest.headers.get('User-Agent') || 'unknown').slice(0, 512)
+        }
+      : undefined
 
-    // 4. 检查邮箱是否已存在
-    const existingEmail = await this.dbService.getTempEmailByEmail(email)
-    if (existingEmail) {
-      // 如果存在，重新生成
-      return this.createTempEmail(userId, request)
-    }
-
-    // 5. 原子操作：扣除剩余配额并创建邮箱
-    const success = await this.dbService.decrementUserQuota(userId)
-    if (!success) {
-      throw new ValidationError('剩余配额不足，无法创建临时邮箱')
-    }
-
-    try {
-      const tempEmail = await this.dbService.createTempEmail(userId, email, request.domainId)
-
-      // 6. 创建配额消费记录
-      await this.dbService.createQuotaLog({
-        userId,
-        type: 'consume',
-        amount: 1,
-        source: 'create_email',
-        description: `创建临时邮箱: ${email}`,
-        relatedId: tempEmail.id
-      })
-
-      // 7. 记录日志（包含IP地址和User-Agent）
-      if (httpRequest) {
-        await this.dbService.createLogWithRequest(httpRequest, {
+    for (let attempt = 0; attempt < this.EMAIL_GENERATION_ATTEMPTS; attempt++) {
+      const email = `${generateEmailPrefix(12)}@${domain.domain}`
+      try {
+        const tempEmail = await this.dbService.createTempEmailWithQuota(
           userId,
-          action: 'CREATE_EMAIL',
-          details: `Created temp email: ${email}`
-        })
-      } else {
-        await this.dbService.createLog({
-          userId,
-          action: 'CREATE_EMAIL',
-          details: `Created temp email: ${email}`
-        })
+          email,
+          request.domainId,
+          audit
+        )
+        if (!tempEmail) {
+          throw new ValidationError('剩余配额不足，无法创建临时邮箱')
+        }
+        return tempEmail
+      } catch (error) {
+        if (this.dbService.isUniqueConstraintError(error) && attempt + 1 < this.EMAIL_GENERATION_ATTEMPTS) {
+          continue
+        }
+        if (this.dbService.isUniqueConstraintError(error)) {
+          throw new AppError('暂时无法生成唯一邮箱地址，请稍后重试', 503)
+        }
+        throw error
       }
-
-      return tempEmail
-    } catch (error) {
-      // 如果创建失败，恢复剩余配额（加回被扣除的1个配额）
-      await this.dbService.updateUserQuota(userId, user.quota)
-      throw error
     }
+
+    throw new AppError('暂时无法生成邮箱地址，请稍后重试', 503)
   }
 
   async getTempEmails(userId: number): Promise<TempEmail[]> {
@@ -106,13 +76,6 @@ export class EmailService {
     if (!success) {
       throw new NotFoundError('临时邮箱不存在或无权限删除')
     }
-
-    // 记录日志
-    await this.dbService.createLog({
-      userId,
-      action: 'DELETE_EMAIL',
-      details: `Deleted temp email ID: ${emailId}`
-    })
   }
 
   async updateTempEmailPublicInbox(
@@ -130,12 +93,6 @@ export class EmailService {
       throw new NotFoundError('临时邮箱不存在或无权限修改')
     }
 
-    await this.dbService.createLog({
-      userId,
-      action: 'UPDATE_PUBLIC_INBOX',
-      details: `${publicInboxEnabled ? 'Enabled' : 'Disabled'} public inbox for ${tempEmail.email}`
-    })
-
     return tempEmail
   }
 
@@ -144,20 +101,18 @@ export class EmailService {
     tempEmailId: number, 
     pagination: PaginationParams
   ): Promise<PaginatedResponse<Email>> {
-    // 验证临时邮箱是否属于当前用户
-    const tempEmails = await this.dbService.getTempEmailsByUserId(userId)
-    const tempEmail = tempEmails.find(email => email.id === tempEmailId)
-    
+    const tempEmail = await this.dbService.getTempEmailForUser(tempEmailId, userId)
     if (!tempEmail) {
       throw new NotFoundError('临时邮箱不存在或无权限访问')
     }
 
-    return await this.dbService.getEmailsForTempEmail(tempEmailId, pagination)
+    return await this.dbService.getEmailsForTempEmail(tempEmailId, pagination, userId)
   }
 
   async getPublicInbox(
     emailAddress: string,
-    pagination: PaginationParams
+    pagination: PaginationParams,
+    existingAccess?: { token: string; expiresAt: string }
   ): Promise<PublicInboxResponse> {
     const normalizedEmail = (emailAddress || '').trim().toLowerCase()
 
@@ -165,14 +120,19 @@ export class EmailService {
       throw new ValidationError('请输入有效的邮箱地址')
     }
 
-    const tempEmail = await this.dbService.getPublicTempEmailByEmail(normalizedEmail)
-    if (!tempEmail) {
+    const snapshot = await this.dbService.getPublicInboxSnapshot(normalizedEmail, pagination)
+    if (!snapshot) {
       throw new NotFoundError('公开收件箱不存在或未开启')
     }
+    const { tempEmail, emails } = snapshot
 
-    const emails = await this.dbService.getEmailsForTempEmail(tempEmail.id, pagination)
-
-    const tokenPayload = this.createPublicInboxAccessPayload(tempEmail.email)
+    let publicAccessToken = existingAccess?.token
+    let publicAccessTokenExpiresAt = existingAccess?.expiresAt
+    if (!publicAccessToken || !publicAccessTokenExpiresAt) {
+      const tokenPayload = this.createPublicInboxAccessPayload(tempEmail.email)
+      publicAccessToken = await this.signPublicInboxAccessToken(tokenPayload)
+      publicAccessTokenExpiresAt = new Date(tokenPayload.exp * 1000).toISOString()
+    }
 
     return {
       tempEmail: {
@@ -181,53 +141,84 @@ export class EmailService {
         public_inbox_enabled: tempEmail.public_inbox_enabled
       },
       emails,
-      publicAccessToken: await this.signPublicInboxAccessToken(tokenPayload),
-      publicAccessTokenExpiresAt: new Date(tokenPayload.exp * 1000).toISOString()
+      publicAccessToken,
+      publicAccessTokenExpiresAt
     }
   }
 
-  async verifyPublicInboxAccessToken(token: string | undefined, emailAddress: string): Promise<boolean> {
-    if (!token || !emailAddress) {
-      return false
+  async getPublicEmailDetail(emailAddress: string, emailId: number): Promise<PublicEmailDetail> {
+    const normalizedEmail = (emailAddress || '').trim().toLowerCase()
+    if (!normalizedEmail || normalizedEmail.length > 254) {
+      throw new ValidationError('请输入有效的邮箱地址')
+    }
+    const email = await this.dbService.getPublicEmailForInbox(emailId, normalizedEmail)
+    if (!email) {
+      throw new NotFoundError('邮件不存在或公开收件箱已关闭')
+    }
+    return email
+  }
+
+  async validatePublicInboxAccessToken(
+    token: string | undefined,
+    emailAddress: string
+  ): Promise<{ token: string; expiresAt: string } | null> {
+    if (!token || token.length > 2048 || !emailAddress) {
+      return null
     }
 
     try {
       const parts = token.split('.')
       if (parts.length !== 3) {
-        return false
+        return null
       }
 
       const [encodedPayload, encodedSignature, tokenEmailHash] = parts
       if (!encodedPayload || !encodedSignature || !tokenEmailHash) {
-        return false
+        return null
       }
 
       const payload = JSON.parse(this.base64UrlDecodeString(encodedPayload)) as {
         type?: string
         email?: string
+        iat?: number
         exp?: number
       }
 
       const normalizedEmail = emailAddress.trim().toLowerCase()
+      const now = Math.floor(Date.now() / 1000)
+      const issuedAt = payload.iat
+      const expiresAt = payload.exp
       if (
         payload.type !== 'public-inbox' ||
         payload.email !== normalizedEmail ||
-        !payload.exp ||
-        payload.exp < Math.floor(Date.now() / 1000)
+        typeof issuedAt !== 'number' ||
+        !Number.isInteger(issuedAt) ||
+        typeof expiresAt !== 'number' ||
+        !Number.isInteger(expiresAt) ||
+        issuedAt > now + 60 ||
+        expiresAt <= now ||
+        expiresAt > issuedAt + this.PUBLIC_INBOX_ACCESS_EXPIRES
       ) {
-        return false
+        return null
       }
 
       const expectedEmailHash = await this.hashPublicInboxEmail(normalizedEmail)
       if (expectedEmailHash !== tokenEmailHash) {
-        return false
+        return null
       }
 
       const expectedSignature = await this.signPublicInboxAccessPayload(encodedPayload, tokenEmailHash)
-      return this.safeCompare(expectedSignature, encodedSignature)
+      if (!this.safeCompare(expectedSignature, encodedSignature)) {
+        return null
+      }
+
+      return {
+        token,
+        expiresAt: new Date(expiresAt * 1000).toISOString()
+      }
     } catch (error) {
-      console.error('Public inbox token verification error:', error)
-      return false
+      console.warn('Public inbox token rejected:', error instanceof Error ? error.message : error)
+      return null
     }
   }
 
@@ -273,8 +264,8 @@ export class EmailService {
   }
 
   private async hmacSha256(value: string): Promise<ArrayBuffer> {
-    if (!this.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured')
+    if (!this.env.JWT_SECRET || this.env.JWT_SECRET.length < 32) {
+      throw new Error('JWT_SECRET must be configured with at least 32 characters')
     }
 
     const encoder = new TextEncoder()
@@ -290,15 +281,12 @@ export class EmailService {
   }
 
   private base64UrlEncode(data: string | ArrayBuffer): string {
-    let base64: string
-
-    if (typeof data === 'string') {
-      base64 = btoa(data)
-    } else {
-      const bytes = new Uint8Array(data)
-      const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-      base64 = btoa(binary)
-    }
+    const bytes = typeof data === 'string'
+      ? new TextEncoder().encode(data)
+      : new Uint8Array(data)
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    const base64 = btoa(binary)
 
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
   }
@@ -306,7 +294,8 @@ export class EmailService {
   private base64UrlDecodeString(data: string): string {
     const base64 = data.replace(/-/g, '+').replace(/_/g, '/')
     const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
-    return atob(padded)
+    const binary = atob(padded)
+    return new TextDecoder().decode(Uint8Array.from(binary, character => character.charCodeAt(0)))
   }
 
   private safeCompare(a: string, b: string): boolean {
@@ -323,38 +312,29 @@ export class EmailService {
   }
 
   async getEmailDetail(userId: number, emailId: number): Promise<Email> {
-    // 获取邮件详情
-    const email = await this.dbService.getEmailById(emailId)
+    const email = await this.dbService.getEmailForUser(emailId, userId)
     if (!email) {
-      throw new NotFoundError('邮件不存在')
-    }
-
-    // 验证邮件是否属于用户的临时邮箱
-    const tempEmails = await this.dbService.getTempEmailsByUserId(userId)
-    const tempEmail = tempEmails.find(te => te.id === email.temp_email_id)
-
-    if (!tempEmail) {
       throw new NotFoundError('邮件不存在或无权限访问')
     }
-
     return email
   }
 
   async deleteEmail(userId: number, emailId: number): Promise<void> {
-    // 先验证邮件是否属于用户
-    await this.getEmailDetail(userId, emailId) // 这会检查权限
-
-    const success = await this.dbService.deleteEmail(emailId)
+    const success = await this.dbService.deleteEmailForUser(emailId, userId)
     if (!success) {
-      throw new NotFoundError('邮件删除失败')
+      throw new NotFoundError('邮件不存在或无权限删除')
     }
+  }
 
-    // 记录日志
-    await this.dbService.createLog({
-      userId,
-      action: 'DELETE_EMAIL_CONTENT',
-      details: `Deleted email ID: ${emailId}`
-    })
+  async markEmailRead(userId: number, emailId: number): Promise<void> {
+    const success = await this.dbService.markEmailReadForUser(emailId, userId)
+    if (!success) {
+      throw new NotFoundError('邮件不存在或无权限访问')
+    }
+  }
+
+  async batchDeleteEmails(userId: number, emailIds: number[]): Promise<number> {
+    return await this.dbService.batchDeleteEmailsForUser(emailIds, userId)
   }
 
   async getActiveDomains(): Promise<Domain[]> {
@@ -362,192 +342,24 @@ export class EmailService {
   }
 
   async redeemCode(userId: number, request: RedeemRequest): Promise<{ quota: number }> {
-    // 1. 验证兑换码
-    const redeemCode = await this.dbService.getRedeemCode(request.code)
-    if (!redeemCode) {
-      throw new ValidationError('兑换码不存在')
+    const code = request?.code?.trim()
+    if (!code || code.length > 128 || !/^[A-Za-z0-9_-]+$/.test(code)) {
+      throw new ValidationError('兑换码格式无效')
     }
 
-    // 检查兑换码是否过期（如果不是永不过期）
-    if (!redeemCode.never_expires && new Date(redeemCode.valid_until) < new Date()) {
-      throw new ValidationError('兑换码已过期')
+    const result = await this.dbService.redeemCodeAtomically(code, userId)
+    if (!result) {
+      throw new ValidationError('兑换码无效、已过期、次数已用尽或已兑换')
     }
-
-    // 2. 检查用户是否已经使用过这个兑换码
-    const hasUsed = await this.dbService.hasUserUsedRedeemCode(request.code, userId)
-    if (hasUsed) {
-      throw new ValidationError('您已经使用过这个兑换码')
-    }
-
-    // 3. 检查兑换码是否还有可用次数
-    const currentUses = await this.dbService.getRedeemCodeUsageCount(request.code)
-    if (currentUses >= redeemCode.max_uses) {
-      throw new ValidationError('兑换码使用次数已达上限')
-    }
-
-    // 4. 使用兑换码
-    const success = await this.dbService.useRedeemCode(request.code, userId)
-    if (!success) {
-      throw new ValidationError('兑换码使用失败')
-    }
-
-    // 5. 确定配额过期时间和类型
-    let expiresAt: string | null = null
-    let quotaType: 'permanent' | 'daily' | 'custom' = 'permanent'
-
-    if (!redeemCode.never_expires) {
-      // 如果兑换码不是永不过期，配额过期时间与兑换码过期时间相同
-      expiresAt = redeemCode.valid_until
-      quotaType = 'custom'
-    }
-    // 如果兑换码永不过期，配额也永不过期（默认值）
-
-    // 6. 创建配额余额记录
-    await this.dbService.createQuotaBalance({
-      userId,
-      quotaType,
-      amount: redeemCode.quota,
-      expiresAt,
-      source: 'redeem_code',
-      sourceId: null // 兑换码没有数字ID，使用code作为标识
-    })
-
-    // 7. 创建配额获得记录
-    await this.dbService.createQuotaLog({
-      userId,
-      type: 'earn',
-      amount: redeemCode.quota,
-      source: 'redeem_code',
-      description: `兑换码奖励: ${request.code}${redeemCode.never_expires ? '（永不过期）' : `（${redeemCode.valid_until}过期）`}`,
-      expiresAt,
-      quotaType
-    })
-
-    // 8. 更新用户剩余配额（保持向后兼容）
-    const totalQuota = await this.dbService.getUserTotalQuota(userId)
-    await this.dbService.updateUserQuota(userId, totalQuota.available)
-
-    // 9. 记录日志
-    await this.dbService.createLog({
-      userId,
-      action: 'REDEEM_CODE',
-      details: `Redeemed code: ${request.code}, quota: ${redeemCode.quota}, expires: ${expiresAt || 'never'}`
-    })
-
-    return { quota: totalQuota.available }
-  }
-
-  // 处理接收到的邮件（由Email Routing触发）
-  async handleIncomingEmail(rawEmail: string | ArrayBuffer, recipientEmail: string): Promise<void> {
-    try {
-      console.log('Processing incoming email for:', recipientEmail)
-
-      // 1. 验证收件人邮箱格式
-      if (!recipientEmail || !recipientEmail.includes('@')) {
-        console.error('Invalid recipient email format:', recipientEmail)
-        return
-      }
-
-      // 2. 查找对应的临时邮箱
-      const tempEmail = await this.dbService.getTempEmailByEmail(recipientEmail)
-      if (!tempEmail) {
-        console.log('Temp email not found:', recipientEmail)
-        return
-      }
-
-      if (!tempEmail.active) {
-        console.log('Temp email is inactive:', recipientEmail)
-        return
-      }
-
-      console.log('Found temp email:', tempEmail.id, 'for user:', tempEmail.user_id)
-
-      // 3. 解析邮件内容
-      const parsedEmail = await this.parserService.parseEmail(rawEmail)
-      console.log('Email parsed successfully. From:', parsedEmail.from.address, 'Subject:', parsedEmail.subject)
-
-      // 4. 验证解析结果
-      if (!parsedEmail.from.address) {
-        console.error('Failed to parse sender address from email')
-        // 仍然尝试存储，使用默认值
-        parsedEmail.from.address = 'unknown@unknown.com'
-      }
-
-      // 5. 存储邮件到数据库
-      const email = await this.dbService.createEmail({
-        tempEmailId: tempEmail.id,
-        sender: parsedEmail.from.address,
-        subject: parsedEmail.subject || '无主题',
-        content: parsedEmail.text,
-        htmlContent: parsedEmail.html,
-        verificationCode: parsedEmail.verificationCode
-      })
-
-      console.log('Email stored successfully:', {
-        emailId: email.id,
-        tempEmailId: tempEmail.id,
-        sender: parsedEmail.from.address,
-        subject: parsedEmail.subject,
-        hasContent: !!parsedEmail.text,
-        hasHtml: !!parsedEmail.html,
-        hasVerificationCode: !!parsedEmail.verificationCode
-      })
-
-      // 6. 记录邮件接收日志
-      await this.dbService.createLog({
-        userId: tempEmail.user_id,
-        action: 'RECEIVE_EMAIL',
-        details: `Received email from ${parsedEmail.from.address} to ${recipientEmail}`
-      })
-
-      // 7. 这里可以添加实时推送逻辑（WebSocket等）
-      // await this.notifyUser(tempEmail.user_id, email)
-
-    } catch (error) {
-      console.error('Error handling incoming email:', error)
-      console.error('Error details:', {
-        recipientEmail,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined
-      })
-
-      // 不抛出错误，避免影响Email Routing的正常工作
-      // 但可以考虑记录到错误日志系统
-    }
-  }
-
-  private generateEmailPrefix(): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-    let result = ''
-    
-    // 生成8-12位随机字符串
-    const length = Math.floor(Math.random() * 5) + 8
-    
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    
-    return result
-  }
-
-  // 获取用户信息
-  async getUserById(userId: number) {
-    return await this.dbService.getUserById(userId)
+    return { quota: result.quota }
   }
 
   // 获取用户配额信息
   async getQuotaInfo(userId: number): Promise<{ quota: number; used: number }> {
-    const user = await this.dbService.getUserById(userId)
-    if (!user) {
-      throw new NotFoundError('用户不存在')
-    }
-
-    // 基于 quota_logs 计算已使用配额
-    const used = await this.dbService.getUsedQuotaFromLogs(userId)
-
+    const overview = await this.dbService.getQuotaOverview(userId)
     return {
-      quota: user.quota, // 现在 quota 字段表示剩余配额
-      used
+      quota: overview.available,
+      used: overview.used
     }
   }
 
@@ -562,14 +374,11 @@ export class EmailService {
       dateTo?: string
     } & PaginationParams
   ): Promise<PaginatedResponse<Email>> {
-    // 这里需要实现复杂的搜索逻辑
-    // 为简化，暂时返回空结果
-    return {
-      data: [],
-      total: 0,
-      page: params.page,
-      limit: params.limit,
-      totalPages: 0
-    }
+    return await this.dbService.searchEmailsForUser(userId, params, params)
+  }
+
+  private clientIp(request: Request): string {
+    const forwarded = request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+    return request.headers.get('CF-Connecting-IP') || forwarded || 'unknown'
   }
 }

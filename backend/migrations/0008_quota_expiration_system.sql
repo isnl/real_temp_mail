@@ -5,8 +5,7 @@
 ALTER TABLE quota_logs ADD COLUMN expires_at TIMESTAMP NULL;
 ALTER TABLE quota_logs ADD COLUMN quota_type TEXT DEFAULT 'permanent' CHECK (quota_type IN ('permanent', 'daily', 'custom'));
 
--- 2. 为 redeem_codes 表添加永不过期支持
-ALTER TABLE redeem_codes ADD COLUMN never_expires BOOLEAN DEFAULT 0;
+-- 2. 0002 已添加 redeem_codes.never_expires。
 
 -- 3. 创建用户配额余额表（用于跟踪不同类型配额的余额和过期时间）
 CREATE TABLE user_quota_balances (
@@ -17,8 +16,8 @@ CREATE TABLE user_quota_balances (
   expires_at TIMESTAMP NULL, -- NULL 表示永不过期
   source TEXT NOT NULL CHECK (source IN ('register', 'checkin', 'redeem_code', 'admin_adjust')),
   source_id INTEGER NULL, -- 来源记录ID（如兑换码、签到记录等）
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
-  updated_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -110,19 +109,8 @@ SELECT
 FROM quota_logs
 WHERE type = 'earn' AND source = 'checkin';
 
--- 7. 减去已消费的配额
--- 计算每个用户已消费的配额总量
-CREATE TEMPORARY TABLE user_consumed_quota AS
-SELECT
-  user_id,
-  SUM(amount) as total_consumed
-FROM quota_logs
-WHERE type = 'consume'
-GROUP BY user_id;
-
--- 按过期时间顺序减去已消费的配额（优先从即将过期的配额中扣除）
--- 这里需要用程序逻辑来处理，SQL 难以实现复杂的优先级扣除逻辑
--- 暂时保持现有的 users.quota 字段作为剩余配额的总和
+-- 7. 0008 historically did not apply consume logs to these balances. 0014
+-- reconciles active balances against the pre-upgrade users.quota snapshot.
 
 -- 8. 添加触发器，自动清理过期配额
 -- 注意：SQLite 不支持事件调度器，需要在应用层定期清理过期配额

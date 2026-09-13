@@ -135,7 +135,7 @@ const handleResetFilters = () => {
 const handleCreate = () => {
   createForm.name = ''
   createForm.quota = 5
-  createForm.validUntil = ''
+  createForm.validUntil = getDefaultValidUntil()
   createForm.maxUses = 1
   createForm.neverExpires = false
   createDialogVisible.value = true
@@ -144,7 +144,7 @@ const handleCreate = () => {
 const handleBatchCreate = () => {
   batchCreateForm.name = ''
   batchCreateForm.quota = 5
-  batchCreateForm.validUntil = ''
+  batchCreateForm.validUntil = getDefaultValidUntil()
   batchCreateForm.count = 10
   batchCreateForm.prefix = ''
   batchCreateForm.maxUses = 1
@@ -164,7 +164,10 @@ const handleSaveCreate = async () => {
   }
 
   try {
-    const response = await createRedeemCode(createForm)
+    const response = await createRedeemCode({
+      ...createForm,
+      validUntil: createForm.neverExpires ? '' : toUtcISOString(createForm.validUntil),
+    })
     if (response.success) {
       ElMessage.success('兑换码创建成功')
       createDialogVisible.value = false
@@ -194,7 +197,7 @@ const handleSaveCreate = async () => {
     }
   } catch (error) {
     console.error('兑换码创建失败:', error)
-    ElMessage.error('兑换码创建失败')
+    ElMessage.error(error instanceof Error ? error.message : '兑换码创建失败')
   }
 }
 
@@ -215,7 +218,10 @@ const handleSaveBatchCreate = async () => {
   }
 
   try {
-    const response = await createBatchRedeemCodes(batchCreateForm)
+    const response = await createBatchRedeemCodes({
+      ...batchCreateForm,
+      validUntil: batchCreateForm.neverExpires ? '' : toUtcISOString(batchCreateForm.validUntil),
+    })
     if (response.success) {
       ElMessage.success(`成功创建${response.data!.length}个兑换码`)
       batchCreateDialogVisible.value = false
@@ -280,7 +286,7 @@ const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
     ElMessage.success('已复制到剪贴板')
-  } catch (error) {
+  } catch {
     ElMessage.error('复制失败')
   }
 }
@@ -381,10 +387,22 @@ const getPreviewLine = () => {
   return fields.join(exportConfig.separator)
 }
 
+const formatLocalDateTime = (date: Date): string => {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+    + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 const getDefaultValidUntil = (): string => {
   const date = new Date()
   date.setDate(date.getDate() + 30) // 默认30天后过期
-  return date.toISOString().split('T')[0]
+  return formatLocalDateTime(date)
+}
+
+const toUtcISOString = (localDateTime: string): string => {
+  const date = new Date(localDateTime.replace(' ', 'T'))
+  if (Number.isNaN(date.getTime())) throw new Error('兑换码有效期无效')
+  return date.toISOString()
 }
 
 // 获取兑换码状态类型

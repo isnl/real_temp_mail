@@ -1,11 +1,14 @@
 // 用户相关类型
 export interface User {
   id: number
+  username?: string
   email: string
-  password_hash: string
   quota: number
   role: 'user' | 'admin'
   is_active: boolean
+  provider?: 'email' | 'github'
+  avatar_url?: string | null
+  display_name?: string | null
   created_at: string
   updated_at: string
 }
@@ -21,17 +24,33 @@ export interface TempEmail {
   public_inbox_enabled: boolean
 }
 
-// 邮件类型
-export interface Email {
+// 邮件展示字段。公开收件箱只返回这些非所有者字段，避免泄露内部归属和已读状态。
+export interface EmailMessage {
   id: number
-  temp_email_id: number
   sender: string
   subject: string | null
   content: string | null
-  html_content: string | null
+  html_content?: string | null
+  preview?: string | null
+  content_preview?: string | null
   verification_code: string | null
-  is_read: boolean
+  is_read?: boolean
   received_at: string
+}
+
+// 登录用户自己的邮件类型
+export interface Email extends EmailMessage {
+  temp_email_id: number
+  html_content: string | null
+  is_read: boolean
+}
+
+export interface PublicEmailSummary extends EmailMessage {
+  content_preview: string | null
+}
+
+export interface PublicEmailDetail extends PublicEmailSummary {
+  html_content: string | null
 }
 
 // 域名类型
@@ -40,45 +59,6 @@ export interface Domain {
   domain: string
   status: number
   created_at: string
-}
-
-// 签到相关类型
-export interface CheckinRequest {
-  // 签到不需要额外参数
-}
-
-export interface CheckinResponse {
-  success: boolean
-  quota_reward: number
-  total_quota: number
-  message: string
-}
-
-export interface CheckinStatus {
-  hasCheckedIn: boolean
-  checkinRecord?: {
-    id: number
-    user_id: number
-    checkin_date: string
-    quota_reward: number
-    created_at: string
-  }
-  nextCheckinTime?: string
-}
-
-export interface CheckinHistory {
-  id: number
-  user_id: number
-  checkin_date: string
-  quota_reward: number
-  created_at: string
-}
-
-export interface CheckinStats {
-  totalCheckins: number
-  currentStreak: number
-  longestStreak: number
-  thisMonthCheckins: number
 }
 
 // 配额记录类型
@@ -128,7 +108,7 @@ export interface UserQuotaBalance {
 }
 
 // API响应类型
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   message?: string
@@ -137,12 +117,31 @@ export interface ApiResponse<T = any> {
 
 // 认证相关类型
 export interface LoginRequest {
-  email: string
+  account: string
+  // 兼容仍按 email 字段读取的旧后端；新页面始终同时发送 account。
+  email?: string
   password: string
   turnstileToken?: string
 }
 
+export interface RegisterRequest {
+  username?: string
+  email: string
+  password: string
+  confirmPassword: string
+  turnstileToken?: string
+}
 
+export interface PublicSystemSettings {
+  registrationEnabled: boolean
+  githubEnabled: boolean
+  turnstileEnabled: boolean
+  turnstileSiteKey: string
+  turnstileLoginEnabled: boolean
+  turnstileRegisterEnabled: boolean
+  turnstileRedeemEnabled: boolean
+  turnstilePublicInboxEnabled: boolean
+}
 
 export interface TokenPair {
   accessToken: string
@@ -187,7 +186,7 @@ export interface ValidationRule {
   required?: boolean
   message: string
   trigger?: string
-  validator?: (rule: any, value: any, callback: any) => void
+  validator?: (rule: unknown, value: unknown, callback: (error?: Error) => void) => void
 }
 
 // 邮件创建请求
@@ -222,7 +221,7 @@ export interface PublicInboxResponse {
     created_at: string
     public_inbox_enabled: boolean
   }
-  emails: PaginatedResponse<Email>
+  emails: PaginatedResponse<PublicEmailSummary>
   publicAccessToken: string
   publicAccessTokenExpiresAt: string
 }
@@ -237,7 +236,7 @@ export interface RedeemRequest {
 declare global {
   interface Window {
     toastui?: {
-      Editor: any
+      Editor: unknown
     }
   }
 }

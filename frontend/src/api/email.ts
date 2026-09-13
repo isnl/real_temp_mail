@@ -2,6 +2,7 @@ import { apiClient } from './request'
 import type {
   TempEmail,
   Email,
+  PublicEmailDetail,
   Domain,
   CreateEmailRequest,
   CreateEmailResponse,
@@ -61,7 +62,7 @@ export const emailApi = {
 
   // 获取可用域名列表
   async getDomains(): Promise<ApiResponse<Domain[]>> {
-    return apiClient.get<Domain[]>('/api/email/domains')
+    return apiClient.getPublic<Domain[]>('/api/email/domains')
   },
 
   // 兑换配额码
@@ -76,7 +77,14 @@ export const emailApi = {
 
   // 获取公开收件箱邮件列表
   async getPublicInbox(data: PublicInboxRequest): Promise<ApiResponse<PublicInboxResponse>> {
-    return apiClient.post<PublicInboxResponse>('/api/email/public-inbox', data)
+    return apiClient.postPublic<PublicInboxResponse>('/api/email/public-inbox', data)
+  },
+
+  async getPublicEmailDetail(
+    emailId: number,
+    data: Pick<PublicInboxRequest, 'email' | 'publicAccessToken'>,
+  ): Promise<ApiResponse<PublicEmailDetail>> {
+    return apiClient.postPublic<PublicEmailDetail>(`/api/email/public-inbox/emails/${emailId}`, data)
   },
 
   // 标记邮件为已读

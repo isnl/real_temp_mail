@@ -6,15 +6,18 @@ import type { TempEmail } from '@/types'
 
 interface Props {
   loading?: boolean
+  deletingId?: number | null
 }
 
 interface Emits {
   (e: 'select', tempEmail: TempEmail): void
   (e: 'togglePublicInbox', tempEmail: TempEmail, enabled: boolean): void
+  (e: 'delete', tempEmail: TempEmail): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  loading: false
+withDefaults(defineProps<Props>(), {
+  loading: false,
+  deletingId: null,
 })
 
 const emit = defineEmits<Emits>()
@@ -106,7 +109,7 @@ const formatDate = (dateString: string) => {
         <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
           <div class="flex items-center justify-center space-x-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <font-awesome-icon :icon="['fas', 'bolt']" class="text-blue-500" />
-            <span>实时接收邮件通知</span>
+            <span>集中查看邮箱来信</span>
           </div>
           <div class="flex items-center justify-center space-x-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
             <font-awesome-icon :icon="['fas', 'magic']" class="text-purple-500" />
@@ -121,14 +124,20 @@ const formatDate = (dateString: string) => {
       <div
         v-for="tempEmail in tempEmails"
         :key="tempEmail.id"
-        class="group relative p-4 rounded-xl transition-all duration-300 cursor-pointer border"
+        class="group relative p-4 rounded-xl transition-colors duration-200 cursor-pointer border"
         :class="{
-          'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 shadow-md transform scale-[1.02]':
+          'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 shadow-md':
             selectedTempEmail?.id === tempEmail.id,
-          'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg hover:transform hover:scale-[1.01]':
+          'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md':
             selectedTempEmail?.id !== tempEmail.id
         }"
+        role="button"
+        tabindex="0"
+        :aria-pressed="selectedTempEmail?.id === tempEmail.id"
+        :aria-label="`选择邮箱 ${tempEmail.email}`"
         @click="handleSelect(tempEmail)"
+        @keydown.enter.prevent="handleSelect(tempEmail)"
+        @keydown.space.prevent="handleSelect(tempEmail)"
       >
         <!-- 选中状态的装饰条 -->
         <div
@@ -236,6 +245,23 @@ const formatDate = (dateString: string) => {
                   title="复制公开收件箱链接"
                 >
                   <font-awesome-icon :icon="['fas', 'link']" class="text-xs text-amber-600 dark:text-amber-400" />
+                </el-button>
+                <el-button
+                  type="danger"
+                  plain
+                  size="small"
+                  circle
+                  :loading="deletingId === tempEmail.id"
+                  :disabled="deletingId !== null"
+                  title="删除临时邮箱"
+                  :aria-label="`删除邮箱 ${tempEmail.email}`"
+                  @click.stop="emit('delete', tempEmail)"
+                >
+                  <font-awesome-icon
+                    v-if="deletingId !== tempEmail.id"
+                    :icon="['fas', 'trash']"
+                    class="text-xs"
+                  />
                 </el-button>
               </div>
             </div>

@@ -6,19 +6,22 @@ import type {
   AdminDomainCreateData,
   AdminEmailListParams,
   AdminLogListParams,
-  AdminRedeemCodeCreateData
+  AdminRedeemCodeCreateData,
+  JWTPayload
 } from '@/types'
 
 import {
   ValidationError,
   AuthenticationError,
   AuthorizationError,
-  NotFoundError
+  NotFoundError,
+  AppError
 } from '@/types'
 
 import type { BatchRedeemCodeCreate } from '@/modules/admin/types'
 import { AdminService } from '@/modules/admin/admin.service'
 import { createAuthMiddleware } from '@/middleware/auth.middleware'
+import { normalizeApiTimestamps } from '@/utils/datetime'
 
 export class AdminHandler {
   private adminService: AdminService
@@ -29,7 +32,7 @@ export class AdminHandler {
     this.authMiddleware = createAuthMiddleware(env)
   }
 
-  private async validateAdminAuth(request: Request): Promise<any> {
+  private async validateAdminAuth(request: Request): Promise<JWTPayload> {
     try {
       const { user } = await this.authMiddleware.authenticate(request)
       if (!user || user.role !== 'admin') {
@@ -50,21 +53,35 @@ export class AdminHandler {
       data,
       message
     }
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify(normalizeApiTimestamps(response)), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
   }
 
-  private createErrorResponse(error: Error, statusCode: number = 500): Response {
+  private createErrorResponse(error: Error, statusCode?: number): Response {
+    const resolvedStatus = statusCode ?? (error instanceof AppError ? error.statusCode : 500)
     const response: ApiResponse = {
       success: false,
-      error: error.message
+      error: error instanceof AppError ? error.message : '服务器内部错误'
     }
     return new Response(JSON.stringify(response), {
-      status: statusCode,
+      status: resolvedStatus,
       headers: { 'Content-Type': 'application/json' }
     })
+  }
+
+  private auditContext(request: Request, adminId: number): {
+    adminId: number
+    ipAddress: string
+    userAgent: string
+  } {
+    const forwarded = request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+    return {
+      adminId,
+      ipAddress: (request.headers.get('CF-Connecting-IP') || forwarded || 'unknown').slice(0, 128),
+      userAgent: (request.headers.get('User-Agent') || 'unknown').slice(0, 512)
+    }
   }
 
   // ==================== 仪表板统计 ====================
@@ -143,7 +160,7 @@ export class AdminHandler {
 
   async updateUser(request: Request): Promise<Response> {
     try {
-      await this.validateAdminAuth(request)
+      const admin = await this.validateAdminAuth(request)
       
       const url = new URL(request.url)
       const userId = parseInt(url.pathname.split('/').pop() || '0')
@@ -153,7 +170,7 @@ export class AdminHandler {
       }
 
       const updateData: AdminUserUpdateData = await request.json()
-      await this.adminService.updateUser(userId, updateData)
+      await this.adminService.updateUser(userId, updateData, admin.userId)
 
       return this.createResponse(null, '用户更新成功')
     } catch (error) {
@@ -173,7 +190,7 @@ export class AdminHandler {
 
   async deleteUser(request: Request): Promise<Response> {
     try {
-      await this.validateAdminAuth(request)
+      const admin = await this.validateAdminAuth(request)
       
       const url = new URL(request.url)
       const userId = parseInt(url.pathname.split('/').pop() || '0')
@@ -182,7 +199,7 @@ export class AdminHandler {
         throw new ValidationError('用户ID无效')
       }
 
-      await this.adminService.deleteUser(userId)
+      await this.adminService.deleteUser(userId, admin.userId)
       return this.createResponse(null, '用户删除成功')
     } catch (error) {
       console.error('删除用户失败:', error)
@@ -325,6 +342,33 @@ export class AdminHandler {
       if (error instanceof AuthorizationError) {
         return this.createErrorResponse(error, 403)
       }
+      if (error instanceof ValidationError) {
+        return this.createErrorResponse(error, 400)
+      }
+      return this.createErrorResponse(error as Error)
+    }
+  }
+
+  async getEmailById(request: Request): Promise<Response> {
+    try {
+      const admin = await this.validateAdminAuth(request)
+
+      const emailId = Number(new URL(request.url).pathname.split('/').pop())
+      if (!Number.isSafeInteger(emailId) || emailId <= 0) {
+        throw new ValidationError('邮件ID无效')
+      }
+
+      const email = await this.adminService.getEmailById(
+        emailId,
+        this.auditContext(request, admin.userId)
+      )
+      if (!email) throw new NotFoundError('邮件不存在')
+      return this.createResponse(email)
+    } catch (error) {
+      console.error('获取邮件详情失败:', error)
+      if (error instanceof AuthorizationError) return this.createErrorResponse(error, 403)
+      if (error instanceof NotFoundError) return this.createErrorResponse(error, 404)
+      if (error instanceof ValidationError) return this.createErrorResponse(error, 400)
       return this.createErrorResponse(error as Error)
     }
   }
@@ -432,6 +476,9 @@ export class AdminHandler {
       console.error('获取兑换码列表失败:', error)
       if (error instanceof AuthorizationError) {
         return this.createErrorResponse(error, 403)
+      }
+      if (error instanceof ValidationError) {
+        return this.createErrorResponse(error, 400)
       }
       return this.createErrorResponse(error as Error)
     }
@@ -542,9 +589,31 @@ export class AdminHandler {
     }
   }
 
+  async updateSystemSettings(request: Request): Promise<Response> {
+    try {
+      const admin = await this.validateAdminAuth(request)
+      const body = await request.json() as { settings?: unknown }
+      if (!body.settings || typeof body.settings !== 'object' || Array.isArray(body.settings)) {
+        throw new ValidationError('settings 必须是设置键值对象')
+      }
+      await this.adminService.updateSystemSettings(
+        body.settings as Record<string, string>,
+        this.auditContext(request, admin.userId)
+      )
+      return this.createResponse(null, '系统设置已保存')
+    } catch (error) {
+      console.error('批量更新系统设置失败:', error)
+      if (error instanceof AuthorizationError) return this.createErrorResponse(error, 403)
+      if (error instanceof AuthenticationError) return this.createErrorResponse(error, 401)
+      if (error instanceof NotFoundError) return this.createErrorResponse(error, 404)
+      if (error instanceof ValidationError) return this.createErrorResponse(error, 400)
+      return this.createErrorResponse(error as Error)
+    }
+  }
+
   async updateSystemSetting(request: Request): Promise<Response> {
     try {
-      await this.validateAdminAuth(request)
+      const admin = await this.validateAdminAuth(request)
 
       const url = new URL(request.url)
       const key = url.pathname.split('/').pop()
@@ -561,7 +630,11 @@ export class AdminHandler {
 
       const { value } = requestData
 
-      await this.adminService.updateSystemSetting(key, value)
+      await this.adminService.updateSystemSetting(
+        key,
+        value,
+        this.auditContext(request, admin.userId)
+      )
       return this.createResponse(null, '系统设置更新成功')
     } catch (error) {
       console.error('更新系统设置失败:', error)
@@ -624,7 +697,7 @@ export class AdminHandler {
 
   async allocateQuotaToUser(request: Request): Promise<Response> {
     try {
-      await this.validateAdminAuth(request)
+      const admin = await this.validateAdminAuth(request)
 
       const url = new URL(request.url)
       const pathParts = url.pathname.split('/')
@@ -642,15 +715,19 @@ export class AdminHandler {
       const requestData = await request.json() as { amount: number; description?: string }
       const { amount, description } = requestData
 
-      if (typeof amount !== 'number' || amount === 0) {
-        throw new ValidationError('配额数量必须是非零数字')
+      if (!Number.isSafeInteger(amount) || amount === 0) {
+        throw new ValidationError('配额数量必须是非零整数')
       }
 
       if (Math.abs(amount) > 10000) {
         throw new ValidationError('单次调整配额不能超过10000')
       }
 
-      await this.adminService.allocateQuotaToUser(userId, amount, description)
+      if (description !== undefined && (typeof description !== 'string' || description.trim().length > 500)) {
+        throw new ValidationError('配额调整说明不能超过500个字符')
+      }
+
+      await this.adminService.allocateQuotaToUser(userId, amount, description?.trim(), admin.userId)
       return this.createResponse(null, `配额${amount > 0 ? '分配' : '扣除'}成功`)
     } catch (error) {
       console.error('配额分配失败:', error)

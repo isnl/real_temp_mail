@@ -227,8 +227,8 @@ onMounted(async () => {
                 :icon="['fas', 'gift']"
                 class="text-purple-500 text-2xl mb-2"
               />
-              <p class="font-medium text-gray-900 dark:text-gray-100">免费配额</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">观看广告获取</p>
+              <p class="font-medium text-gray-900 dark:text-gray-100">兑换配额</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">前往邮箱控制台兑换</p>
             </div>
           </div>
         </router-link>

@@ -2,23 +2,18 @@
 export interface Env {
   DB: D1Database
   JWT_SECRET: string
-  BASE_DOMAIN: string
-  FRONTEND_DOMAIN: string
+  FRONTEND_DOMAIN?: string
   ENVIRONMENT: 'development' | 'production'
-  TURNSTILE_SECRET_KEY: string
-  TURNSTILE_SITE_KEY: string
-  SENDER_DOMAIN: string
-  EMAIL_SENDER: any // Cloudflare Email Routing binding
-  // GitHub OAuth 配置
-  GITHUB_CLIENT_ID: string
-  GITHUB_CLIENT_SECRET: string
+  ASSETS?: Fetcher
+  ADMIN_SETUP_TOKEN?: string
 }
 
 // 用户相关类型
 export interface User {
   id: number
   email: string
-  password_hash?: string // 改为可选，第三方登录用户可能没有密码
+  username?: string | null
+  password_hash?: string | null
   quota: number
   role: 'user' | 'admin'
   is_active: boolean
@@ -33,6 +28,7 @@ export interface User {
 
 export interface CreateUserData {
   email: string
+  username?: string | null
   password_hash?: string
   quota?: number
   role?: 'user' | 'admin'
@@ -60,6 +56,7 @@ export interface Email {
   sender: string
   subject: string | null
   content: string | null
+  content_preview?: string | null
   html_content: string | null
   verification_code: string | null
   is_read: boolean
@@ -74,15 +71,36 @@ export interface SystemSetting {
   description: string | null
   created_at: string
   updated_at: string
+  is_secret?: boolean
+  is_configured?: boolean
 }
 
-// 用户签到记录类型
-export interface UserCheckin {
-  id: number
-  user_id: number
-  checkin_date: string
-  quota_reward: number
-  created_at: string
+export type SystemSettingKey =
+  | 'default_user_quota'
+  | 'registration_enabled'
+  | 'turnstile_enabled'
+  | 'turnstile_site_key'
+  | 'turnstile_secret_key'
+  | 'turnstile_login_enabled'
+  | 'turnstile_register_enabled'
+  | 'turnstile_redeem_enabled'
+  | 'turnstile_public_inbox_enabled'
+  | 'github_oauth_enabled'
+  | 'github_client_id'
+  | 'github_client_secret'
+  | 'github_callback_url'
+  | 'admin_username'
+  | 'admin_password'
+
+export interface PublicSystemSettings {
+  registrationEnabled: boolean
+  githubEnabled: boolean
+  turnstileEnabled: boolean
+  turnstileSiteKey: string
+  turnstileLoginEnabled: boolean
+  turnstileRegisterEnabled: boolean
+  turnstileRedeemEnabled: boolean
+  turnstilePublicInboxEnabled: boolean
 }
 
 // 配额记录类型
@@ -91,25 +109,13 @@ export interface QuotaLog {
   user_id: number
   type: 'earn' | 'consume'
   amount: number
-  source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email' | 'ad_reward'
+  source: 'register' | 'checkin' | 'redeem_code' | 'admin_adjust' | 'create_email'
   description: string | null
   related_id: number | null
+  operation_id?: string | null
   created_at: string
   expires_at: string | null // 配额过期时间，NULL表示永不过期
   quota_type: 'permanent' | 'daily' | 'custom' // 配额类型
-}
-
-// 签到请求类型
-export interface CheckinRequest {
-  // 签到不需要额外参数
-}
-
-// 签到响应类型
-export interface CheckinResponse {
-  success: boolean
-  quota_reward: number
-  total_quota: number
-  message: string
 }
 
 // 域名类型
@@ -118,10 +124,12 @@ export interface Domain {
   domain: string
   status: number
   created_at: string
+  deleted_at?: string | null
 }
 
 // 兑换码类型
 export interface RedeemCode {
+  id: number
   code: string
   name?: string                    // 新增：兑换码名称（非必填）
   quota: number
@@ -138,8 +146,9 @@ export interface RedeemCode {
 // 兑换码使用记录类型
 export interface RedeemCodeUsage {
   id: number
-  code: string
+  redeem_code_id: number
   user_id: number
+  quota_amount: number
   used_at: string
 }
 
@@ -162,6 +171,7 @@ export interface JWTPayload {
   email: string
   role: 'user' | 'admin'
   type: 'access' | 'refresh'
+  jti: string
   iat: number
   exp: number
 }
@@ -194,9 +204,26 @@ export interface ApiResponse<T = any> {
 }
 
 export interface LoginRequest {
-  email: string
+  email?: string
+  account?: string
   password: string
   turnstileToken?: string
+}
+
+export interface RegisterRequest {
+  email: string
+  username?: string
+  password: string
+  confirmPassword: string
+  turnstileToken?: string
+}
+
+export interface AdminBootstrapRequest {
+  setupToken: string
+  username: string
+  email?: string
+  password: string
+  confirmPassword: string
 }
 
 // GitHub OAuth 相关类型
@@ -209,7 +236,7 @@ export interface GitHubUser {
   id: number
   login: string
   email: string
-  name: string
+  name: string | null
   avatar_url: string
 }
 
@@ -241,9 +268,23 @@ export interface PublicInboxTempEmail {
   public_inbox_enabled: boolean
 }
 
+export interface PublicEmailSummary {
+  id: number
+  sender: string
+  subject: string | null
+  content: string | null
+  content_preview: string | null
+  verification_code: string | null
+  received_at: string
+}
+
+export interface PublicEmailDetail extends PublicEmailSummary {
+  html_content: string | null
+}
+
 export interface PublicInboxResponse {
   tempEmail: PublicInboxTempEmail
-  emails: PaginatedResponse<Email>
+  emails: PaginatedResponse<PublicEmailSummary>
   publicAccessToken: string
   publicAccessTokenExpiresAt: string
 }
@@ -293,6 +334,7 @@ export interface RateLimitRule {
   windowMs: number
   maxRequests: number
   requireAuth: boolean
+  requireTurnstile?: boolean
 }
 
 // 邮件解析类型
@@ -362,7 +404,6 @@ export interface AdminUserListParams {
 }
 
 export interface AdminUserUpdateData {
-  quota?: number
   is_active?: boolean
   role?: 'user' | 'admin'
 }
@@ -426,11 +467,16 @@ export interface AdminStatsData {
 }
 
 // 公告相关类型
+export type AnnouncementType = 'info' | 'warning' | 'success' | 'error'
+
 export interface Announcement {
   id: number
   title: string
   content: string
+  type: AnnouncementType
   is_active: boolean
+  priority: number
+  created_by: number
   created_at: string
   updated_at: string
 }
@@ -438,13 +484,17 @@ export interface Announcement {
 export interface CreateAnnouncementData {
   title: string
   content: string
+  type?: AnnouncementType
   is_active?: boolean
+  priority?: number
 }
 
 export interface UpdateAnnouncementData {
   title?: string
   content?: string
+  type?: AnnouncementType
   is_active?: boolean
+  priority?: number
 }
 
 export interface AdminAnnouncementListParams {
@@ -452,31 +502,4 @@ export interface AdminAnnouncementListParams {
   limit?: number
   search?: string
   status?: 'active' | 'inactive'
-}
-
-// 广告相关类型
-export interface AdRecord {
-  id: number
-  code: string
-  user_id: number
-  source: string
-  open_id: string | null
-  status: boolean
-  created_at: string
-  updated_at: string
-}
-
-export interface GenerateQRCodeResponse {
-  qrCodeUrl: string
-  code: string
-}
-
-export interface VerifyAdStatusRequest {
-  code: string
-}
-
-export interface VerifyAdStatusResponse {
-  success: boolean
-  message: string
-  quota?: number
 }

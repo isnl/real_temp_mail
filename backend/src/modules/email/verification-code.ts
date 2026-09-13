@@ -6,6 +6,8 @@ const URL_PATTERN = /https?:\/\/[^\s<>"']+/gi
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi
 const CSS_DECLARATION_PATTERN =
   /\b(?:background(?:-color)?|border(?:-radius|-color|-width)?|box-shadow|color|font(?:-family|-size|-weight)?|height|line-height|margin(?:-(?:top|right|bottom|left))?|padding(?:-(?:top|right|bottom|left))?|text-align|width)\s*:\s*[^;{}<>]+;?/gi
+const MAX_EXTRACTION_CHARACTERS = 64 * 1024
+const MAX_MATCHES = 256
 
 interface CodeCandidate {
   value: string
@@ -16,7 +18,13 @@ export function extractVerificationCodeFromEmailContent(
   text: string = '',
   html: string = ''
 ): string | undefined {
-  const content = normalizeContentForCodeExtraction(text, html)
+  // OTPs are normally near the beginning of transactional messages. Keeping
+  // extraction input small bounds regex/HTML work for attacker-controlled mail.
+  const textBudget = Math.floor(MAX_EXTRACTION_CHARACTERS / 2)
+  const content = normalizeContentForCodeExtraction(
+    text.slice(0, textBudget),
+    html.slice(0, MAX_EXTRACTION_CHARACTERS - textBudget)
+  )
   return extractVerificationCode(content)
 }
 
@@ -38,31 +46,40 @@ export function extractVerificationCode(content: string): string | undefined {
   const candidates = collectCodeCandidates(content)
   if (candidates.length === 0) return undefined
 
-  const keywordMatches = Array.from(content.matchAll(CODE_KEYWORDS))
+  const keywordMatches: number[] = []
+  for (const match of content.matchAll(CODE_KEYWORDS)) {
+    keywordMatches.push(match.index ?? 0)
+    if (keywordMatches.length >= MAX_MATCHES) break
+  }
   if (keywordMatches.length > 0) {
-    for (const keywordMatch of keywordMatches) {
-      const keywordIndex = keywordMatch.index ?? 0
-      const afterKeyword = candidates.find(candidate => {
-        const distance = candidate.index - keywordIndex
-        return distance >= 0 && distance <= 180
-      })
-
-      if (afterKeyword) {
-        return afterKeyword.value
+    let candidateCursor = 0
+    for (const keywordIndex of keywordMatches) {
+      while (candidateCursor < candidates.length && candidates[candidateCursor]!.index < keywordIndex) {
+        candidateCursor++
       }
+      const afterKeyword = candidates[candidateCursor]
+      if (afterKeyword && afterKeyword.index - keywordIndex <= 180) return afterKeyword.value
     }
 
-    const nearest = candidates
-      .map(candidate => {
-        const distance = Math.min(
-          ...keywordMatches.map(keywordMatch =>
-            Math.abs(candidate.index - (keywordMatch.index ?? 0))
-          )
-        )
-        return { ...candidate, distance }
-      })
-      .sort((a, b) => a.distance - b.distance)[0]
-
+    let nearest: CodeCandidate | undefined
+    let nearestDistance = Number.POSITIVE_INFINITY
+    candidateCursor = 0
+    for (const keywordIndex of keywordMatches) {
+      while (
+        candidateCursor + 1 < candidates.length &&
+        candidates[candidateCursor + 1]!.index <= keywordIndex
+      ) {
+        candidateCursor++
+      }
+      for (const candidate of [candidates[candidateCursor], candidates[candidateCursor + 1]]) {
+        if (!candidate) continue
+        const distance = Math.abs(candidate.index - keywordIndex)
+        if (distance < nearestDistance) {
+          nearest = candidate
+          nearestDistance = distance
+        }
+      }
+    }
     return nearest?.value
   }
 
@@ -73,12 +90,7 @@ function toVisibleText(content: string): string {
   if (!content) return ''
 
   return decodeHtmlEntities(
-    content
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<(?:br|\/p|\/div|\/tr|\/td|\/th|\/li)\b[^>]*>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
+    stripMarkup(content)
   )
     .replace(CSS_HEX_COLOR_PATTERN, ' ')
     .replace(CSS_DECLARATION_PATTERN, ' ')
@@ -87,6 +99,62 @@ function toVisibleText(content: string): string {
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function stripMarkup(content: string): string {
+  let output = ''
+  let index = 0
+  const lower = content.toLowerCase()
+
+  while (index < content.length) {
+    if (content[index] !== '<') {
+      output += content[index]
+      index++
+      continue
+    }
+
+    if (content.startsWith('<!--', index)) {
+      const commentEnd = content.indexOf('-->', index + 4)
+      index = commentEnd < 0 ? content.length : commentEnd + 3
+      output += ' '
+      continue
+    }
+
+    const tagEnd = findTagEnd(content, index)
+    if (tagEnd < 0) break
+    const opening = lower.slice(index, Math.min(tagEnd + 1, index + 32))
+    const skippedTag = /^<\s*(script|style)(?:\s|>)/.exec(opening)?.[1]
+    if (skippedTag) {
+      const closingStart = lower.indexOf(`</${skippedTag}`, tagEnd + 1)
+      if (closingStart < 0) break
+      const closingEnd = findTagEnd(content, closingStart)
+      index = closingEnd < 0 ? content.length : closingEnd + 1
+      output += ' '
+      continue
+    }
+
+    index = tagEnd + 1
+    output += ' '
+  }
+
+  return output
+}
+
+function findTagEnd(content: string, start: number): number {
+  let quote = ''
+  for (let index = start + 1; index < content.length; index++) {
+    const character = content[index]!
+    if (quote) {
+      if (character === quote) quote = ''
+      continue
+    }
+    if (character === '"' || character === "'") {
+      quote = character
+    } else if (character === '>') {
+      return index
+    }
+  }
+  return -1
 }
 
 function decodeHtmlEntities(content: string): string {
@@ -136,6 +204,7 @@ function collectCodeCandidates(content: string): CodeCandidate[] {
       if (!seen.has(key)) {
         seen.add(key)
         candidates.push({ value, index })
+        if (candidates.length >= MAX_MATCHES) return candidates.sort((a, b) => a.index - b.index)
       }
     }
   }

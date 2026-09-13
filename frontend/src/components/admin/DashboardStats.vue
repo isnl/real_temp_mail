@@ -46,8 +46,10 @@ onMounted(() => {
       </el-button>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <el-loading />
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" aria-label="正在加载统计数据">
+      <div v-for="index in 8" :key="index" class="card-base p-6">
+        <el-skeleton animated :rows="2" />
+      </div>
     </div>
 
     <div v-else-if="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -227,29 +229,6 @@ onMounted(() => {
             </p>
             <p class="text-xs text-gray-500 dark:text-gray-500">
               今日: +{{ formatNumber(stats.quotaActivity.todayEarned) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 广告观看统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon
-              icon="gift"
-              class="text-3xl text-blue-500 dark:text-blue-400"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              广告观看统计
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.checkinActivity.totalCheckins) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              今日: {{ formatNumber(stats.checkinActivity.todayCheckins) }}
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { emailApi } from '@/api/email'
@@ -7,18 +7,20 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { useTurnstile } from '@/composables/useTurnstile'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import EmailList from '@/components/email/EmailList.vue'
-import type { Email } from '@/types'
+import type { EmailMessage, PublicEmailSummary } from '@/types'
 
 usePageTitle()
 
 const route = useRoute()
 const router = useRouter()
-const turnstile = useTurnstile()
+const turnstile = useTurnstile('public-inbox')
 
 const emailInput = ref('')
 const loadedEmail = ref('')
-const emails = ref<Email[]>([])
+const emails = ref<PublicEmailSummary[]>([])
 const totalEmails = ref(0)
+const page = ref(1)
+const pageSize = 20
 const loading = ref(false)
 const hasLoaded = ref(false)
 const pendingQueryAfterVerify = ref(false)
@@ -27,6 +29,40 @@ const publicAccessTokenExpiresAt = ref('')
 const publicAccessEmail = ref('')
 const accessStateVersion = ref(0)
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget>>()
+const managedMeta: Array<{
+  element: HTMLMetaElement
+  created: boolean
+  previousContent: string | null
+}> = []
+
+const applyPrivatePageMeta = (name: string, content: string) => {
+  let element = document.head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)
+  const created = !element
+  if (!element) {
+    element = document.createElement('meta')
+    element.name = name
+    document.head.appendChild(element)
+  }
+  managedMeta.push({ element, created, previousContent: element.getAttribute('content') })
+  element.content = content
+}
+
+onMounted(() => {
+  applyPrivatePageMeta('robots', 'noindex,nofollow,noarchive')
+  applyPrivatePageMeta('referrer', 'no-referrer')
+})
+
+onBeforeUnmount(() => {
+  for (const { element, created, previousContent } of managedMeta.splice(0)) {
+    if (created) {
+      element.remove()
+    } else if (previousContent === null) {
+      element.removeAttribute('content')
+    } else {
+      element.content = previousContent
+    }
+  }
+})
 
 const queryEmail = computed(() => {
   const email = route.query.email
@@ -48,7 +84,8 @@ const hasPublicAccessForEmail = (email: string) => {
 
 const hasPublicAccess = computed(() => hasPublicAccessForEmail(currentEmail.value))
 
-const canAccessInbox = computed(() => hasPublicAccess.value)
+const requiresChallenge = computed(() => turnstile.required.value && !hasPublicAccess.value)
+const canAccessInbox = computed(() => !requiresChallenge.value || hasPublicAccess.value)
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
@@ -77,6 +114,7 @@ const resetLoadedInbox = () => {
   loadedEmail.value = ''
   emails.value = []
   totalEmails.value = 0
+  page.value = 1
 }
 
 const resetAccessForEmailChange = () => {
@@ -96,11 +134,11 @@ const handleSubmit = async (options: { force?: boolean } = {}) => {
   }
 
   const hasEmailPublicAccess = hasPublicAccessForEmail(targetEmail)
-  const turnstileToken = hasEmailPublicAccess
+  const turnstileToken = hasEmailPublicAccess || !turnstile.required.value
     ? undefined
     : turnstile.turnstileToken.value || undefined
 
-  if (!hasEmailPublicAccess && !turnstileToken) {
+  if (turnstile.required.value && !hasEmailPublicAccess && !turnstileToken) {
     pendingQueryAfterVerify.value = true
     hasLoaded.value = false
     loadedEmail.value = targetEmail
@@ -120,8 +158,8 @@ const handleSubmit = async (options: { force?: boolean } = {}) => {
       email: targetEmail,
       turnstileToken,
       publicAccessToken: hasEmailPublicAccess ? publicAccessToken.value : undefined,
-      page: 1,
-      limit: 20,
+      page: page.value,
+      limit: pageSize,
     })
 
     const inbox = response.data
@@ -131,6 +169,7 @@ const handleSubmit = async (options: { force?: boolean } = {}) => {
 
     emails.value = inbox?.emails.data || []
     totalEmails.value = inbox?.emails.total || 0
+    page.value = inbox?.emails.page || page.value
     loadedEmail.value = inbox?.tempEmail.email || targetEmail
     publicAccessToken.value = inbox?.publicAccessToken || ''
     publicAccessTokenExpiresAt.value = inbox?.publicAccessTokenExpiresAt || ''
@@ -140,7 +179,7 @@ const handleSubmit = async (options: { force?: boolean } = {}) => {
     await updateQueryEmail(targetEmail)
 
     ElMessage.success('公开收件箱已加载')
-  } catch (error: any) {
+  } catch (error) {
     if (requestVersion !== accessStateVersion.value || currentEmail.value !== targetEmail) {
       return
     }
@@ -150,7 +189,7 @@ const handleSubmit = async (options: { force?: boolean } = {}) => {
     loadedEmail.value = targetEmail
     pendingQueryAfterVerify.value = true
     console.error('Get public inbox error:', error)
-    ElMessage.error(error.message || '公开收件箱不存在或未开启')
+    ElMessage.error(error instanceof Error ? error.message : '公开收件箱不存在或未开启')
   } finally {
     if (requestVersion === accessStateVersion.value && turnstileToken) {
       resetTurnstileChallenge()
@@ -172,6 +211,34 @@ const handleTurnstileSuccess = (token: string) => {
 
 const handleTurnstileError = (error: string) => {
   turnstile.handleError(error)
+}
+
+const loadPublicEmailDetail = async (email: EmailMessage): Promise<EmailMessage> => {
+  const targetEmail = loadedEmail.value.trim().toLowerCase()
+  const token = publicAccessToken.value
+  const requestVersion = accessStateVersion.value
+  if (!hasPublicAccessForEmail(targetEmail) || !token) {
+    resetAccessForEmailChange()
+    throw new Error('公开收件箱访问已过期，请重新验证')
+  }
+
+  const response = await emailApi.getPublicEmailDetail(email.id, {
+    email: targetEmail,
+    publicAccessToken: token,
+  })
+  if (requestVersion !== accessStateVersion.value || targetEmail !== loadedEmail.value.toLowerCase()) {
+    throw new Error('收件箱已切换，请重新打开邮件')
+  }
+  if (!response.success || !response.data) {
+    throw new Error(response.error || '获取公开邮件详情失败')
+  }
+  return response.data
+}
+
+const handlePageChange = (nextPage: number) => {
+  if (loading.value || nextPage === page.value) return
+  page.value = nextPage
+  void handleSubmit({ force: true })
 }
 
 watch(
@@ -215,13 +282,13 @@ watch(
   <div class="h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
     <div class="max-w-1200px mx-auto h-full px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-5">
       <section class="flex-shrink-0">
-        <div class="flex gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row">
           <el-input
             v-model="emailInput"
             size="large"
             placeholder="输入临时邮箱地址"
             clearable
-            class="public-email-input"
+            class="public-email-input min-w-0 flex-1"
             @keyup.enter="handleSubmit({ force: true })"
           >
             <template #prefix>
@@ -234,7 +301,7 @@ watch(
             size="large"
             :loading="loading"
             :disabled="!canSubmit"
-            class="public-query-button"
+            class="public-query-button w-full sm:w-auto"
             @click="handleSubmit({ force: true })"
           >
             <font-awesome-icon v-if="!loading" :icon="['fas', 'magnifying-glass']" class="mr-2" />
@@ -251,11 +318,11 @@ watch(
             <div class="flex items-center gap-3">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">邮件列表</h2>
               <span
-                v-if="canAccessInbox"
+                v-if="hasLoaded && canAccessInbox"
                 class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
               >
                 <font-awesome-icon :icon="['fas', 'circle-check']" class="mr-1" />
-                已验证
+                {{ turnstile.required.value ? '已验证' : '无需验证' }}
               </span>
             </div>
             <p v-if="loadedEmail" class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
@@ -284,14 +351,16 @@ watch(
 
         <div class="flex-1 min-h-0">
           <div
-            v-if="!canAccessInbox"
+            v-if="requiresChallenge"
             class="h-full flex items-center justify-center p-8"
           >
             <div class="w-full max-w-sm">
               <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5">
                 <TurnstileWidget
+                  v-if="turnstile.siteKey.value"
                   ref="turnstileRef"
-                  :site-key="turnstile.siteKey"
+                  :site-key="turnstile.siteKey.value"
+                  action="public-inbox"
                   :theme="turnstile.theme.value"
                   @success="handleTurnstileSuccess"
                   @error="handleTurnstileError"
@@ -303,9 +372,13 @@ watch(
                 />
               </div>
 
-              <div v-if="turnstile.error.value" class="mt-3 text-sm text-red-500 text-center">
+              <div
+                v-if="turnstile.configurationError.value || turnstile.error.value"
+                class="mt-3 text-sm text-red-600 dark:text-red-400 text-center"
+                role="alert"
+              >
                 <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1" />
-                {{ turnstile.error.value }}
+                {{ turnstile.configurationError.value || turnstile.error.value }}
               </div>
             </div>
           </div>
@@ -315,7 +388,12 @@ watch(
             :temp-email-id="0"
             :emails="emails"
             :loading="loading"
+            :detail-loader="loadPublicEmailDetail"
+            :page="page"
+            :page-size="pageSize"
+            :total="totalEmails"
             readonly
+            @page-change="handlePageChange"
           />
 
           <div v-else class="h-full flex items-center justify-center p-8">

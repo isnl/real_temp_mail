@@ -1,89 +1,120 @@
-import type {
-  Env,
-  User,
-  LoginRequest,
-  TokenPair,
-  CreateUserData
-} from '@/types'
-import { ValidationError, AuthenticationError } from '@/types'
+import type { AdminBootstrapRequest, Env, LoginRequest, RegisterRequest, TokenPair, User } from '@/types'
+import { AppError, AuthenticationError, ValidationError } from '@/types'
 import { DatabaseService } from '@/modules/shared/database.service'
+import { SystemSettingsService } from '@/modules/settings/settings.service'
+import { hashPassword, verifyPassword } from './password.service'
 import { JWTService } from './jwt.service'
 
 export class AuthService {
   private jwtService: JWTService
+  private settings: SystemSettingsService
 
   constructor(
     private env: Env,
     private dbService: DatabaseService
   ) {
     this.jwtService = new JWTService(env, dbService)
+    this.settings = new SystemSettingsService(env)
   }
 
-
-
-
-
   async login(data: LoginRequest, request?: Request): Promise<{ user: User; tokens: TokenPair }> {
-    // 1. 验证输入数据
-    this.validateLoginData(data)
+    const account = this.validateLoginData(data)
+    const user = await this.dbService.getUserByAccount(account)
 
-    // 2. 查找用户
-    const user = await this.dbService.getUserByEmail(data.email)
-    if (!user) {
-      throw new AuthenticationError('邮箱或密码错误')
+    // Keep unknown-account and wrong-password work approximately equivalent.
+    const fallbackHash = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    const verification = await verifyPassword(data.password, user?.password_hash || fallbackHash)
+    if (!user || !user.password_hash || !verification.valid) {
+      throw new AuthenticationError('账号或密码错误')
+    }
+    if (!user.is_active) throw new AuthenticationError('账户已被禁用')
+
+    if (verification.needsRehash) {
+      await this.dbService.updateUserPassword(user.id, await hashPassword(data.password))
     }
 
-    // 3. 检查用户是否为第三方登录用户
-    if (user.provider !== 'email') {
-      throw new AuthenticationError('该账户使用第三方登录，请使用对应的登录方式')
-    }
-
-    // 4. 验证密码
-    if (!user.password_hash) {
-      throw new AuthenticationError('该账户未设置密码，请使用第三方登录')
-    }
-
-    const isPasswordValid = await this.verifyPassword(data.password, user.password_hash)
-    if (!isPasswordValid) {
-      throw new AuthenticationError('邮箱或密码错误')
-    }
-
-    // 5. 检查用户状态
-    if (!user.is_active) {
-      throw new AuthenticationError('账户已被禁用')
-    }
-
-    // 6. 生成JWT token对
     const tokens = await this.jwtService.generateTokenPair(user)
+    await this.logRequest(request, user.id, 'LOGIN', `User logged in: ${user.email}`)
+    return { user: this.sanitizeUser(user), tokens }
+  }
 
-    // 7. 记录日志（包含IP地址和User-Agent）
-    if (request) {
-      await this.dbService.createLogWithRequest(request, {
-        userId: user.id,
-        action: 'LOGIN',
-        details: `User logged in: ${user.email}`
-      })
-    } else {
-      await this.dbService.createLog({
-        userId: user.id,
-        action: 'LOGIN',
-        details: `User logged in: ${user.email}`
-      })
+  async register(data: RegisterRequest, request?: Request): Promise<{ user: User; tokens: TokenPair }> {
+    if (!await this.settings.getBoolean('registration_enabled')) {
+      throw new ValidationError('新用户注册当前已关闭')
     }
 
-    // 8. 返回用户信息（不包含密码）
-    const { password_hash, ...userWithoutPassword } = user
-    return {
-      user: userWithoutPassword as User,
-      tokens
+    const normalized = this.validateRegisterData(data)
+    const [emailUser, usernameUser] = await Promise.all([
+      this.dbService.getUserByEmail(normalized.email, true),
+      normalized.username ? this.dbService.getUserByUsername(normalized.username, true) : Promise.resolve(null)
+    ])
+    if (emailUser) throw new ValidationError('该邮箱已注册')
+    if (usernameUser) throw new ValidationError('该账号已被使用')
+
+    const defaultQuota = Math.max(0, await this.settings.getInteger('default_user_quota'))
+    let user: User
+    try {
+      user = await this.dbService.createRegisteredUser({
+        email: normalized.email,
+        username: normalized.username,
+        passwordHash: await hashPassword(data.password),
+        quota: defaultQuota
+      })
+    } catch (error) {
+      if (this.dbService.isUniqueConstraintError(error)) {
+        throw new ValidationError('邮箱或账号已被使用')
+      }
+      throw error
     }
+
+    const tokens = await this.jwtService.generateTokenPair(user)
+    await this.logRequest(request, user.id, 'REGISTER', `User registered: ${user.email}`)
+    return { user: this.sanitizeUser(user), tokens }
+  }
+
+  async isAdminSetupRequired(): Promise<boolean> {
+    return await this.dbService.isAdminSetupRequired()
+  }
+
+  async bootstrapAdmin(
+    data: AdminBootstrapRequest,
+    request?: Request
+  ): Promise<{ user: User; tokens: TokenPair }> {
+    if (!this.env.ADMIN_SETUP_TOKEN || this.env.ADMIN_SETUP_TOKEN.length < 32) {
+      throw new AppError('管理员初始化令牌尚未配置', 503, 'ADMIN_SETUP_NOT_CONFIGURED')
+    }
+    if (typeof data.setupToken !== 'string' || !await this.secureEqual(data.setupToken, this.env.ADMIN_SETUP_TOKEN)) {
+      throw new AuthenticationError('管理员初始化令牌无效')
+    }
+    if (!await this.dbService.isAdminSetupRequired()) {
+      throw new ValidationError('管理员账号已经完成初始化')
+    }
+
+    const username = (data.username || '').trim().toLowerCase()
+    if (!/^[a-z0-9_.-]{3,64}$/.test(username)) {
+      throw new ValidationError('管理员账号须为 3-64 位字母、数字、点、下划线或短横线')
+    }
+    if (data.email && !this.isValidEmail(data.email.trim().toLowerCase())) {
+      throw new ValidationError('请输入有效的管理员邮箱')
+    }
+    this.validatePassword(data.password)
+    if (data.password !== data.confirmPassword) throw new ValidationError('两次输入的密码不一致')
+
+    const user = await this.dbService.bootstrapPrimaryAdmin({
+      username,
+      email: data.email?.trim().toLowerCase(),
+      passwordHash: await hashPassword(data.password)
+    })
+    if (!user) throw new ValidationError('管理员账号已经完成初始化')
+
+    await this.settings.setValue('admin_username', username)
+    await this.logRequest(request, user.id, 'ADMIN_BOOTSTRAP', 'Primary administrator initialized')
+    return { user: this.sanitizeUser(user), tokens: await this.jwtService.generateTokenPair(user) }
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenPair> {
     const tokens = await this.jwtService.refreshTokens(refreshToken)
-    if (!tokens) {
-      throw new AuthenticationError('无效的刷新令牌')
-    }
+    if (!tokens) throw new AuthenticationError('无效的刷新令牌')
     return tokens
   }
 
@@ -93,28 +124,12 @@ export class AuthService {
 
   async getCurrentUser(userId: number): Promise<User> {
     const user = await this.dbService.getUserById(userId)
-    if (!user) {
-      throw new AuthenticationError('用户不存在')
-    }
-
-    const { password_hash, ...userWithoutPassword } = user
-    return userWithoutPassword as User
+    if (!user) throw new AuthenticationError('用户不存在')
+    return this.sanitizeUser(user)
   }
 
   async logUserAction(userId: number, action: string, details: string, request?: Request): Promise<void> {
-    if (request) {
-      await this.dbService.createLogWithRequest(request, {
-        userId,
-        action,
-        details
-      })
-    } else {
-      await this.dbService.createLog({
-        userId,
-        action,
-        details
-      })
-    }
+    await this.logRequest(request, userId, action, details)
   }
 
   async changePassword(
@@ -123,137 +138,83 @@ export class AuthService {
     newPassword: string,
     request?: Request
   ): Promise<void> {
-    // 1. 获取用户信息
     const user = await this.dbService.getUserById(userId)
-    if (!user) {
-      throw new AuthenticationError('用户不存在')
-    }
+    if (!user) throw new AuthenticationError('用户不存在')
+    if (!user.password_hash) throw new AuthenticationError('该账户尚未设置本地密码')
 
-    // 2. 检查用户是否有密码（第三方登录用户可能没有密码）
-    if (!user.password_hash) {
-      throw new AuthenticationError('该账户使用第三方登录，无法修改密码')
-    }
+    const verification = await verifyPassword(currentPassword, user.password_hash)
+    if (!verification.valid) throw new AuthenticationError('当前密码错误')
 
-    // 3. 验证当前密码
-    const isCurrentPasswordValid = await this.verifyPassword(currentPassword, user.password_hash)
-    if (!isCurrentPasswordValid) {
-      throw new AuthenticationError('当前密码错误')
-    }
-
-    // 4. 验证新密码
     this.validatePassword(newPassword)
+    if (currentPassword === newPassword) throw new ValidationError('新密码不能与当前密码相同')
 
-    // 5. 更新密码
-    const newPasswordHash = await this.hashPassword(newPassword)
-    await this.dbService.updateUserPassword(userId, newPasswordHash)
-
-    // 6. 记录日志（包含IP地址和User-Agent）
-    if (request) {
-      await this.dbService.createLogWithRequest(request, {
-        userId,
-        action: 'CHANGE_PASSWORD',
-        details: 'User changed password'
-      })
-    } else {
-      await this.dbService.createLog({
-        userId,
-        action: 'CHANGE_PASSWORD',
-        details: 'User changed password'
-      })
-    }
+    await this.dbService.updateUserPasswordAndRevokeTokens(userId, await hashPassword(newPassword))
+    await this.logRequest(request, userId, 'CHANGE_PASSWORD', 'User changed password')
   }
 
-
-
-  private validateLoginData(data: LoginRequest): void {
-    if (!data.email || !data.password) {
-      throw new ValidationError('邮箱和密码不能为空')
+  private validateLoginData(data: LoginRequest): string {
+    const account = (data.account || data.email || '').trim().toLowerCase()
+    if (!account || typeof data.password !== 'string' || !data.password) {
+      throw new ValidationError('账号和密码不能为空')
     }
+    if (account.length > 254 || data.password.length > 128) {
+      throw new ValidationError('账号或密码格式无效')
+    }
+    return account
+  }
+
+  private validateRegisterData(data: RegisterRequest): { email: string; username: string | null } {
+    const email = (data.email || '').trim().toLowerCase()
+    const username = data.username?.trim().toLowerCase() || null
+    if (!this.isValidEmail(email)) throw new ValidationError('请输入有效的邮箱地址')
+    if (username && !/^[a-z0-9_.-]{3,64}$/.test(username)) {
+      throw new ValidationError('账号须为 3-64 位字母、数字、点、下划线或短横线')
+    }
+    this.validatePassword(data.password)
+    if (data.password !== data.confirmPassword) throw new ValidationError('两次输入的密码不一致')
+    return { email, username }
   }
 
   private validatePassword(password: string): void {
-    if (!password || password.length < 6) {
-      throw new ValidationError('密码长度至少6位')
+    if (typeof password !== 'string' || password.length < 8) {
+      throw new ValidationError('密码长度至少为 8 位')
     }
-
-    if (password.length > 128) {
-      throw new ValidationError('密码长度不能超过128位')
-    }
-
-    // 可以添加更多密码复杂度验证
-    // if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-    //   throw new ValidationError('密码必须包含大小写字母和数字')
-    // }
+    if (password.length > 128) throw new ValidationError('密码长度不能超过 128 位')
   }
 
   private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email) && email.length <= 254
+    return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   }
 
-  private async hashPassword(password: string): Promise<string> {
-    // 使用 Web Crypto API 实现 bcrypt 类似的功能
-    const encoder = new TextEncoder()
-    const salt = crypto.getRandomValues(new Uint8Array(16))
-    const passwordData = encoder.encode(password)
-    
-    // 合并密码和盐
-    const combined = new Uint8Array(passwordData.length + salt.length)
-    combined.set(passwordData)
-    combined.set(salt, passwordData.length)
-    
-    // 多次哈希以增加安全性
-    let hash = await crypto.subtle.digest('SHA-256', combined)
-    for (let i = 0; i < 10000; i++) {
-      hash = await crypto.subtle.digest('SHA-256', hash)
+  private async secureEqual(left: string, right: string): Promise<boolean> {
+    const [leftHash, rightHash] = await Promise.all([
+      crypto.subtle.digest('SHA-256', new TextEncoder().encode(left)),
+      crypto.subtle.digest('SHA-256', new TextEncoder().encode(right))
+    ])
+    const leftBytes = new Uint8Array(leftHash)
+    const rightBytes = new Uint8Array(rightHash)
+    let difference = left.length ^ right.length
+    for (let index = 0; index < leftBytes.length; index++) {
+      difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0)
     }
-    
-    // 将盐和哈希组合并编码为base64
-    const result = new Uint8Array(salt.length + hash.byteLength)
-    result.set(salt)
-    result.set(new Uint8Array(hash), salt.length)
-    
-    return btoa(String.fromCharCode(...result))
+    return difference === 0
   }
 
-  private async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-    try {
-      const encoder = new TextEncoder()
-      const passwordData = encoder.encode(password)
-      
-      // 解码存储的哈希
-      const stored = Uint8Array.from(atob(hashedPassword), c => c.charCodeAt(0))
-      const salt = stored.slice(0, 16)
-      const storedHash = stored.slice(16)
-      
-      // 重新计算哈希
-      const combined = new Uint8Array(passwordData.length + salt.length)
-      combined.set(passwordData)
-      combined.set(salt, passwordData.length)
-      
-      let hash = await crypto.subtle.digest('SHA-256', combined)
-      for (let i = 0; i < 10000; i++) {
-        hash = await crypto.subtle.digest('SHA-256', hash)
-      }
-      
-      // 比较哈希
-      const computedHash = new Uint8Array(hash)
-      if (computedHash.length !== storedHash.length) {
-        return false
-      }
-      
-      for (let i = 0; i < computedHash.length; i++) {
-        if (computedHash[i] !== storedHash[i]) {
-          return false
-        }
-      }
-      
-      return true
-    } catch (error) {
-      console.error('Password verification error:', error)
-      return false
+  private sanitizeUser(user: User): User {
+    const { password_hash: _passwordHash, ...safeUser } = user
+    return safeUser as User
+  }
+
+  private async logRequest(
+    request: Request | undefined,
+    userId: number,
+    action: string,
+    details: string
+  ): Promise<void> {
+    if (request) {
+      await this.dbService.createLogWithRequest(request, { userId, action, details })
+    } else {
+      await this.dbService.createLog({ userId, action, details })
     }
   }
-
-
 }

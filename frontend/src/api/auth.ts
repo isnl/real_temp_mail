@@ -1,28 +1,36 @@
 import { apiClient } from './request'
 import type {
   LoginRequest,
+  RegisterRequest,
   AuthResponse,
   TokenPair,
   User,
-  ApiResponse
+  ApiResponse,
+  PublicSystemSettings,
 } from '@/types'
 
 export const authApi = {
   // 用户登录
   async login(data: LoginRequest): Promise<ApiResponse<AuthResponse>> {
-    return apiClient.post<AuthResponse>('/api/auth/login', data)
+    return apiClient.postPublic<AuthResponse>('/api/auth/login', data)
   },
 
+  async register(data: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
+    return apiClient.postPublic<AuthResponse>('/api/auth/register', data)
+  },
 
+  async getPublicSettings(): Promise<ApiResponse<PublicSystemSettings>> {
+    return apiClient.getPublic<PublicSystemSettings>('/api/public/settings')
+  },
 
   // 刷新Token
   async refreshToken(refreshToken: string): Promise<ApiResponse<TokenPair>> {
-    return apiClient.post<TokenPair>('/api/auth/refresh', { refreshToken })
+    return apiClient.postPublic<TokenPair>('/api/auth/refresh', { refreshToken })
   },
 
   // 用户登出
   async logout(refreshToken: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/api/auth/logout', { refreshToken })
+    return apiClient.postPublic<void>('/api/auth/logout', { refreshToken })
   },
 
   // 获取当前用户信息
@@ -37,24 +45,5 @@ export const authApi = {
     confirmPassword: string
   }): Promise<ApiResponse<void>> {
     return apiClient.post<void>('/api/auth/change-password', data)
-  },
-
-  // 验证邮箱
-  async verifyEmail(token: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/api/auth/verify-email', { token })
-  },
-
-  // 发送密码重置邮件
-  async sendPasswordResetEmail(email: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/api/auth/forgot-password', { email })
-  },
-
-  // 重置密码
-  async resetPassword(data: {
-    token: string
-    newPassword: string
-    confirmPassword: string
-  }): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/api/auth/reset-password', data)
   }
 }

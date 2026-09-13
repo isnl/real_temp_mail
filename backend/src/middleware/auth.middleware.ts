@@ -39,7 +39,7 @@ export function createAuthMiddleware(env: Env) {
       }
 
       // 检查用户是否仍然存在且活跃
-      const user = await dbService.getUserById(payload.userId)
+      const user = await dbService.getAuthPrincipalById(payload.userId)
       if (!user || !user.is_active) {
         throw new Response(JSON.stringify({
           success: false,
@@ -50,11 +50,19 @@ export function createAuthMiddleware(env: Env) {
         })
       }
 
+      // Authorization decisions must use current database state. A role change
+      // must take effect immediately rather than waiting for an old JWT to expire.
+      const currentPrincipal: JWTPayload = {
+        ...payload,
+        email: user.email,
+        role: user.role
+      }
+
       // 将用户信息附加到请求对象
       const authenticatedRequest = request as AuthenticatedRequest
-      authenticatedRequest.user = payload
+      authenticatedRequest.user = currentPrincipal
 
-      return { request: authenticatedRequest, user: payload }
+      return { request: authenticatedRequest, user: currentPrincipal }
     },
 
     // 验证管理员权限

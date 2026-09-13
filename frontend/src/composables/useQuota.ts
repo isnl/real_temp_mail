@@ -1,97 +1,87 @@
-import { ref, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { checkinApi, type QuotaInfo } from '@/api/checkin'
+import { quotaApi, type QuotaInfo } from '@/api/quota'
 import { useAuthStore } from '@/stores/auth'
-import { ElMessage } from 'element-plus'
+
+const safeInteger = (value: unknown) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0
+}
+
+const normalizeQuota = (value: QuotaInfo): QuotaInfo => {
+  const used = safeInteger(value.used)
+  const remaining = safeInteger(value.remaining)
+  const suppliedTotal = safeInteger(value.total)
+
+  return {
+    ...value,
+    used,
+    remaining,
+    // 后端总值短暂不同步时，以“已使用 + 剩余”为最低可信值，绝不显示负数。
+    total: Math.max(suppliedTotal, used + remaining),
+    expired: safeInteger(value.expired),
+    expiring: safeInteger(value.expiring),
+  }
+}
 
 export function useQuota() {
   const authStore = useAuthStore()
   const queryClient = useQueryClient()
-  const quotaInfo = ref<QuotaInfo | null>(null)
-  const loading = ref(false)
+  const queryKey = computed(() => ['quota', 'info', authStore.user?.id ?? 'guest'] as const)
 
-  // 🔥 使用 vue-query 管理配额信息
-  const { data: quotaQueryData, isLoading, refetch } = useQuery({
-    queryKey: ['quota', 'info'],
+  const query = useQuery({
+    queryKey,
     queryFn: async () => {
-      const response = await checkinApi.getQuotaInfo()
-      if (response.success && response.data) {
-        return response.data
+      const response = await quotaApi.getQuotaInfo()
+      if (!response.success || !response.data) {
+        throw new Error(response.error || '获取配额信息失败')
       }
-      throw new Error('获取配额信息失败')
+      return normalizeQuota(response.data)
     },
-    enabled: computed(() => authStore.isAuthenticated),
-    staleTime: 30000, // 30秒内不重新获取
+    enabled: computed(() => authStore.isAuthenticated && Boolean(authStore.user?.id)),
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
-    retry: 3, // 🎯 增加重试次数
-    retryDelay: 1000 // 🎯 重试延迟
+    retry: 1,
   })
 
-  // 🎯 监听 authStore 的用户配额变化，同步更新 vue-query 缓存
+  // user.quota 表示“剩余配额”。仅在已有完整服务端快照时合并，避免用不完整
+  // 的本地值推导 total/used，正是旧页面先闪负数的根因。
   watch(
     () => authStore.user?.quota,
-    (newQuota) => {
-      if (newQuota !== undefined && quotaQueryData.value) {
-        // 更新 vue-query 缓存中的配额信息
-        queryClient.setQueryData(['quota', 'info'], (oldData: QuotaInfo | undefined) => {
-          if (oldData) {
-            return {
-              ...oldData,
-              total: newQuota,
-              remaining: newQuota - oldData.used
-            }
-          }
-          return {
-            total: newQuota,
-            used: 0,
-            remaining: newQuota
-          }
-        })
-      }
+    (newRemaining) => {
+      if (newRemaining === undefined) return
+      queryClient.setQueryData<QuotaInfo>(queryKey.value, (oldData) => {
+        if (!oldData) return oldData
+        const remaining = safeInteger(newRemaining)
+        const used = safeInteger(oldData.used)
+        return normalizeQuota({ ...oldData, remaining, total: used + remaining })
+      })
     },
-    { immediate: true }
   )
 
-  // 获取配额信息（保持向后兼容）
-  const fetchQuotaInfo = async () => {
-    if (!authStore.isAuthenticated) return
-
-    try {
-      await refetch()
-    } catch (error) {
-      console.error('获取配额信息失败:', error)
-      ElMessage.error('获取配额信息失败')
-    }
-  }
-
-  // 计算属性
-  const quotaData = computed(() => {
-    if (quotaQueryData.value) {
-      return quotaQueryData.value
-    }
-
-    // 🔥 修复：如果没有从 API 获取到数据，使用正确的后备逻辑
-    // authStore.userQuota 实际上是剩余配额，不是总配额
-    const remaining = authStore.userQuota || 0
-
-    return {
-      remaining, // 剩余配额
-      used: 0, // 暂时设为 0，因为我们无法准确计算
-      total: remaining // 🎯 修复：当无法获取已用配额时，总配额等于剩余配额
-    }
+  const quotaInfo = computed<QuotaInfo>(() => query.data.value ?? {
+    remaining: 0,
+    used: 0,
+    total: 0,
+    expired: 0,
+    expiring: 0,
   })
 
-
-
-  // 🎯 手动刷新配额信息的方法
-  const refreshQuotaInfo = () => {
-    return queryClient.invalidateQueries({ queryKey: ['quota', 'info'] })
+  const fetchQuotaInfo = async (force = false) => {
+    if (!authStore.isAuthenticated) return
+    if (!force && (query.isFetching.value || query.data.value)) return
+    await query.refetch({ cancelRefetch: false })
   }
 
+  const refreshQuotaInfo = () => queryClient.invalidateQueries({ queryKey: queryKey.value })
+
   return {
-    quotaInfo: quotaData,
-    loading: computed(() => isLoading.value),
+    quotaInfo,
+    loading: computed(() => query.isPending.value || (query.isFetching.value && !query.data.value)),
+    refreshing: computed(() => query.isFetching.value && Boolean(query.data.value)),
+    ready: computed(() => Boolean(query.data.value)),
+    error: query.error,
     fetchQuotaInfo,
-    refreshQuotaInfo
+    refreshQuotaInfo,
   }
 }

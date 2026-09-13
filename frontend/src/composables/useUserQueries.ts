@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
+import type { User } from '@/types'
 
 export const useUserQueries = () => {
   const queryClient = useQueryClient()
@@ -25,7 +26,7 @@ export const useUserQueries = () => {
 
   // 手动更新用户配额（乐观更新）
   const updateUserQuotaOptimistic = (newQuota: number) => {
-    queryClient.setQueryData(['user', 'current'], (oldData: any) => {
+    queryClient.setQueryData<User | undefined>(['user', 'current'], (oldData) => {
       if (oldData) {
         return { ...oldData, quota: newQuota }
       }

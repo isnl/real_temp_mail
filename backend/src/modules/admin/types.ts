@@ -41,12 +41,6 @@ export interface AdminDashboardStats {
     todayEarned: number
     todayConsumed: number
   }
-  checkinActivity: {
-    totalCheckins: number
-    uniqueUsers: number
-    todayCheckins: number
-    weekCheckins: number
-  }
   recentActivity: {
     todayRegistrations: number
     weekRegistrations: number
@@ -56,11 +50,19 @@ export interface AdminDashboardStats {
   systemHealth: SystemHealth
 }
 
-export interface AdminUserDetails extends User {
+export interface AdminUserDetails extends Omit<User, 'password_hash' | 'provider_id'> {
   tempEmailCount: number
   emailCount: number
   lastLoginAt?: string
   registrationIp?: string
+}
+
+export interface AdminEmailSummary extends Omit<Email, 'content' | 'html_content' | 'verification_code'> {
+  content_preview: string | null
+  hasVerificationCode: boolean
+  tempEmailAddress: string
+  userEmail: string
+  domainName: string
 }
 
 export interface AdminEmailDetails extends Email {
@@ -152,25 +154,8 @@ export interface AdminStatsParams {
 
 // 系统监控类型
 export interface SystemHealth {
-  database: {
-    status: 'healthy' | 'degraded' | 'down'
-    responseTime: number
-    connectionCount?: number
-  }
-  storage: {
-    totalEmails: number
-    totalSize: number
-    avgEmailSize: number
-  }
-  performance: {
-    avgResponseTime: number
-    requestsPerMinute: number
-    errorRate: number
-  }
-  rateLimits: {
-    activeRateLimits: number
-    blockedRequests: number
-  }
+  status: 'healthy' | 'degraded' | 'down'
+  responseTime: number
 }
 
 import type { 

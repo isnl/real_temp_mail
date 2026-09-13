@@ -17,12 +17,6 @@ defineExpose({
   close
 })
 
-// 当前时间
-const currentDate = new Date().toLocaleDateString('zh-CN', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-})
 </script>
 
 <template>
@@ -37,7 +31,7 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
       <div class="prose prose-sm max-w-none dark:prose-invert">
         <h2 class="text-xl font-bold mb-4">隐私政策</h2>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          生效日期：2025-08-17
+          生效日期：2026-09-13
         </p>
 
         <section class="mb-6">
@@ -48,7 +42,7 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
           <ul class="list-disc pl-6 space-y-2">
             <li>GitHub账户的公开信息（用户名、邮箱地址、头像等）</li>
             <li>您创建的临时邮箱地址信息</li>
-            <li>接收到的邮件内容（仅用于向您展示）</li>
+            <li>接收到的邮件内容（默认仅向您展示；主动开启公开收件箱后会向访问者公开，关闭后立即停止公开访问）</li>
             <li>服务使用日志和统计信息</li>
             <li>设备信息和IP地址（用于安全防护）</li>
           </ul>
@@ -92,9 +86,12 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">5. 数据保留</h3>
           <ul class="list-disc pl-6 space-y-2">
-            <li>临时邮箱地址和邮件内容会在一定时间后自动删除</li>
-            <li>账户信息在您主动删除账户后将被清除</li>
-            <li>日志信息会定期清理，保留时间不超过必要期限</li>
+            <li>邮件接收超过 7 天后立即停止通过接口提供，并在下一轮每日清理任务中物理删除</li>
+            <li>每个收件箱最多保留最近 50 封邮件，且可存储的邮件内容总量约为 4 MiB，以先达到的限制为准</li>
+            <li>您停用临时邮箱地址后，地址及其邮件会在下一轮每日清理任务中删除</li>
+            <li>安全审计与操作日志超过 30 天后，会在下一轮每日清理任务中删除</li>
+            <li>配额流水作为账户账本保留至账户删除</li>
+            <li>账户与第三方登录关联信息保留至账户删除；您可以联系管理员提出删除申请</li>
             <li>我们会根据法律要求保留必要的数据</li>
           </ul>
         </section>
@@ -105,7 +102,7 @@ const currentDate = new Date().toLocaleDateString('zh-CN', {
           <ul class="list-disc pl-6 space-y-2">
             <li>查看和更新您的账户信息</li>
             <li>删除您的临时邮箱地址</li>
-            <li>注销您的账户</li>
+            <li>联系管理员申请删除您的账户</li>
             <li>要求我们停止处理您的个人信息</li>
             <li>向相关监管部门投诉</li>
           </ul>

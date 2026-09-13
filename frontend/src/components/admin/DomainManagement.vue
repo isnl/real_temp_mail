@@ -23,14 +23,14 @@ const loadDomains = async () => {
   try {
     loading.value = true
     const response = await getDomains()
-    if (response.success) {
-      domains.value = response.data!
+    if (response.success && response.data) {
+      domains.value = response.data
     } else {
       ElMessage.error(response.error || '获取域名列表失败')
     }
   } catch (error) {
     console.error('获取域名列表失败:', error)
-    ElMessage.error('获取域名列表失败')
+    ElMessage.error(error instanceof Error ? error.message : '获取域名列表失败')
   } finally {
     loading.value = false
   }
@@ -56,17 +56,20 @@ const handleSaveCreate = async () => {
   }
   
   try {
-    const response = await createDomain(createForm)
+    const response = await createDomain({
+      ...createForm,
+      domain: createForm.domain.trim().toLowerCase(),
+    })
     if (response.success) {
       ElMessage.success('域名创建成功')
       createDialogVisible.value = false
-      loadDomains()
+      await loadDomains()
     } else {
       ElMessage.error(response.error || '域名创建失败')
     }
   } catch (error) {
     console.error('域名创建失败:', error)
-    ElMessage.error('域名创建失败')
+    ElMessage.error(error instanceof Error ? error.message : '域名创建失败')
   }
 }
 
@@ -88,14 +91,14 @@ const handleToggleStatus = async (domain: Domain) => {
     const response = await updateDomain(domain.id, newStatus)
     if (response.success) {
       ElMessage.success(`域名${statusText}成功`)
-      loadDomains()
+      await loadDomains()
     } else {
       ElMessage.error(response.error || `域名${statusText}失败`)
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error(`域名${statusText}失败:`, error)
-      ElMessage.error(`域名${statusText}失败`)
+      ElMessage.error(error instanceof Error ? error.message : `域名${statusText}失败`)
     }
   }
 }
@@ -103,10 +106,10 @@ const handleToggleStatus = async (domain: Domain) => {
 const handleDelete = async (domain: Domain) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除域名 "${domain.domain}" 吗？此操作不可恢复。`,
-      '确认删除',
+      `移除后，该域名将不再用于创建新邮箱；已有邮箱与历史邮件会保留。确定移除 “${domain.domain}” 吗？`,
+      '移除可用域名',
       {
-        confirmButtonText: '确定',
+        confirmButtonText: '确认移除',
         cancelButtonText: '取消',
         type: 'warning'
       }
@@ -114,15 +117,15 @@ const handleDelete = async (domain: Domain) => {
     
     const response = await deleteDomain(domain.id)
     if (response.success) {
-      ElMessage.success('域名删除成功')
-      loadDomains()
+      ElMessage.success('域名已从可用列表移除')
+      await loadDomains()
     } else {
       ElMessage.error(response.error || '域名删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('域名删除失败:', error)
-      ElMessage.error('域名删除失败')
+      ElMessage.error(error instanceof Error ? error.message : '域名删除失败')
     }
   }
 }

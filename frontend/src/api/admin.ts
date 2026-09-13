@@ -53,12 +53,6 @@ export interface AdminDashboardStats {
     todayEarned: number
     todayConsumed: number
   }
-  checkinActivity: {
-    totalCheckins: number
-    uniqueUsers: number
-    todayCheckins: number
-    weekCheckins: number
-  }
   recentActivity: {
     todayRegistrations: number
     weekRegistrations: number
@@ -66,9 +60,7 @@ export interface AdminDashboardStats {
     weekActiveUsers: number
   }
   systemHealth: {
-    status: 'healthy' | 'warning' | 'error'
-    uptime: number
-    memoryUsage: number
+    status: 'healthy'
     responseTime: number
   }
 }
@@ -78,6 +70,12 @@ export interface AdminUserDetails extends User {
   emailCount: number
   lastLoginAt?: string
   registrationIp?: string
+}
+
+export type AdminEmailSummary = Omit<Email, 'content' | 'html_content' | 'verification_code'> & {
+  tempEmailAddress: string
+  userEmail: string
+  domainName: string
 }
 
 export interface AdminEmailDetails extends Email {
@@ -109,7 +107,6 @@ export interface AdminUserListParams {
 }
 
 export interface AdminUserUpdateData {
-  quota?: number
   is_active?: boolean
   role?: 'user' | 'admin'
 }
@@ -213,8 +210,12 @@ export const deleteDomain = (domainId: number): Promise<ApiResponse<null>> => {
 
 // ==================== 邮件审查 ====================
 
-export const getEmails = (params: AdminEmailListParams): Promise<ApiResponse<PaginatedResponse<AdminEmailDetails>>> => {
+export const getEmails = (params: AdminEmailListParams): Promise<ApiResponse<PaginatedResponse<AdminEmailSummary>>> => {
   return apiClient.get('/api/admin/emails', params)
+}
+
+export const getEmailById = (emailId: number): Promise<ApiResponse<AdminEmailDetails>> => {
+  return apiClient.get(`/api/admin/emails/${emailId}`)
 }
 
 export const deleteEmail = (emailId: number): Promise<ApiResponse<null>> => {
@@ -317,6 +318,8 @@ export interface SystemSetting {
   setting_key: string
   setting_value: string
   description: string | null
+  is_secret?: boolean
+  is_configured?: boolean
   created_at: string
   updated_at: string
 }
@@ -329,6 +332,10 @@ export const getSystemSettings = async (): Promise<ApiResponse<SystemSetting[]>>
 export const updateSystemSetting = async (key: string, value: string): Promise<ApiResponse<void>> => {
   return apiClient.put<void>(`/api/admin/settings/${key}`, { value })
 }
+
+export const updateSystemSettings = async (
+  settings: Record<string, string>,
+): Promise<ApiResponse<void>> => apiClient.put<void>('/api/admin/settings', { settings })
 
 // ==================== 公告管理 ====================
 
@@ -388,5 +395,5 @@ export const toggleAnnouncementStatus = (id: number): Promise<ApiResponse<void>>
 
 // 获取活跃公告（用户端）
 export const getActiveAnnouncements = (): Promise<ApiResponse<Announcement[]>> => {
-  return apiClient.get('/api/announcements/active')
+  return apiClient.getPublic('/api/announcements/active')
 }

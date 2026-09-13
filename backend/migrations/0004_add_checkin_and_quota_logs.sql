@@ -6,8 +6,8 @@ CREATE TABLE system_settings (
   setting_key TEXT UNIQUE NOT NULL,
   setting_value TEXT NOT NULL,
   description TEXT,
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
-  updated_at TIMESTAMP DEFAULT (datetime('now', '+8 hours'))
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 插入默认签到配额设置
@@ -20,7 +20,7 @@ CREATE TABLE user_checkins (
   user_id INTEGER NOT NULL,
   checkin_date DATE NOT NULL,
   quota_reward INTEGER NOT NULL,
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE(user_id, checkin_date)
 );
@@ -34,7 +34,7 @@ CREATE TABLE quota_logs (
   source TEXT NOT NULL CHECK (source IN ('register', 'checkin', 'redeem_code', 'admin_adjust', 'create_email')),
   description TEXT,
   related_id INTEGER, -- 关联记录ID（如签到记录ID、兑换码ID等）
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

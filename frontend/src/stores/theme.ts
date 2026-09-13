@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { useDark, useToggle } from '@vueuse/core'
 import type { ThemeMode } from '@/types'
+
+let systemThemeQuery: MediaQueryList | null = null
+let systemThemeListenerAttached = false
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
@@ -15,17 +17,6 @@ export const useThemeStore = defineStore('theme', {
 
   actions: {
     initTheme() {
-      // 使用 VueUse 的 useDark 来管理暗色模式
-      const isDark = useDark({
-        selector: 'html',
-        attribute: 'class',
-        valueDark: 'dark',
-        valueLight: ''
-      })
-
-      this.isDark = isDark.value
-
-      // 根据保存的主题设置应用主题
       this.applyTheme(this.theme)
     },
 
@@ -45,20 +36,19 @@ export const useThemeStore = defineStore('theme', {
     },
 
     applyTheme(theme: ThemeMode) {
-      const html = document.documentElement
-
       if (theme === 'auto') {
-        // 跟随系统主题
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-        this.isDark = mediaQuery.matches
-        
-        // 监听系统主题变化
-        mediaQuery.addEventListener('change', (e) => {
+        systemThemeQuery ??= window.matchMedia('(prefers-color-scheme: dark)')
+        this.isDark = systemThemeQuery.matches
+
+        if (!systemThemeListenerAttached) {
+          systemThemeQuery.addEventListener('change', (event) => {
           if (this.theme === 'auto') {
-            this.isDark = e.matches
+            this.isDark = event.matches
             this.updateDOMTheme()
           }
-        })
+          })
+          systemThemeListenerAttached = true
+        }
       } else {
         this.isDark = theme === 'dark'
       }

@@ -13,7 +13,7 @@ export interface Announcement {
 
 // 获取活跃公告（用户端）
 export const getActiveAnnouncements = (): Promise<ApiResponse<Announcement[]>> => {
-  return apiClient.get('/api/announcements/active')
+  return apiClient.getPublic('/api/announcements/active')
 }
 
 // 获取最新的一条活跃公告
@@ -30,7 +30,7 @@ export const getLatestAnnouncement = async (): Promise<ApiResponse<Announcement 
       success: true,
       data: null
     }
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: '获取公告失败'

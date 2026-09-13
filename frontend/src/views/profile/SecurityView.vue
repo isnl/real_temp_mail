@@ -1,12 +1,18 @@
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { authApi } from '@/api/auth'
 import { usePageTitle } from '@/composables/usePageTitle'
+import { useAuthStore } from '@/stores/auth'
 
 // 设置页面标题
 usePageTitle()
+
+const router = useRouter()
+const authStore = useAuthStore()
+const canChangePassword = computed(() => authStore.user?.provider !== 'github')
 
 // 修改密码表单
 const passwordForm = ref({
@@ -23,11 +29,14 @@ const passwordRules: FormRules = {
   currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' },
+    { min: 8, max: 128, message: '密码长度应为 8–128 位', trigger: 'blur' },
     {
-      pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      message: '密码必须包含大小写字母、数字和特殊字符',
-      trigger: 'blur',
+      validator: (_rule, value, callback) => {
+        callback(value === passwordForm.value.currentPassword
+          ? new Error('新密码不能与当前密码相同')
+          : undefined)
+      },
+      trigger: ['blur', 'change'],
     },
   ],
   confirmPassword: [
@@ -47,44 +56,28 @@ const passwordRules: FormRules = {
 
 // 修改密码
 const changePassword = async () => {
-  if (!passwordFormRef.value) return
+  if (!passwordFormRef.value || !canChangePassword.value) return
+  const valid = await passwordFormRef.value.validate().catch(() => false)
+  if (!valid) return
 
-  passwordFormRef.value.validate()
-    .then(async () => {
-      passwordLoading.value = true
-
-      try {
-        // 调用真实的API修改密码
-        const response = await authApi.changePassword({
-          currentPassword: passwordForm.value.currentPassword,
-          newPassword: passwordForm.value.newPassword,
-          confirmPassword: passwordForm.value.confirmPassword,
-        })
-
-        if (response.success) {
-          ElMessage.success('密码修改成功')
-
-          // 重置表单
-          passwordForm.value = {
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: '',
-          }
-          passwordFormRef.value?.resetFields()
-        } else {
-          ElMessage.error(response.error || '密码修改失败')
-        }
-      } catch (error: any) {
-        console.error('Change password error:', error)
-        ElMessage.error(error.message || '密码修改失败，请重试')
-      } finally {
-        passwordLoading.value = false
-      }
+  passwordLoading.value = true
+  try {
+    await authApi.changePassword({
+      currentPassword: passwordForm.value.currentPassword,
+      newPassword: passwordForm.value.newPassword,
+      confirmPassword: passwordForm.value.confirmPassword,
     })
-    .catch(() => {
-      // 表单验证失败，不需要额外处理，Element Plus 会自动显示验证错误
-      console.log('表单验证失败')
-    })
+
+    // 后端会撤销该用户的全部刷新令牌，前端也立即结束旧会话。
+    await authStore.logout()
+    ElMessage.success('密码已更新，请使用新密码重新登录')
+    await router.replace('/login')
+  } catch (error) {
+    console.error('Change password error:', error)
+    ElMessage.error(error instanceof Error ? error.message : '密码修改失败，请重试')
+  } finally {
+    passwordLoading.value = false
+  }
 }
 
 // 密码强度检测
@@ -133,17 +126,35 @@ const getPasswordStrengthColor = (strength: number) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="security-page">
+    <div v-if="!canChangePassword" class="security-provider-card surface-card" role="status">
+      <span class="security-provider-icon" aria-hidden="true">
+        <font-awesome-icon :icon="['fab', 'github']" />
+      </span>
+      <div>
+        <p class="page-eyebrow">GitHub account</p>
+        <h3>此账号使用 GitHub 登录</h3>
+        <p>当前账号尚未设置本地密码，因此不能在这里修改密码。请继续通过 GitHub 登录。</p>
+      </div>
+    </div>
+
     <!-- 修改密码 -->
-    <div class="card-base p-6">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">修改密码</h3>
+    <div v-else class="security-password-card surface-card">
+      <header>
+        <span aria-hidden="true"><font-awesome-icon :icon="['fas', 'key']" /></span>
+        <div>
+          <p class="page-eyebrow">Password</p>
+          <h3>修改登录密码</h3>
+          <p>保存后当前会话会安全退出，请使用新密码重新登录。</p>
+        </div>
+      </header>
 
       <el-form
         ref="passwordFormRef"
         :model="passwordForm"
         :rules="passwordRules"
-        label-width="120px"
-        class="max-w-2xl"
+        label-position="top"
+        class="security-form"
       >
         <el-form-item label="当前密码" prop="currentPassword">
           <el-input
@@ -195,7 +206,7 @@ const getPasswordStrengthColor = (strength: number) => {
 
             <!-- 密码要求说明 -->
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 max-w-md">
-              密码必须包含大小写字母、数字和特殊字符，长度至少8位
+              密码长度为 8–128 位；建议混合大小写字母、数字和符号。
             </p>
           </div>
         </el-form-item>
@@ -211,7 +222,7 @@ const getPasswordStrengthColor = (strength: number) => {
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="changePassword" :loading="passwordLoading">
+          <el-button type="primary" :loading="passwordLoading" @click="changePassword">
             <font-awesome-icon :icon="['fas', 'key']" class="mr-1" />
             修改密码
           </el-button>
@@ -220,3 +231,72 @@ const getPasswordStrengthColor = (strength: number) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.security-page {
+  display: grid;
+  max-width: 820px;
+  gap: 20px;
+}
+
+.security-password-card,
+.security-provider-card {
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.security-password-card > header,
+.security-provider-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.security-password-card > header {
+  padding-bottom: 23px;
+  border-bottom: 1px solid var(--border);
+}
+
+.security-password-card > header > span,
+.security-provider-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--brand-700);
+  background: var(--brand-100);
+}
+
+.security-password-card h3,
+.security-provider-card h3 {
+  margin-top: 2px;
+  color: var(--text-primary);
+  font-size: 1.12rem;
+}
+
+.security-password-card header p:last-child,
+.security-provider-card p:last-child {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.security-form {
+  max-width: 560px;
+  padding-top: 24px;
+}
+
+.dark .security-password-card > header > span,
+.dark .security-provider-icon {
+  color: var(--brand-400);
+  background: color-mix(in srgb, var(--brand-500) 14%, transparent);
+}
+
+@media (max-width: 520px) {
+  .security-password-card,
+  .security-provider-card {
+    padding: 18px;
+  }
+}
+</style>

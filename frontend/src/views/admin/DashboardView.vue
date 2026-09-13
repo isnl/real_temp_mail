@@ -124,20 +124,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- 签到统计 -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-cyan-100 dark:bg-cyan-900 rounded-lg flex items-center justify-center">
-              <font-awesome-icon :icon="['fas', 'calendar-check']" class="text-cyan-600 dark:text-cyan-400 text-xl" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600 dark:text-gray-400">签到统计</p>
-              <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ formatNumber(stats.checkinActivity.totalCheckins) }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-500">今日: {{ formatNumber(stats.checkinActivity.todayCheckins) }}</p>
-            </div>
-          </div>
-        </div>
-
         <!-- 用户活跃度 -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <div class="flex items-center">

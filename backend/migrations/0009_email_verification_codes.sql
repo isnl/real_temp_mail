@@ -9,7 +9,7 @@ CREATE TABLE email_verification_codes (
   expires_at TIMESTAMP NOT NULL,
   used BOOLEAN DEFAULT 0,
   used_at TIMESTAMP NULL,
-  created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   ip_address TEXT,
   user_agent TEXT
 );

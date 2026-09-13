@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
-import type { User, LoginRequest, TokenPair } from '@/types'
+import type { User, LoginRequest, RegisterRequest, TokenPair } from '@/types'
 import { authApi } from '@/api/auth'
 import router from '@/router'
+
+let activeRefresh: Promise<ReturnType<typeof authApi.refreshToken> extends Promise<infer Result> ? Result : never> | null = null
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -16,7 +18,10 @@ export const useAuthStore = defineStore('auth', {
     isAdmin: (state) => state.user?.role === 'admin',
     userEmail: (state) => state.user?.email || '',
     userQuota: (state) => state.user?.quota || 0,
-    isLoggedIn: (state) => state.isAuthenticated && !!state.user
+    isLoggedIn: (state) => state.isAuthenticated
+      && Boolean(state.accessToken)
+      && Boolean(state.refreshToken)
+      && Boolean(state.user)
   },
 
   actions: {
@@ -24,17 +29,29 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       try {
         const response = await authApi.login(loginData)
-        // API 客户端现在在错误时会抛出异常，所以这里只处理成功的情况
-        this.setAuthData(response.data!.user, response.data!.tokens)
+        if (!response.data?.user || !response.data.tokens) {
+          throw new Error(response.error || '登录响应缺少用户信息')
+        }
+        this.setAuthData(response.data.user, response.data.tokens)
         return response
-      } catch (error) {
-        throw error
       } finally {
         this.isLoading = false
       }
     },
 
-
+    async register(registerData: RegisterRequest) {
+      this.isLoading = true
+      try {
+        const response = await authApi.register(registerData)
+        if (!response.data?.user || !response.data.tokens) {
+          throw new Error(response.error || '注册响应缺少用户信息')
+        }
+        this.setAuthData(response.data.user, response.data.tokens)
+        return response
+      } finally {
+        this.isLoading = false
+      }
+    },
 
     async refreshTokens() {
       if (!this.refreshToken) {
@@ -42,15 +59,28 @@ export const useAuthStore = defineStore('auth', {
         throw new Error('No refresh token available')
       }
 
+      if (activeRefresh) return await activeRefresh
+
+      const refreshToken = this.refreshToken
+      activeRefresh = authApi.refreshToken(refreshToken)
       try {
-        const response = await authApi.refreshToken(this.refreshToken)
-        // API 客户端现在在错误时会抛出异常，所以这里只处理成功的情况
-        this.setTokens(response.data!)
+        const response = await activeRefresh
+        if (this.refreshToken !== refreshToken) {
+          throw new Error('登录状态已发生变化')
+        }
+        if (!response.data?.accessToken || !response.data.refreshToken) {
+          throw new Error(response.error || '令牌刷新响应无效')
+        }
+        this.setTokens(response.data)
         return response
       } catch (error) {
         console.error('Token refresh failed:', error)
-        this.clearAuthDataAndRedirect()
+        // A logout or a new login may finish while the old rotation request is
+        // still in flight. Never let that stale request erase the newer state.
+        if (this.refreshToken === refreshToken) this.clearAuthDataAndRedirect()
         throw error
+      } finally {
+        activeRefresh = null
       }
     },
 
@@ -78,8 +108,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     setTokens(tokens: TokenPair) {
-      this.accessToken = tokens.accessToken
-      this.refreshToken = tokens.refreshToken
+      this.accessToken = tokens.accessToken || ''
+      this.refreshToken = tokens.refreshToken || ''
     },
 
     clearAuthData() {
@@ -98,7 +128,7 @@ export const useAuthStore = defineStore('auth', {
 
     updateUserQuota(quota: number) {
       if (this.user) {
-        this.user.quota = quota
+        this.user.quota = Math.max(0, Number.isFinite(quota) ? quota : 0)
       }
     },
 
@@ -107,6 +137,7 @@ export const useAuthStore = defineStore('auth', {
         const response = await authApi.getCurrentUser()
         if (response.data) {
           this.user = response.data
+          this.isAuthenticated = true
         }
         return response
       } catch (error) {
@@ -123,7 +154,11 @@ export const useAuthStore = defineStore('auth', {
       try {
         // 这里可以添加token过期检查逻辑
         // 如果token即将过期，自动刷新
-        const payload = JSON.parse(atob(this.accessToken.split('.')[1]))
+        const encodedPayload = this.accessToken.split('.')[1]
+        if (!encodedPayload) throw new Error('令牌格式无效')
+        const normalizedPayload = encodedPayload.replace(/-/g, '+').replace(/_/g, '/')
+        const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, '=')
+        const payload = JSON.parse(atob(paddedPayload))
         const exp = payload.exp * 1000
         const now = Date.now()
         

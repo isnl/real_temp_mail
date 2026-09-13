@@ -2,9 +2,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { apiClient } from '@/api/request'
-import { formatQuotaSource, formatQuotaType, getQuotaTypeColor, getQuotaSourceIcon } from '@/api/checkin'
+import { formatQuotaSource, formatQuotaType, getQuotaTypeColor, getQuotaSourceIcon } from '@/api/quota'
 import { formatNumber } from '@/api/admin'
-import type { ApiResponse, PaginatedResponse } from '@/types'
+import type { PaginatedResponse } from '@/types'
 
 // 配额记录类型
 interface QuotaLogWithUser {
@@ -202,7 +202,7 @@ onMounted(() => {
         
         <el-select v-model="searchForm.source" placeholder="来源" clearable>
           <el-option label="注册赠送" value="register" />
-          <el-option label="每日签到" value="checkin" />
+          <el-option label="历史签到奖励" value="checkin" />
           <el-option label="兑换码" value="redeem_code" />
           <el-option label="管理员调整" value="admin_adjust" />
           <el-option label="创建邮箱" value="create_email" />

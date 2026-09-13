@@ -7,6 +7,7 @@ import type {
 } from '@/types'
 
 import {
+  AppError,
   ValidationError,
   AuthenticationError,
   AuthorizationError,
@@ -15,6 +16,7 @@ import {
 
 import { AnnouncementService } from '@/modules/announcement/announcement.service'
 import { createAuthMiddleware } from '@/middleware/auth.middleware'
+import { normalizeApiTimestamps } from '@/utils/datetime'
 
 export class AnnouncementHandler {
   private env: Env
@@ -33,7 +35,7 @@ export class AnnouncementHandler {
       data,
       message
     }
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify(normalizeApiTimestamps(response)), {
       headers: { 'Content-Type': 'application/json' }
     })
   }
@@ -41,7 +43,7 @@ export class AnnouncementHandler {
   private createErrorResponse(error: Error, statusCode: number = 500): Response {
     const response: ApiResponse = {
       success: false,
-      error: error.message
+      error: error instanceof AppError ? error.message : '服务器内部错误'
     }
     return new Response(JSON.stringify(response), {
       status: statusCode,
@@ -52,12 +54,13 @@ export class AnnouncementHandler {
   /**
    * 验证管理员权限
    */
-  private async validateAdminAuth(request: Request): Promise<void> {
+  private async validateAdminAuth(request: Request): Promise<number> {
     try {
       const { user } = await this.authMiddleware.authenticate(request)
       if (!user || user.role !== 'admin') {
         throw new AuthorizationError('需要管理员权限')
       }
+      return user.userId
     } catch (error) {
       if (error instanceof Response) {
         throw new AuthenticationError('认证失败')
@@ -157,11 +160,11 @@ export class AnnouncementHandler {
    */
   async createAnnouncement(request: Request): Promise<Response> {
     try {
-      await this.validateAdminAuth(request)
+      const adminUserId = await this.validateAdminAuth(request)
 
       const requestData = await request.json() as CreateAnnouncementData
 
-      const announcement = await this.announcementService.createAnnouncement(requestData)
+      const announcement = await this.announcementService.createAnnouncement(requestData, adminUserId)
       return this.createResponse(announcement, '公告创建成功')
     } catch (error) {
       console.error('创建公告失败:', error)

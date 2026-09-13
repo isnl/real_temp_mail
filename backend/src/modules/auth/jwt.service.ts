@@ -1,210 +1,157 @@
-import type { Env, User, JWTPayload, TokenPair } from '@/types'
+import type { Env, JWTPayload, TokenPair, User } from '@/types'
 import { DatabaseService } from '@/modules/shared/database.service'
 
 export class JWTService {
-  private readonly ACCESS_TOKEN_EXPIRES = 15 * 24 * 60 * 60 // 15天
-  private readonly REFRESH_TOKEN_EXPIRES = 30 * 24 * 60 * 60 // 30天
+  private readonly ACCESS_TOKEN_EXPIRES = 15 * 60
+  private readonly REFRESH_TOKEN_EXPIRES = 30 * 24 * 60 * 60
 
   constructor(
     private env: Env,
     private dbService: DatabaseService
   ) {}
 
-  async generateTokenPair(user: User): Promise<TokenPair> {
-    const accessToken = await this.generateAccessToken(user)
-    const refreshToken = await this.generateRefreshToken(user)
-
-    // 存储 refresh token 到数据库
+  async generateTokenPair(user: Pick<User, 'id' | 'email' | 'role'>): Promise<TokenPair> {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.generateToken(user, 'access', this.ACCESS_TOKEN_EXPIRES),
+      this.generateToken(user, 'refresh', this.REFRESH_TOKEN_EXPIRES)
+    ])
     await this.storeRefreshToken(user.id, refreshToken)
-
     return { accessToken, refreshToken }
   }
 
-  private async generateAccessToken(user: User): Promise<string> {
-    const payload: JWTPayload = {
+  private async generateToken(
+    user: Pick<User, 'id' | 'email' | 'role'>,
+    type: 'access' | 'refresh',
+    lifetime: number
+  ): Promise<string> {
+    const now = Math.floor(Date.now() / 1000)
+    return await this.signJWT({
       userId: user.id,
       email: user.email,
       role: user.role,
-      type: 'access',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.ACCESS_TOKEN_EXPIRES
-    }
-
-    return await this.signJWT(payload)
-  }
-
-  private async generateRefreshToken(user: User): Promise<string> {
-    const payload: JWTPayload = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      type: 'refresh',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.REFRESH_TOKEN_EXPIRES
-    }
-
-    return await this.signJWT(payload)
+      type,
+      jti: crypto.randomUUID(),
+      iat: now,
+      exp: now + lifetime
+    })
   }
 
   private async signJWT(payload: JWTPayload): Promise<string> {
-    if (!this.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured')
-    }
-
-    const encoder = new TextEncoder()
-    const keyData = encoder.encode(this.env.JWT_SECRET)
-    
-    const key = await crypto.subtle.importKey(
-      'raw',
-      keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
+    const key = await this.signingKey(['sign'])
+    const encodedHeader = this.base64UrlEncode(
+      new TextEncoder().encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
     )
-
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT'
-    }
-
-    const encodedHeader = this.base64UrlEncode(JSON.stringify(header))
-    const encodedPayload = this.base64UrlEncode(JSON.stringify(payload))
-    
-    const data = encoder.encode(`${encodedHeader}.${encodedPayload}`)
+    const encodedPayload = this.base64UrlEncode(
+      new TextEncoder().encode(JSON.stringify(payload))
+    )
+    const data = new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
     const signature = await crypto.subtle.sign('HMAC', key, data)
-    const encodedSignature = this.base64UrlEncode(signature)
-
-    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+    return `${encodedHeader}.${encodedPayload}.${this.base64UrlEncode(new Uint8Array(signature))}`
   }
 
   async verifyJWT(token: string): Promise<JWTPayload | null> {
     try {
+      if (token.length > 8192) return null
       const parts = token.split('.')
-      if (parts.length !== 3) {
-        return null
-      }
-
+      if (parts.length !== 3) return null
       const [encodedHeader, encodedPayload, encodedSignature] = parts
+      if (!encodedHeader || !encodedPayload || !encodedSignature) return null
 
-      // 检查所有部分是否存在
-      if (!encodedHeader || !encodedPayload || !encodedSignature) {
-        return null
-      }
+      const header = JSON.parse(this.decodeText(encodedHeader)) as { alg?: unknown; typ?: unknown }
+      if (header.alg !== 'HS256' || header.typ !== 'JWT') return null
 
-      // 验证签名
-      if (!this.env.JWT_SECRET) {
-        throw new Error('JWT_SECRET is not configured')
-      }
-
-      const encoder = new TextEncoder()
-      const keyData = encoder.encode(this.env.JWT_SECRET)
-      
-      const key = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['verify']
+      const signatureBytes = this.base64UrlDecode(encodedSignature)
+      const signature = signatureBytes.buffer.slice(
+        signatureBytes.byteOffset,
+        signatureBytes.byteOffset + signatureBytes.byteLength
+      ) as ArrayBuffer
+      const validSignature = await crypto.subtle.verify(
+        'HMAC',
+        await this.signingKey(['verify']),
+        signature,
+        new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
       )
+      if (!validSignature) return null
 
-      const data = encoder.encode(`${encodedHeader}.${encodedPayload}`)
-      const signature = this.base64UrlDecode(encodedSignature)
-      
-      const isValid = await crypto.subtle.verify('HMAC', key, signature, data)
-      if (!isValid) {
+      const payload = JSON.parse(this.decodeText(encodedPayload)) as Partial<JWTPayload>
+      const now = Math.floor(Date.now() / 1000)
+      if (
+        !Number.isSafeInteger(payload.userId) ||
+        typeof payload.email !== 'string' ||
+        !['user', 'admin'].includes(payload.role || '') ||
+        !['access', 'refresh'].includes(payload.type || '') ||
+        typeof payload.jti !== 'string' ||
+        payload.jti.length < 16 ||
+        typeof payload.iat !== 'number' ||
+        typeof payload.exp !== 'number' ||
+        payload.iat > now + 300 ||
+        payload.exp <= now - 30 ||
+        payload.exp <= payload.iat
+      ) {
         return null
       }
-
-      // 解析payload
-      const payload: JWTPayload = JSON.parse(this.base64UrlDecodeString(encodedPayload))
-      
-      // 检查过期时间
-      if (payload.exp < Math.floor(Date.now() / 1000)) {
-        return null
-      }
-
-      return payload
+      return payload as JWTPayload
     } catch (error) {
-      console.error('JWT verification error:', error)
+      console.warn('JWT verification rejected:', error instanceof Error ? error.message : error)
       return null
     }
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenPair | null> {
-    // 验证 refresh token
     const payload = await this.verifyJWT(refreshToken)
-    if (!payload || payload.type !== 'refresh') {
-      return null
-    }
+    if (!payload || payload.type !== 'refresh') return null
 
-    // 检查数据库中的 refresh token
     const tokenHash = await this.hashToken(refreshToken)
-    const storedToken = await this.dbService.getRefreshToken(tokenHash)
-    if (!storedToken) {
-      return null
-    }
+    const consumedUserId = await this.dbService.consumeRefreshToken(tokenHash)
+    if (consumedUserId !== payload.userId) return null
 
-    // 获取用户信息
-    const user = await this.dbService.getUserById(payload.userId)
-    if (!user) {
-      return null
-    }
+    const user = await this.dbService.getAuthPrincipalById(payload.userId)
+    if (!user || !user.is_active) return null
 
-    // 撤销旧的 refresh token
-    await this.dbService.revokeRefreshToken(tokenHash)
-
-    // 生成新的 token 对
     return await this.generateTokenPair(user)
   }
 
-  private async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
-    const tokenHash = await this.hashToken(refreshToken)
-    const expiresAt = new Date(Date.now() + this.REFRESH_TOKEN_EXPIRES * 1000).toISOString()
-    
-    await this.dbService.storeRefreshToken(userId, tokenHash, expiresAt)
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    if (!refreshToken || refreshToken.length > 8192) return
+    await this.dbService.revokeRefreshToken(await this.hashToken(refreshToken))
   }
 
-  async revokeRefreshToken(refreshToken: string): Promise<void> {
-    const tokenHash = await this.hashToken(refreshToken)
-    await this.dbService.revokeRefreshToken(tokenHash)
+  private async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + this.REFRESH_TOKEN_EXPIRES * 1000).toISOString()
+    await this.dbService.storeRefreshToken(userId, await this.hashToken(refreshToken), expiresAt)
+  }
+
+  private async signingKey(usages: KeyUsage[]): Promise<CryptoKey> {
+    if (!this.env.JWT_SECRET || this.env.JWT_SECRET.length < 32) {
+      throw new Error('JWT_SECRET must be configured with at least 32 characters')
+    }
+    return await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(this.env.JWT_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      usages
+    )
   }
 
   private async hashToken(token: string): Promise<string> {
-    const encoder = new TextEncoder()
-    const data = encoder.encode(token)
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
   }
 
-  private base64UrlEncode(data: string | ArrayBuffer): string {
-    let base64: string
-    
-    if (typeof data === 'string') {
-      base64 = btoa(data)
-    } else {
-      const bytes = new Uint8Array(data)
-      const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-      base64 = btoa(binary)
-    }
-    
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+  private base64UrlEncode(bytes: Uint8Array): string {
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
   }
 
-  private base64UrlDecode(data: string): ArrayBuffer {
-    const base64 = data.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
-    const binary = atob(padded)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i)
-    }
-    return bytes.buffer
+  private base64UrlDecode(value: string): Uint8Array {
+    const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+    const binary = atob(base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '='))
+    return Uint8Array.from(binary, character => character.charCodeAt(0))
   }
 
-  private base64UrlDecodeString(data: string): string {
-    const base64 = data.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')
-    return atob(padded)
+  private decodeText(value: string): string {
+    return new TextDecoder().decode(this.base64UrlDecode(value))
   }
 }

@@ -17,12 +17,6 @@ defineExpose({
   close
 })
 
-// 当前时间
-const currentDate = new Date().toLocaleDateString('zh-CN', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-})
 </script>
 
 <template>

@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { Email } from '@/types'
+import type { EmailMessage } from '@/types'
+import { buildSandboxedEmailHtml } from '@/utils/safeEmailHtml'
 
 interface Props {
   modelValue: boolean
-  email: Email | null
+  email: EmailMessage | null
+  loading?: boolean
 }
 
 interface Emits {
@@ -19,6 +21,8 @@ const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
+
+const sandboxedHtml = computed(() => buildSandboxedEmailHtml(props.email?.html_content))
 
 const copyToClipboard = async (text: string) => {
   try {
@@ -65,7 +69,8 @@ const handleClose = () => {
     @close="handleClose"
     append-to-body
   >
-    <div v-if="props.email" class="flex flex-col gap-6">
+    <el-skeleton v-if="props.loading" :rows="8" animated />
+    <div v-else-if="props.email" class="flex flex-col gap-6">
       <!-- Email Header -->
       <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
         <div class="flex items-start justify-between mb-4">
@@ -159,8 +164,14 @@ const handleClose = () => {
           <h4 class="font-medium text-gray-900 dark:text-gray-100">
             HTML 内容
           </h4>
-          <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
-            <div v-html="props.email.html_content" class="prose dark:prose-invert max-w-none"></div>
+          <div class="email-html-frame-wrap">
+            <iframe
+              class="email-html-frame"
+              :srcdoc="sandboxedHtml"
+              sandbox=""
+              referrerpolicy="no-referrer"
+              title="隔离的邮件 HTML 内容"
+            />
           </div>
           <div class="flex justify-end">
             <el-button
@@ -203,29 +214,19 @@ const handleClose = () => {
 </template>
 
 <style scoped>
-/* 限制HTML内容中的样式 */
-:deep(.prose) {
-  max-width: none;
+.email-html-frame-wrap {
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: 12px;
+  background: #fff;
 }
 
-:deep(.prose img) {
-  max-width: 100%;
-  height: auto;
-}
-
-:deep(.prose a) {
-  color: #3b82f6;
-  text-decoration: underline;
-}
-
-:deep(.prose table) {
+.email-html-frame {
+  display: block;
   width: 100%;
-  border-collapse: collapse;
-}
-
-:deep(.prose th),
-:deep(.prose td) {
-  border: 1px solid #e5e7eb;
-  padding: 8px;
+  height: min(48vh, 420px);
+  min-height: 280px;
+  border: 0;
+  background: #fff;
 }
 </style>

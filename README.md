@@ -1,750 +1,230 @@
-never edit this file
+# 临时邮箱系统
 
-## 临时邮箱管理系统技术架构与需求文档
+基于 Vue 3、Cloudflare Workers、Workers Static Assets、D1 与 Email Routing 的临时邮箱系统。前端、HTTP API 与邮件处理入口由同一个 Worker 发布，不再维护 Cloudflare Pages 和独立 API Worker 两套部署。
 
-### 一、系统概述
-
-基于 Cloudflare 全家桶的临时邮箱系统，提供一次性邮箱生成、邮件接收、配额管理等功能，支持多域名后缀选择。
-
----
-
-### 二、技术架构
-
-#### 前端架构
+## 部署架构
 
 ```mermaid
-graph LR
-A[Vue3] --> B[Vite]
-A --> C[UnoCSS]
-A --> D[Element Plus]
-A --> H[Pinia]
-A --> I[FontAwesome]
-C --> F[原子化样式]
-D --> G[UI组件库]
-H --> J[状态管理]
-H --> K[Pinia持久化插件]
-I --> L[图标库]
-A --> M[VueUse]
-M --> N[暗色模式切换]
-A --> O[Typescript]
-O --> P[类型安全]
+flowchart LR
+  Browser[浏览器] --> Worker[Cloudflare Worker]
+  Worker -->|/api 与 /api/*| API[backend/src/index.ts]
+  Worker -->|静态文件与 SPA 路由| Assets[frontend/dist]
+  API --> D1[(Cloudflare D1)]
+  Routing[Email Routing] -->|email 事件| Worker
 ```
 
-**技术栈详细说明：**
-- **Vue 3**: 前端框架，使用 Composition API
-- **Vite**: 构建工具
-- **UnoCSS**: 原子化 CSS 框架，支持暗色模式
-- **Element Plus**: UI 组件库，支持主题定制
-- **Pinia**: 状态管理，替代 Vuex
-- **Pinia 持久化插件**: 自动持久化状态到 localStorage/sessionStorage
-- **FontAwesome**: 图标库，提供丰富的图标资源
-- **VueUse**: Vue 组合式工具库，用于暗色模式切换
-- **Typescript**: 类型安全，提升代码质量和维护性
+根目录的 `wrangler.toml` 是唯一部署配置：
 
-#### 后端架构
+- Worker 入口为 `backend/src/index.ts`。
+- 静态资源目录为 `frontend/dist`。
+- `/api` 与 `/api/*` 始终先进入 Worker，未知 API 也会返回 JSON 错误，不会落到前端页面。
+- `/public-inbox` 也先进入 Worker，以附加禁止索引、禁止 Referer 和禁止缓存的隐私响应头。
+- 其他不存在的路径回退到 `index.html`，支持 Vue Router history 模式。
+- 绝大多数静态文件由 Cloudflare 直接响应；只有公开收件箱页面先经过 Worker 附加隐私响应头，再由 `ASSETS` binding 返回。
 
-```mermaid
-graph TD
-Cloudflare[Cloudflare 全家桶] --> Pages[Pages]
-Cloudflare --> Workers[Workers]
-Cloudflare --> D1[D1数据库]
-Cloudflare --> Email[Email Routing]
-Workers --> TS[TypeScript模块化]
+## 环境要求
+
+- Node.js `20.19+` 或 `22.12+`
+- npm 10+
+- 已登录的 Cloudflare 账号
+- 一个 D1 数据库
+- 如需收信或发信，已配置 Email Routing
+
+## 安装
+
+```bash
+npm ci
 ```
 
-**后端技术栈：**
-- **Cloudflare Workers**: 边缘计算平台，支持 TypeScript
-- **模块化设计**: 按功能拆分模块（auth、email、admin、utils）
-- **TypeScript**: 类型安全，提升代码质量和维护性
-- **D1 数据库**: SQLite 兼容的分布式数据库
-- **Email Routing**: 邮件路由服务
-- **Turnstile**: Cloudflare 人机验证，防止滥用和机器人攻击
+项目使用 npm workspaces 管理 `frontend` 与 `backend`。请从仓库根目录执行构建、开发和部署命令。
 
-#### 全栈架构图
+## 配置
 
-```mermaid
-graph LR
- 用户 -->|HTTP请求| CF_Pages[Cloudflare Pages]
- CF_Pages -->|API调用| CF_Workers[Cloudflare Workers]
- CF_Workers --> D1[(D1数据库)]
- SMTP[邮件服务器] -->|转发邮件| Email_Routing[Email Routing]
- Email_Routing -->|触发| CF_Workers
+### Wrangler 公共配置
+
+部署前检查根目录 `wrangler.toml` 中的非敏感配置：
+
+- `FRONTEND_DOMAIN`：允许跨源开发请求的前端站点域名，不包含协议；统一同源部署时也可保留为正式域名。
+- `database_name`、`database_id`：目标 D1 数据库。
+- `migrations_dir`：保持为 `backend/migrations`。
+
+不要把密码、JWT、Turnstile Secret Key 或 GitHub Client Secret 写入 `wrangler.toml`。
+
+### 服务端密钥
+
+生产环境至少需要配置 JWT 基础密钥。首次部署还需要一个独立的、至少 32 字符的管理员初始化令牌：
+
+```bash
+npx wrangler secret put JWT_SECRET
+npx wrangler secret put ADMIN_SETUP_TOKEN
 ```
 
----
+两个值必须随机生成且不能相同。`JWT_SECRET` 同时保护登录令牌和后台保存的敏感系统配置，不应频繁更换；确需轮换时，应先规划现有会话失效与敏感设置重新保存。`ADMIN_SETUP_TOKEN` 只用于首次创建管理员，初始化后应立即删除或轮换。
 
-### 三、数据库设计（D1 SQLite）
+本地开发复制示例文件，并只在未跟踪的 `.dev.vars` 中填写本地值：
 
-#### 表结构
-
-```sql
--- 用户表
-CREATE TABLE users (
-  id INTEGER PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL, -- 用户邮箱（注册邮箱）
-  password_hash TEXT NOT NULL,
-  quota INTEGER DEFAULT 0,
-  role TEXT DEFAULT 'user', -- 'user' | 'admin'
-  is_active BOOLEAN DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 临时邮箱表
-CREATE TABLE temp_emails (
-  id INTEGER PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  email TEXT UNIQUE, -- 完整邮箱地址
-  domain_id INTEGER REFERENCES domains(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  active BOOLEAN DEFAULT 1
-);
-
--- 域名表
-CREATE TABLE domains (
-  id INTEGER PRIMARY KEY,
-  domain TEXT UNIQUE, -- example.com
-  status INTEGER DEFAULT 1 -- 0=禁用 1=启用
-);
-
--- 邮件表
-CREATE TABLE emails (
-  id INTEGER PRIMARY KEY,
-  temp_email_id INTEGER REFERENCES temp_emails(id),
-  sender TEXT,
-  subject TEXT,
-  content TEXT,
-  received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 兑换码表
-CREATE TABLE redeem_codes (
-  code TEXT PRIMARY KEY,
-  quota INTEGER,
-  valid_until TIMESTAMP,
-  used BOOLEAN DEFAULT 0
-);
-
--- 操作日志表
-CREATE TABLE logs (
-  id INTEGER PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  action TEXT, -- CREATE_EMAIL/DELETE_EMAIL/LOGIN/REGISTER
-  ip_address TEXT,
-  user_agent TEXT,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- JWT 刷新令牌表
-CREATE TABLE refresh_tokens (
-  id INTEGER PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  token_hash TEXT UNIQUE NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  is_revoked BOOLEAN DEFAULT 0
-);
-
--- API 限流表
-CREATE TABLE rate_limits (
-  id INTEGER PRIMARY KEY,
-  identifier TEXT NOT NULL, -- IP地址或用户ID
-  endpoint TEXT NOT NULL,   -- API端点
-  request_count INTEGER DEFAULT 1,
-  window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(identifier, endpoint, window_start)
-);
+```bash
+cp .dev.vars.example .dev.vars
 ```
 
----
+`.dev.vars` 已被 Git 忽略。示例中的占位值不能用于生产。
 
-### 四、核心功能模块
+### 首次创建管理员
 
-#### 1. 用户系统
+应用迁移后，先确认是否需要初始化管理员：
 
-**身份认证：**
-- **双 Token 机制**：
-  - Access Token：15天有效期，用于 API 访问
-  - Refresh Token：30天有效期，用于刷新 Access Token
-- **邮箱注册**：用户通过邮箱注册账号
-- **注册表单**：邮箱、密码、确认密码
-- **角色权限**：用户表中 role 字段区分普通用户和管理员
-
-**配额管理：**
-- 注册用户赠送 5 个配额
-- 创建邮箱消耗 1 个配额
-- 个人中心（邮箱列表/邮件查看）
-
-**JWT Token 刷新流程：**
-```mermaid
-sequenceDiagram
-  用户->>Workers: 登录请求
-  Workers->>D1: 验证用户信息
-  Workers-->>用户: 返回 Access Token + Refresh Token
-  用户->>Workers: API请求 (Access Token)
-  Workers-->>用户: 正常响应
-  Note over 用户,Workers: Access Token 过期
-  用户->>Workers: 刷新请求 (Refresh Token)
-  Workers->>D1: 验证 Refresh Token
-  Workers->>D1: 生成新的 Token 对
-  Workers-->>用户: 新的 Access Token + Refresh Token
+```bash
+curl https://你的统一域名/api/auth/bootstrap-status
 ```
 
-#### 2. 临时邮箱服务
+当响应中的 `required` 为 `true` 时，调用一次初始化接口。请求中的 `setupToken` 必须与 `ADMIN_SETUP_TOKEN` Secret 完全一致，管理员密码至少 8 位：
 
-```mermaid
-sequenceDiagram
- 用户->>Workers: 创建临时邮箱请求
- Workers->>D1: 扣除配额+生成记录
- Workers-->>用户: 返回邮箱地址(xyz@domain.com)
- 外部邮件->>Email Routing: 发送到xyz@domain.com
- Email Routing->>Workers: 触发邮件处理Worker
- Workers->>D1: 存储邮件内容
- Workers->>用户: WebSocket实时推送
+```bash
+curl https://你的统一域名/api/auth/bootstrap \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "setupToken": "替换为至少32字符的一次性初始化令牌",
+    "username": "admin",
+    "email": "admin@example.com",
+    "password": "替换为高强度管理员密码",
+    "confirmPassword": "替换为高强度管理员密码"
+  }'
 ```
 
-#### 3. 管理后台
+成功后确认账号密码可以登录，再移除一次性 Secret：
 
-- 用户管理（禁用/配额调整）
-- 域名管理（添加/启用/禁用）
-- 邮件审查（查看所有邮件）
-- 日志审计（操作记录）
-- 兑换码生成（批量创建）
-
-#### 4. 配额系统
-
-- 兑换码兑换流程：
-
-```
-1. 用户输入兑换码
-2. Workers验证有效性
-3. D1更新用户配额
-4. 标记兑换码已使用
+```bash
+npx wrangler secret delete ADMIN_SETUP_TOKEN
 ```
 
----
+初始化接口在已有有效管理员后会拒绝再次创建，不能用来绕过后台管理员管理规则。
 
-### 五、Cloudflare Workers 模块化设计
+### 后台系统设置
 
-#### 项目结构（TypeScript）
+以下运行时能力由管理员在后台“系统设置”中配置，不再通过前端构建变量或 Wrangler 明文变量固化：
 
-```
-src/
-├── modules/
-│   ├── auth/
-│   │   ├── auth.service.ts      # 认证服务
-│   │   ├── jwt.service.ts       # JWT 服务
-│   │   └── types.ts             # 认证相关类型
-│   ├── email/
-│   │   ├── email.service.ts     # 邮件服务
-│   │   ├── parser.service.ts    # 邮件解析服务
-│   │   └── types.ts             # 邮件相关类型
-│   ├── admin/
-│   │   ├── admin.service.ts     # 管理员服务
-│   │   └── types.ts             # 管理员相关类型
-│   └── shared/
-│       ├── database.service.ts  # 数据库服务
-│       ├── utils.ts             # 工具函数
-│       └── types.ts             # 共享类型
-├── handlers/
-│   ├── auth.handler.ts          # 认证路由处理
-│   ├── email.handler.ts         # 邮件路由处理
-│   └── admin.handler.ts         # 管理员路由处理
-├── middleware/
-│   ├── auth.middleware.ts       # 认证中间件
-│   ├── cors.middleware.ts       # CORS 中间件
-│   ├── ratelimit.middleware.ts  # API 限流中间件
-│   └── turnstile.middleware.ts  # Turnstile 验证中间件
-└── index.ts                     # 主入口文件
+- 管理员登录账号与密码
+- 是否允许新用户注册
+- Turnstile 总开关、Site Key、Secret Key
+- 登录是否要求 Turnstile
+- 注册是否要求 Turnstile
+- GitHub 登录开关、Client ID、Client Secret 与可选回调地址
+- 新用户默认配额等业务参数
+
+敏感字段写入后只显示掩码。关闭注册后，前端隐藏注册入口，注册 API 同时拒绝请求；关闭 GitHub 或 Turnstile 后，对应前端入口与服务端校验也会同步关闭。
+
+GitHub OAuth Application 的 callback URL 应设置为：
+
+```text
+https://你的统一域名/api/auth/github/callback
 ```
 
-#### 认证模块（TypeScript）
+## 数据库迁移
 
-```typescript
-// src/modules/auth/jwt.service.ts
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-}
+本地 D1：
 
-export interface JWTPayload {
-  userId: number;
-  email: string;
-  role: 'user' | 'admin';
-  type: 'access' | 'refresh';
-}
-
-export class JWTService {
-  private readonly ACCESS_TOKEN_EXPIRES = 15 * 24 * 60 * 60; // 15天
-  private readonly REFRESH_TOKEN_EXPIRES = 30 * 24 * 60 * 60; // 30天
-
-  async generateTokenPair(user: User): Promise<TokenPair> {
-    const accessToken = await this.generateAccessToken(user);
-    const refreshToken = await this.generateRefreshToken(user);
-
-    // 存储 refresh token 到数据库
-    await this.storeRefreshToken(user.id, refreshToken);
-
-    return { accessToken, refreshToken };
-  }
-
-  async refreshTokens(refreshToken: string): Promise<TokenPair | null> {
-    // 验证 refresh token
-    // 生成新的 token 对
-    // 撤销旧的 refresh token
-  }
-}
+```bash
+npm run db:migrate:local
 ```
 
-#### 用户注册模块
+生产 D1：
 
-```typescript
-// src/modules/auth/auth.service.ts
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-export class AuthService {
-  async register(data: RegisterRequest): Promise<User> {
-    // 1. 验证邮箱格式
-    if (!this.isValidEmail(data.email)) {
-      throw new Error('邮箱格式不正确');
-    }
-
-    // 2. 验证密码一致性
-    if (data.password !== data.confirmPassword) {
-      throw new Error('两次输入的密码不一致');
-    }
-
-    // 3. 检查邮箱是否已存在
-    const existingUser = await this.getUserByEmail(data.email);
-    if (existingUser) {
-      throw new Error('邮箱已被注册');
-    }
-
-    // 4. 创建用户
-    const passwordHash = await this.hashPassword(data.password);
-    return await this.createUser({
-      email: data.email,
-      password_hash: passwordHash,
-      role: 'user'
-    });
-  }
-}
+```bash
+npm run db:migrate
 ```
 
-#### 邮箱服务模块
+两个脚本都通过稳定的 `DB` binding 定位 `wrangler.toml` 中配置的数据库。部署新代码前先备份生产数据库，再应用迁移。
 
-```typescript
-// src/modules/email/email.service.ts
-export class EmailService {
-  async createTempEmail(userId: number, domainId: number): Promise<TempEmail> {
-    // 检查配额
-    // 生成随机邮箱前缀
-    // 保存到D1
-  }
+迁移完成后，请在后台“域名管理”确认至少有一个已由 Cloudflare Email Routing 接管的启用域名。示例域名不可直接用于生产收信。
 
-  async receiveEmail(emailData: EmailData): Promise<void> {
-    // 解析Email Routing转发内容
-    // 存储邮件到D1
-    // 实时推送给用户
-  }
-}
+## 本地开发
+
+```bash
+npm run dev
 ```
 
----
+该命令先构建前端，再由一个本地 Worker 在 `http://localhost:8787` 同时提供静态页面与 API。它使用本地 D1，除非显式传入 `--remote`，否则不会访问生产数据库。
 
-### 六、关键实现细节
+如只需重新生成前端资源：
 
-#### 邮件接收流程
-
-1. 在 Cloudflare 配置 Email Routing
-2. 设置 Catch-all 地址指向 Worker
-3. Worker 处理原始邮件：
-
-```javascript
-import PostalMime from "postal-mime";
-// 邮件处理器
-// 使用 postal-mime 解析邮件
-async function parseEmailWithPostalMime(rawEmail) {
-  try {
-    const parser = new PostalMime();
-    const email = await parser.parse(rawEmail);
-    return email;
-  } catch (error) {
-    console.error("Email parsing error:", error);
-    return {
-      subject: "解析失败",
-      text: "邮件解析失败",
-      html: "",
-      from: { address: "", name: "" },
-    };
-  }
-}
-function extractVerificationCode(content) {
-  // 常见的验证码模式
-  const patterns = [
-    /验证码[：:\s]*([0-9]{4,8})/i,
-    /verification code[：:\s]*([0-9]{4,8})/i,
-    /code[：:\s]*([0-9]{4,8})/i,
-    /pin[：:\s]*([0-9]{4,8})/i,
-    /\b([0-9]{4,8})\b.*验证/i,
-    /\b([0-9]{4,8})\b.*code/i,
-    /您的验证码是[：:\s]*([0-9]{4,8})/i,
-    /your verification code is[：:\s]*([0-9]{4,8})/i,
-    /\b([0-9]{6})\b/g, // 6位数字（最常见的验证码格式）
-  ];
-
-  for (const pattern of patterns) {
-    const match = content.match(pattern);
-    if (match && match[1]) {
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
-
-export async function handleEmailProcessing(message, env) {
-  try {
-    console.log("Processing email from:", message.from, "to:", message.to);
-
-    // 使用 postal-mime 解析邮件
-    const parsedEmail = await parseEmailWithPostalMime(message.raw);
-
-    // 提取收件人邮箱地址
-    const toEmail = message.to;
-    console.log("Recipient email:", toEmail);
-
-    // 提取邮件内容
-    const subject = parsedEmail.subject || "无主题";
-    const textContent = parsedEmail.text || "";
-    const htmlContent = parsedEmail.html || "";
-
-    // 提取发件人信息
-    const fromAddress = parsedEmail.from?.address || message.from;
-    const fromName = parsedEmail.from?.name || "";
-
-    // 尝试提取验证码
-    const verificationCode = extractVerificationCode(
-      textContent + " " + htmlContent
-    );
-    // ...
-  } catch (error) {
-    console.error("Email processing error:", error);
-  }
-}
+```bash
+npm run build:frontend
 ```
 
----
+## 构建与部署
 
-### 七、部署配置
+完整构建：
 
-#### wrangler.toml
-
-```toml
-name = "temp-email"
-compatibility_date = "2024-03-01"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "email-db"
-database_id = "xxxx-xxxx-xxxx"
-
-[build]
-command = "npm run build"
-
-[env.production]
-vars = {
-  JWT_SECRET = "xxx",
-  BASE_DOMAIN = "yourapp.com",
-  TURNSTILE_SECRET_KEY = "xxx",
-  TURNSTILE_SITE_KEY = "xxx"
-}
+```bash
+npm run build
 ```
 
----
+该命令会构建 Vue 应用并对 Worker TypeScript 执行无输出类型检查。Worker 最终打包由 Wrangler 完成，不存在嵌套的 Wrangler build 命令。
 
-### 八、前端状态管理设计
+唯一的生产部署命令：
 
-#### Pinia Store 结构
-
-```typescript
-// stores/auth.ts
-export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    user: null as User | null,
-    accessToken: '',
-    refreshToken: '',
-    isAuthenticated: false
-  }),
-
-  actions: {
-    async login(email: string, password: string) {
-      // 登录逻辑
-    },
-
-    async refreshTokens() {
-      // Token 刷新逻辑
-    },
-
-    logout() {
-      // 清除状态和持久化数据
-    }
-  },
-
-  persist: {
-    key: 'auth-store',
-    storage: localStorage,
-    paths: ['accessToken', 'refreshToken', 'user']
-  }
-})
-
-// stores/email.ts
-export const useEmailStore = defineStore('email', {
-  state: () => ({
-    tempEmails: [] as TempEmail[],
-    currentEmails: [] as Email[],
-    quota: 0
-  }),
-
-  persist: {
-    key: 'email-store',
-    storage: sessionStorage,
-    paths: ['quota']
-  }
-})
+```bash
+npm run deploy
 ```
 
-#### 暗色主题设计
+它按顺序执行完整构建，然后一次性上传 Worker 代码与 Static Assets。仓库不再提供 `deploy:frontend`、`deploy:backend` 或 `wrangler pages deploy`。
 
-```typescript
-// stores/theme.ts
-export const useThemeStore = defineStore('theme', {
-  state: () => ({
-    isDark: false,
-    theme: 'light' as 'light' | 'dark' | 'auto'
-  }),
+提交前可进行不上传的部署校验：
 
-  actions: {
-    toggleTheme() {
-      this.isDark = !this.isDark;
-      this.theme = this.isDark ? 'dark' : 'light';
-      this.applyTheme();
-    },
-
-    setTheme(theme: 'light' | 'dark' | 'auto') {
-      this.theme = theme;
-      if (theme === 'auto') {
-        this.isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      } else {
-        this.isDark = theme === 'dark';
-      }
-      this.applyTheme();
-    },
-
-    applyTheme() {
-      document.documentElement.classList.toggle('dark', this.isDark);
-      // Element Plus 主题切换
-      document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
-    }
-  },
-
-  persist: {
-    key: 'theme-store',
-    storage: localStorage,
-    paths: ['theme']
-  }
-})
+```bash
+npm run build
+npx wrangler deploy --dry-run
 ```
 
-#### FontAwesome 图标使用
+### 绑定统一域名
 
-```vue
-<!-- 在组件中使用 FontAwesome 图标 -->
-<template>
-  <div class="email-item">
-    <font-awesome-icon :icon="['fas', 'envelope']" class="text-blue-500 dark:text-blue-400" />
-    <font-awesome-icon :icon="['fas', 'trash']" class="text-red-500 dark:text-red-400" />
-    <font-awesome-icon :icon="['fas', 'copy']" class="text-gray-500 dark:text-gray-400" />
-    <!-- 主题切换按钮 -->
-    <button @click="themeStore.toggleTheme()" class="theme-toggle">
-      <font-awesome-icon :icon="themeStore.isDark ? ['fas', 'sun'] : ['fas', 'moon']" />
-    </button>
-  </div>
-</template>
+首次部署后，在 Cloudflare Dashboard 的 Worker 设置中为这个 Worker 添加 Custom Domain。前端和 API 使用同一个源，例如：
 
-<script lang="ts" setup>
-import { useThemeStore } from '@/stores/theme'
-const themeStore = useThemeStore()
-</script>
+```text
+https://mail.example.com/
+https://mail.example.com/api/health
 ```
 
-### 九、安全设计与 API 限流
+不再为 API 单独维护 `api.example.com`。如果保留旧 API 域名用于过渡，应仅做兼容转发，并在客户端全部升级后再移除。
 
-#### 核心安全机制
+Email Routing 的 Catch-all/路由目标也应指向这个 Worker，因为同一入口同时导出了 `fetch` 与 `email` 处理器。
 
-1. **双 Token JWT 认证**：
-   - Access Token 短期有效（15天）
-   - Refresh Token 长期有效（30天）
-   - 自动刷新机制，提升安全性
-2. **配额校验**：创建邮箱时原子操作校验
-3. **邮件隔离**：用户只能访问自己的邮件
-4. **角色权限**：基于用户表 role 字段的权限控制
-5. **操作审计**：所有敏感操作记录日志（包含 IP 和 User-Agent）
-6. **密码安全**：使用 bcrypt 等安全哈希算法
-7. **邮箱验证**：注册时验证邮箱格式和唯一性
+根配置还包含每天一次的 Cron Trigger，用于物理清理超过 7 天的邮件、超过 30 天的安全审计与操作日志、已停用邮箱、过期令牌与陈旧限流记录，并把历史收件箱裁剪到最近 50 封、约 4 MiB 内容以内。超过 7 天的邮件会先在所有读取接口中立即隐藏，物理数据在下一轮清理任务中删除。配额流水是账户账本，不属于 30 天日志清理范围。不要在 Dashboard 中删除该触发器，否则数据保留策略无法兑现。
 
-#### API 限流 + Turnstile 防护策略
+## 从 Pages + Worker 迁移
 
-**需要 Turnstile 验证的接口：**
-- ✅ **用户注册** (`POST /api/auth/register`)
-- ✅ **用户登录** (`POST /api/auth/login`)
-- ✅ **创建临时邮箱** (`POST /api/email/create`)
-- ✅ **兑换码使用** (`POST /api/redeem`)
+建议按以下顺序迁移，避免误删数据绑定：
 
-**API 限流规则：**
+1. 备份 D1，并确认根 `wrangler.toml` 仍绑定原数据库和 Email Routing。
+2. 配置 `JWT_SECRET` 与一次性的 `ADMIN_SETUP_TOKEN`，应用最新 D1 migrations。
+3. 执行 `npm run deploy`，先通过 Workers Preview URL 验证首页、深层路由与 `/api/health`。
+4. 调用 bootstrap 接口创建管理员，验证登录后删除 `ADMIN_SETUP_TOKEN`。
+5. 从旧 Pages 项目移除前端自定义域名，再把该域名绑定到统一 Worker。
+6. 检查可收信域名、GitHub callback URL、Email Routing 目标与后台系统设置。
+7. 确认生产流量正常后，再删除旧 Pages 项目和不再使用的旧 API 路由；不要删除 D1 数据库。
 
-```typescript
-// src/middleware/ratelimit.middleware.ts
-export interface RateLimitRule {
-  endpoint: string;
-  windowMs: number;    // 时间窗口（毫秒）
-  maxRequests: number; // 最大请求数
-  requireAuth: boolean; // 是否需要认证
-  requireTurnstile: boolean; // 是否需要 Turnstile
-}
+过去提交到配置文件或 Git 历史中的密钥都应视为已经泄露。迁移后请轮换 JWT、Turnstile 与 GitHub OAuth 密钥，并撤销旧值。仅从当前文件删除明文不能使旧密钥重新安全。
 
-export const RATE_LIMIT_RULES: RateLimitRule[] = [
-  // 注册限流：每小时最多 3 次
-  {
-    endpoint: '/api/auth/register',
-    windowMs: 60 * 60 * 1000,
-    maxRequests: 3,
-    requireAuth: false,
-    requireTurnstile: true
-  },
+## 常用检查
 
-  // 登录限流：每 15 分钟最多 5 次
-  {
-    endpoint: '/api/auth/login',
-    windowMs: 15 * 60 * 1000,
-    maxRequests: 5,
-    requireAuth: false,
-    requireTurnstile: true
-  },
+```bash
+# Worker 与静态资源配置语法、打包检查（不会部署）
+npx wrangler deploy --dry-run
 
-  // 创建邮箱限流：每分钟最多 10 次
-  {
-    endpoint: '/api/email/create',
-    windowMs: 60 * 1000,
-    maxRequests: 10,
-    requireAuth: true,
-    requireTurnstile: true
-  },
+# 后端类型检查
+npm run type-check:backend
 
-  // 兑换码限流：每小时最多 10 次
-  {
-    endpoint: '/api/redeem',
-    windowMs: 60 * 60 * 1000,
-    maxRequests: 10,
-    requireAuth: true,
-    requireTurnstile: true
-  },
-
-  // 一般 API：每分钟最多 60 次
-  {
-    endpoint: '/api/*',
-    windowMs: 60 * 1000,
-    maxRequests: 60,
-    requireAuth: true,
-    requireTurnstile: false
-  }
-];
+# 查看本地健康检查
+curl http://localhost:8787/api/health
 ```
 
-#### Turnstile 验证实现
+## 目录说明
 
-```typescript
-// src/middleware/turnstile.middleware.ts
-export class TurnstileService {
-  async verifyToken(token: string, remoteIP: string): Promise<boolean> {
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: env.TURNSTILE_SECRET_KEY,
-        response: token,
-        remoteip: remoteIP
-      })
-    });
-
-    const result = await response.json();
-    return result.success;
-  }
-}
+```text
+.
+├── backend/             # Worker API、邮件处理与 D1 migrations
+├── frontend/            # Vue 应用
+├── package.json         # 单入口构建、开发与部署脚本
+└── wrangler.toml        # 唯一 Cloudflare 部署配置
 ```
-
----
-
-### 十、扩展性设计
-
-1. **邮件清理**：定时 Worker 删除 7 天前的邮件
-2. **配额回收**：24 小时未激活邮箱返还配额
-3. **模块化架构**：TypeScript 模块化设计，便于维护和扩展
-4. **状态持久化**：Pinia 持久化插件自动管理前端状态
-5. **图标系统**：FontAwesome 提供统一的图标体验
-6. **主题系统**：支持明暗主题切换，跟随系统设置
-7. **安全防护**：多层 API 限流 + Turnstile 人机验证
-
-### 十一、前端 UnoCSS 暗色模式配置
-
-```typescript
-// uno.config.ts
-import { defineConfig, presetUno, presetAttributify } from 'unocss'
-
-export default defineConfig({
-  presets: [
-    presetUno(),
-    presetAttributify()
-  ],
-
-  // 暗色模式配置
-  darkMode: 'class', // 使用 class 策略
-
-  theme: {
-    colors: {
-      // 自定义颜色变量，支持明暗模式
-      primary: {
-        50: '#eff6ff',
-        500: '#3b82f6',
-        600: '#2563eb',
-        900: '#1e3a8a'
-      }
-    }
-  },
-
-  shortcuts: {
-    // 常用的明暗模式样式快捷方式
-    'bg-base': 'bg-white dark:bg-gray-900',
-    'text-base': 'text-gray-900 dark:text-gray-100',
-    'border-base': 'border-gray-200 dark:border-gray-700',
-    'card-base': 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-  }
-})
-```
-
-
-wrangler pages deploy dist --project-name temp-mail-frontend
-
-wrangler deploy --config wrangler.toml --env production
-
-client id
-Ov23liMbRVOzZ5igeF1M
-
-
-client secrets
-2fffc1c362e84ad5e5b8f7ad6801d9b7b8b52268

@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { getTurnstile, loadTurnstileScript } from '@/utils/turnstileLoader'
 
 interface Props {
   siteKey: string
+  action: 'login' | 'register' | 'redeem' | 'public-inbox'
   theme?: 'light' | 'dark' | 'auto'
   size?: 'normal' | 'compact'
 }
@@ -27,74 +29,24 @@ const emit = defineEmits<Emits>()
 const widgetRef = ref<HTMLDivElement>()
 const widgetId = ref<string>()
 const isLoaded = ref(false)
-const isScriptLoaded = ref(false)
 const loadingError = ref<string>('')
-const isDev = import.meta.env.DEV
-
-// 检查 Turnstile 脚本是否已加载
-const checkTurnstileLoaded = (): boolean => {
-  return typeof window !== 'undefined' && 'turnstile' in window && typeof (window as any).turnstile.render === 'function'
-}
-
-// 加载 Turnstile 脚本
-const loadTurnstileScript = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    // 检查是否已经加载
-    if (checkTurnstileLoaded()) {
-      isScriptLoaded.value = true
-      resolve()
-      return
-    }
-
-    // 检查是否已经有脚本标签在加载
-    const existingScript = document.querySelector('script[src*="turnstile"]')
-    if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        isScriptLoaded.value = true
-        resolve()
-      })
-      existingScript.addEventListener('error', () => {
-        reject(new Error('Failed to load existing Turnstile script'))
-      })
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-    script.async = true
-    script.defer = true
-
-    script.onload = () => {
-      isScriptLoaded.value = true
-      resolve()
-    }
-
-    script.onerror = () => {
-      reject(new Error('Failed to load Turnstile script'))
-    }
-
-    document.head.appendChild(script)
-  })
-}
+let destroyed = false
+let renderTimer: number | undefined
 
 // 渲染 Turnstile 组件
 const renderTurnstile = async () => {
-  if (!widgetRef.value) {
-    return
-  }
-
-  if (!isScriptLoaded.value || !checkTurnstileLoaded()) {
-    return
-  }
+  const container = widgetRef.value
+  const turnstile = getTurnstile()
+  if (!container || !turnstile || destroyed) return false
 
   try {
-    const turnstile = (window as any).turnstile
+    remove()
+    container.innerHTML = ''
+    if (!props.siteKey.trim()) throw new Error('未配置 Turnstile Site Key')
 
-    // 清除之前的内容
-    widgetRef.value.innerHTML = ''
-
-    widgetId.value = turnstile.render(widgetRef.value, {
+    widgetId.value = turnstile.render(container, {
       sitekey: props.siteKey,
+      action: props.action,
       theme: props.theme,
       size: props.size,
       callback: (token: string) => {
@@ -122,19 +74,21 @@ const renderTurnstile = async () => {
 
     isLoaded.value = true
     loadingError.value = ''
+    return true
   } catch (error) {
-    loadingError.value = `渲染失败: ${error}`
-    emit('error', 'Failed to render Turnstile widget')
+    loadingError.value = error instanceof Error ? error.message : '人机验证渲染失败'
+    emit('error', loadingError.value)
+    return false
   }
 }
 
 // 重置 Turnstile 组件
 const reset = () => {
-  if (widgetId.value && checkTurnstileLoaded()) {
+  const turnstile = getTurnstile()
+  if (widgetId.value && turnstile) {
     try {
-      const turnstile = (window as any).turnstile
       turnstile.reset(widgetId.value)
-    } catch (error) {
+    } catch {
       // 静默处理重置错误
     }
   }
@@ -142,57 +96,51 @@ const reset = () => {
 
 // 移除 Turnstile 组件
 const remove = () => {
-  if (widgetId.value && checkTurnstileLoaded()) {
+  const turnstile = getTurnstile()
+  if (widgetId.value && turnstile) {
     try {
-      const turnstile = (window as any).turnstile
       turnstile.remove(widgetId.value)
-      isLoaded.value = false
-      widgetId.value = undefined
-    } catch (error) {
+    } catch {
       // 静默处理移除错误
     }
   }
+  isLoaded.value = false
+  widgetId.value = undefined
 }
 
 // 获取响应 token
 const getResponse = (): string | undefined => {
-  if (widgetId.value && checkTurnstileLoaded()) {
+  const turnstile = getTurnstile()
+  if (widgetId.value && turnstile) {
     try {
-      const turnstile = (window as any).turnstile
       return turnstile.getResponse(widgetId.value)
-    } catch (error) {
+    } catch {
       // 静默处理获取响应错误
     }
   }
   return undefined
 }
 
-// 监听主题变化
-watch(() => props.theme, () => {
-  if (isLoaded.value) {
-    remove()
-    setTimeout(renderTurnstile, 100)
-  }
-})
+const scheduleRender = () => {
+  if (destroyed) return
+  if (renderTimer !== undefined) window.clearTimeout(renderTimer)
+  // Removing a solved widget invalidates the response held by the parent.
+  // This most commonly happens when the user changes the color theme.
+  if (widgetId.value) emit('expired')
+  remove()
+  renderTimer = window.setTimeout(async () => {
+    renderTimer = undefined
+    await nextTick()
+    await renderTurnstile()
+  }, 0)
+}
+
+watch([() => props.siteKey, () => props.action, () => props.theme, () => props.size], scheduleRender)
 
 onMounted(async () => {
   try {
     // 通知父组件开始加载
     emit('beforeInteractive')
-
-
-
-    // 开发环境直接模拟成功
-    if (import.meta.env.DEV) {
-      await nextTick()
-      isLoaded.value = true
-      emit('afterInteractive')
-      // 延迟一点时间模拟真实验证过程
-      setTimeout(() => {
-        emit('success', 'XXXX.DUMMY.TOKEN.XXXX')
-      }, 1000)
-      return
-    }
 
     // 等待 DOM 完全渲染
     await nextTick()
@@ -204,18 +152,20 @@ onMounted(async () => {
     await nextTick()
 
     // 渲染组件
-    await renderTurnstile()
+    const rendered = await renderTurnstile()
 
     // 通知父组件加载完成
-    emit('afterInteractive')
+    if (rendered) emit('afterInteractive')
   } catch (error) {
     console.error('TurnstileWidget initialization error:', error)
-    loadingError.value = `初始化失败: ${error}`
-    emit('error', 'Failed to load Turnstile')
+    loadingError.value = error instanceof Error ? error.message : '人机验证加载失败'
+    emit('error', loadingError.value)
   }
 })
 
 onUnmounted(() => {
+  destroyed = true
+  if (renderTimer !== undefined) window.clearTimeout(renderTimer)
   remove()
 })
 
@@ -243,23 +193,15 @@ defineExpose({
         <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
           <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
           <span class="text-sm">
-            {{ isDev ? '开发环境模拟验证...' : '加载人机验证...' }}
+            加载人机验证...
           </span>
-        </div>
-      </div>
-
-      <!-- 开发环境成功状态 -->
-      <div v-if="isLoaded && isDev" class="flex items-center justify-center p-4">
-        <div class="flex items-center space-x-2 text-green-500">
-          <i class="fas fa-check-circle"></i>
-          <span class="text-sm">开发环境 - 验证已通过</span>
         </div>
       </div>
 
       <!-- 错误状态 -->
       <div v-if="loadingError" class="flex items-center justify-center p-4">
         <div class="text-red-500 text-sm">
-          <i class="fas fa-exclamation-triangle mr-1"></i>
+          <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1" />
           {{ loadingError }}
         </div>
       </div>

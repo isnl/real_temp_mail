@@ -1,28 +1,60 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useEmailStore } from '@/stores/email'
-import type { Email } from '@/types'
+import { emailApi } from '@/api/email'
+import type { EmailMessage } from '@/types'
 import EmailDetailDialog from './EmailDetailDialog.vue'
 
 interface Props {
   tempEmailId: number
-  emails: Email[]
+  emails: EmailMessage[]
   loading?: boolean
   readonly?: boolean
+  detailLoader?: (email: EmailMessage) => Promise<EmailMessage>
+  page?: number
+  pageSize?: number
+  total?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   readonly: false,
+  page: 1,
+  pageSize: 20,
 })
+
+const emit = defineEmits<{
+  (event: 'pageChange', page: number): void
+}>()
 
 const emailStore = useEmailStore()
 
-const selectedEmail = ref<Email | null>(null)
+const selectedEmail = ref<EmailMessage | null>(null)
 const showDetailDialog = ref(false)
+const detailLoading = ref(false)
 const selectedEmails = ref<number[]>([])
 const selectAll = ref(false)
+const detailCache = new Map<number, EmailMessage>()
+let detailRequestVersion = 0
+
+watch(
+  () => props.emails.map((email) => email.id),
+  (ids) => {
+    const availableIds = new Set(ids)
+    selectedEmails.value = selectedEmails.value.filter((id) => availableIds.has(id))
+    selectAll.value = ids.length > 0 && selectedEmails.value.length === ids.length
+    for (const cachedId of detailCache.keys()) {
+      if (!availableIds.has(cachedId)) detailCache.delete(cachedId)
+    }
+    if (selectedEmail.value && !availableIds.has(selectedEmail.value.id)) {
+      detailRequestVersion += 1
+      selectedEmail.value = null
+      showDetailDialog.value = false
+      detailLoading.value = false
+    }
+  },
+)
 
 const sortedEmails = computed(() => {
   if (!props.emails || !Array.isArray(props.emails)) {
@@ -33,9 +65,40 @@ const sortedEmails = computed(() => {
   )
 })
 
-const handleEmailClick = (email: Email) => {
-  selectedEmail.value = email
+const displayTotal = computed(() => Math.max(0, props.total ?? props.emails.length))
+
+const handleEmailClick = async (email: EmailMessage) => {
+  const requestVersion = ++detailRequestVersion
+  selectedEmail.value = detailCache.get(email.id) ?? email
   showDetailDialog.value = true
+  if (!props.readonly && !Boolean(email.is_read)) {
+    void emailStore.markEmailAsRead(email.id).catch(() => {
+      ElMessage.warning('邮件已打开，但未读状态同步失败')
+    })
+  }
+  if (detailCache.has(email.id)) return
+  if (props.readonly && !props.detailLoader) return
+
+  detailLoading.value = true
+  try {
+    const detail = props.detailLoader
+      ? await props.detailLoader(email)
+      : await emailApi.getEmailDetail(email.id).then((response) => {
+          if (!response.success || !response.data) {
+            throw new Error(response.error || '获取邮件详情失败')
+          }
+          return response.data
+        })
+    if (requestVersion !== detailRequestVersion || !showDetailDialog.value) return
+    detailCache.set(email.id, detail)
+    selectedEmail.value = detail
+  } catch (error) {
+    if (requestVersion === detailRequestVersion) {
+      ElMessage.error(error instanceof Error ? error.message : '获取邮件详情失败')
+    }
+  } finally {
+    if (requestVersion === detailRequestVersion) detailLoading.value = false
+  }
 }
 
 const handleDeleteEmail = async (emailId: number) => {
@@ -48,10 +111,10 @@ const handleDeleteEmail = async (emailId: number) => {
 
     await emailStore.deleteEmail(emailId)
     ElMessage.success('邮件删除成功')
-  } catch (error: any) {
-    if (error !== 'cancel') {
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
       console.error('Delete email error:', error)
-      ElMessage.error('删除失败')
+      ElMessage.error(error instanceof Error ? error.message : '删除失败')
     }
   }
 }
@@ -66,7 +129,13 @@ const copyToClipboard = async (text: string) => {
   }
 }
 
-// 导出邮件功能
+const escapeCsvCell = (value: unknown) => {
+  let text = String(value ?? '').replace(/\0/g, '')
+  // Excel/LibreOffice 会执行以这些字符开头的单元格公式。
+  if (/^[\s]*[=+\-@]/.test(text)) text = `'${text}`
+  return `"${text.replace(/"/g, '""')}"`
+}
+
 const exportEmails = () => {
   if (props.emails.length === 0) {
     ElMessage.warning('没有邮件可以导出')
@@ -84,10 +153,10 @@ const exportEmails = () => {
     }))
 
     const csvContent = [
-      Object.keys(emailData[0]).join(','),
+      Object.keys(emailData[0]).map(escapeCsvCell).join(','),
       ...emailData.map((row) =>
         Object.values(row)
-          .map((value) => `"${value}"`)
+          .map(escapeCsvCell)
           .join(','),
       ),
     ].join('\n')
@@ -95,12 +164,16 @@ const exportEmails = () => {
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `emails_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    try {
+      link.href = url
+      link.download = `emails_${new Date().toISOString().slice(0, 10)}.csv`
+      link.hidden = true
+      document.body.appendChild(link)
+      link.click()
+    } finally {
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 0)
+    }
 
     ElMessage.success('邮件导出成功')
   } catch (error) {
@@ -146,18 +219,15 @@ const handleBatchDelete = async () => {
       },
     )
 
-    // 逐个删除邮件
-    for (const emailId of selectedEmails.value) {
-      await emailStore.deleteEmail(emailId)
-    }
+    await emailStore.deleteEmails(selectedEmails.value)
 
     selectedEmails.value = []
     selectAll.value = false
     ElMessage.success('批量删除成功')
-  } catch (error: any) {
-    if (error !== 'cancel') {
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
       console.error('Batch delete error:', error)
-      ElMessage.error('批量删除失败')
+      ElMessage.error(error instanceof Error ? error.message : '批量删除失败')
     }
   }
 }
@@ -232,9 +302,9 @@ const getEmailTypeIcon = (subject: string, content: string) => {
       v-if="emails.length > 0 && !readonly"
       class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10"
     >
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-3">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex min-w-0 items-center sm:space-x-4">
+          <div class="flex min-w-0 flex-wrap items-center gap-3">
             <el-checkbox
               v-model="selectAll"
               @change="handleSelectAll"
@@ -267,7 +337,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
           </div>
         </div>
 
-        <div class="flex items-center space-x-3">
+        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
           <el-button
             v-if="selectedEmails.length > 0"
             size="default"
@@ -316,13 +386,13 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">邮箱空空如也</h3>
           <p class="text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-            当有新邮件到达时，它们会自动显示在这里
+            新邮件到达后，点击刷新即可在这里查看
           </p>
 
           <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <div class="flex items-center justify-center space-x-2">
               <font-awesome-icon :icon="['fas', 'bolt']" class="text-yellow-500" />
-              <span>实时接收邮件</span>
+              <span>集中查看来信</span>
             </div>
             <div class="flex items-center justify-center space-x-2">
               <font-awesome-icon :icon="['fas', 'shield-alt']" class="text-green-500" />
@@ -334,24 +404,29 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 
       <!-- Email List -->
       <div v-else class="p-4 space-y-3">
-        <div
+        <article
           v-for="email in sortedEmails"
           :key="email.id"
           class="group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer"
           :class="{
-            'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg hover:transform hover:scale-[1.01]': true,
+            'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md': true,
             'ring-2 ring-blue-200 dark:ring-blue-800 bg-blue-50/30 dark:bg-blue-900/10':
-              !email.is_read,
+              !readonly && !Boolean(email.is_read),
           }"
           @click="handleEmailClick(email)"
+          @keydown.enter.prevent="handleEmailClick(email)"
+          @keydown.space.prevent="handleEmailClick(email)"
+          role="button"
+          tabindex="0"
+          :aria-label="`查看邮件：${email.subject || '无主题'}`"
         >
           <!-- 未读邮件的装饰条 -->
           <div
-            v-if="!email.is_read"
+            v-if="!readonly && !Boolean(email.is_read)"
             class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-l-xl"
           ></div>
 
-          <div class="flex items-start space-x-4">
+          <div class="flex items-start gap-3 sm:gap-4">
             <!-- Checkbox -->
             <div v-if="!readonly" class="flex-shrink-0 mt-1">
               <el-checkbox
@@ -388,14 +463,14 @@ const getEmailTypeIcon = (subject: string, content: string) => {
             <!-- Email Content -->
             <div class="flex-1 min-w-0">
               <!-- Header -->
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center space-x-3">
+              <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <div class="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                   <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {{ email.sender }}
                   </span>
-                  <div class="flex items-center space-x-2">
+                  <div v-if="!readonly" class="flex items-center space-x-2">
                     <span
-                      v-if="!email.is_read"
+                      v-if="!Boolean(email.is_read)"
                       class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                     >
                       <div class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1 animate-pulse"></div>
@@ -424,7 +499,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               <!-- Preview -->
               <div class="mb-3">
                 <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                  {{ truncateText(email.content || '') }}
+                  {{ truncateText(email.preview || email.content_preview || email.content || '') }}
                 </p>
               </div>
 
@@ -484,7 +559,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
                 </div>
 
                 <div
-                  class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  class="flex items-center space-x-2 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
                   <el-button
                     @click.stop="handleEmailClick(email)"
@@ -510,7 +585,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               </div>
             </div>
           </div>
-        </div>
+        </article>
       </div>
 
       <!-- Footer -->
@@ -518,7 +593,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
         v-if="emails.length > 0"
         class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10"
       >
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center space-x-3">
             <div
               class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm"
@@ -528,12 +603,25 @@ const getEmailTypeIcon = (subject: string, content: string) => {
             <div>
               <div class="text-sm font-medium text-gray-900 dark:text-gray-100">邮件统计</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
-                共 {{ emails.length }} 封邮件
+                当前 {{ emails.length }} 封，共 {{ displayTotal }} 封
               </div>
             </div>
           </div>
 
-          <div class="flex items-center space-x-4">
+          <el-pagination
+            v-if="displayTotal > pageSize"
+            small
+            background
+            layout="prev, pager, next"
+            :current-page="page"
+            :page-size="pageSize"
+            :pager-count="5"
+            :total="displayTotal"
+            aria-label="邮件分页"
+            @current-change="emit('pageChange', $event)"
+          />
+
+          <div v-if="!readonly" class="flex items-center space-x-4">
             <div
               class="flex items-center space-x-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full"
             >
@@ -556,7 +644,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
     </div>
   </div>
   <!-- Email Detail Dialog -->
-  <EmailDetailDialog v-model="showDetailDialog" :email="selectedEmail" />
+  <EmailDetailDialog v-model="showDetailDialog" :email="selectedEmail" :loading="detailLoading" />
 </template>
 
 <style scoped>

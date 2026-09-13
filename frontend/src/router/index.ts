@@ -24,6 +24,11 @@ const router = createRouter({
           path: 'auth/callback',
           name: 'auth-callback',
           component: () => import('@/views/auth/LoginView.vue'),
+        },
+        {
+          path: 'register',
+          name: 'register',
+          component: () => import('@/views/auth/RegisterView.vue'),
           meta: { requiresGuest: true },
         },
         {
@@ -83,6 +88,11 @@ const router = createRouter({
           path: 'quota',
           name: 'profile-quota',
           component: () => import('@/views/profile/QuotaView.vue'),
+        },
+        {
+          path: 'security',
+          name: 'profile-security',
+          component: () => import('@/views/profile/SecurityView.vue'),
         },
       ],
     },
@@ -161,9 +171,21 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
+  const hasValidSession = authStore.isLoggedIn
+
+  // 持久化数据可能因为旧版本、手动清理或异常退出而只剩下一部分。
+  // 这类状态不能视为已登录，否则会先进入受保护页面再被接口踢回登录页。
+  if (!hasValidSession && (
+    authStore.isAuthenticated
+    || Boolean(authStore.accessToken)
+    || Boolean(authStore.refreshToken)
+    || Boolean(authStore.user)
+  )) {
+    authStore.clearAuthData()
+  }
 
   // 检查是否需要认证
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  if (to.meta.requiresAuth && !hasValidSession) {
     next({ name: 'login', query: { redirect: to.fullPath } })
     return
   }
@@ -175,7 +197,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   // 检查是否需要游客状态（已登录用户不能访问登录/注册页）
-  if (to.meta.requiresGuest && authStore.isAuthenticated) {
+  if (to.meta.requiresGuest && hasValidSession) {
     next({ name: 'dashboard' })
     return
   }

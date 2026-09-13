@@ -4,13 +4,9 @@
   "description": "Cloudflare Workers backend for temp mail system",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "wrangler dev --env development",
-    "deploy": "wrangler deploy",
-    "deploy:dev": "wrangler deploy --env development",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "db:migrate": "wrangler d1 migrations apply oooo-mail",
-    "db:create": "wrangler d1 create email-db"
+    "typecheck": "tsc --noEmit",
+    "test": "tsc --noEmit"
   },
   "keywords": [
     "cloudflare",
@@ -28,8 +24,6 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "jsonwebtoken": "^9.0.2",
-    "mimetext": "^3.0.27",
     "postal-mime": "^2.4.4"
   }
 }

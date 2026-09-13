@@ -1,5 +1,5 @@
-import { ref } from 'vue'
-import { ElNotification } from 'element-plus'
+import { h, ref } from 'vue'
+import { ElButton, ElNotification } from 'element-plus'
 import { getLatestAnnouncement } from '@/api/announcement'
 import type { Announcement } from '@/api/announcement'
 
@@ -17,7 +17,11 @@ export function useAnnouncement() {
    * 获取今天的日期字符串 (YYYY-MM-DD)
    */
   const getTodayString = (): string => {
-    return new Date().toISOString().split('T')[0]
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   /**
@@ -49,53 +53,45 @@ export function useAnnouncement() {
       dismissed = {}
     }
 
-    dismissed[announcementId] = getTodayString()
-    localStorage.setItem(ANNOUNCEMENT_STORAGE_KEY, JSON.stringify(dismissed))
+    const today = getTodayString()
+    const recentEntries = Object.entries(dismissed).filter(([, date]) => date === today)
+    localStorage.setItem(ANNOUNCEMENT_STORAGE_KEY, JSON.stringify({
+      ...Object.fromEntries(recentEntries),
+      [announcementId]: today,
+    }))
   }
 
   /**
-   * 显示公告通知
-   */
+  * 显示公告通知
+  */
   const showAnnouncementNotification = (announcement: Announcement): void => {
-    ElNotification({
+    let closeNotification: () => void = () => {}
+    const message = h('div', { class: 'announcement-content' }, [
+      h('p', { class: 'announcement-message' }, announcement.content),
+      h('div', { class: 'announcement-actions' }, [
+        h(ElButton, {
+          size: 'small',
+          onClick: () => closeNotification(),
+        }, () => '本次关闭'),
+        h(ElButton, {
+          size: 'small',
+          type: 'primary',
+          onClick: () => {
+            dismissAnnouncementForToday(announcement.id)
+            closeNotification()
+          },
+        }, () => '今日不再提示'),
+      ]),
+    ])
+
+    const notification = ElNotification({
       title: announcement.title,
-      message: `
-        <div style="max-height: 200px; overflow-y: auto;">
-          ${announcement.content.replace(/\n/g, '<br>')}
-        </div>
-        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
-          <button id="dismiss-once" style="margin-right: 8px; padding: 4px 12px; background: #409eff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">本次关闭</button>
-          <button id="dismiss-today" style="padding: 4px 12px; background: #67c23a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">当日不再弹出</button>
-        </div>
-      `,
-      dangerouslyUseHTMLString: true,
+      message,
       position: 'bottom-right',
-      duration: 0, // 不自动关闭
-      showClose: false, // 隐藏默认关闭按钮
-      onClose: () => {
-        // 默认关闭行为（本次关闭）
-      }
+      duration: 0,
+      showClose: true,
     })
-
-    // 添加按钮事件监听
-    setTimeout(() => {
-      const dismissOnceBtn = document.getElementById('dismiss-once')
-      const dismissTodayBtn = document.getElementById('dismiss-today')
-
-      if (dismissOnceBtn) {
-        dismissOnceBtn.addEventListener('click', () => {
-          // 关闭所有通知
-          ElNotification.closeAll()
-        })
-      }
-
-      if (dismissTodayBtn) {
-        dismissTodayBtn.addEventListener('click', () => {
-          dismissAnnouncementForToday(announcement.id)
-          ElNotification.closeAll()
-        })
-      }
-    }, 100)
+    closeNotification = () => notification.close()
   }
 
   /**

@@ -32,7 +32,6 @@ const searchForm = reactive<AdminUserListParams>({
 const editDialogVisible = ref(false)
 const editingUser = ref<AdminUserDetails | null>(null)
 const editForm = reactive<AdminUserUpdateData>({
-  quota: 0,
   is_active: true,
   role: 'user'
 })
@@ -90,7 +89,6 @@ const handlePageChange = (page: number) => {
 
 const handleEdit = (user: AdminUserDetails) => {
   editingUser.value = user
-  editForm.quota = user.quota
   editForm.is_active = user.is_active
   editForm.role = user.role
   editDialogVisible.value = true
@@ -100,7 +98,10 @@ const handleSaveEdit = async () => {
   if (!editingUser.value) return
   
   try {
-    const response = await updateUser(editingUser.value.id, editForm)
+    const response = await updateUser(editingUser.value.id, {
+      is_active: editForm.is_active,
+      role: editForm.role,
+    })
     if (response.success) {
       ElMessage.success('用户更新成功')
       editDialogVisible.value = false
@@ -327,16 +328,6 @@ onMounted(() => {
         label-width="80px"
         label-position="left"
       >
-        <el-form-item label="剩余配额">
-          <el-input-number
-            v-model="editForm.quota"
-            :min="0"
-            :max="1000"
-            controls-position="right"
-            class="w-full"
-          />
-        </el-form-item>
-        
         <el-form-item label="状态">
           <el-switch
             v-model="editForm.is_active"

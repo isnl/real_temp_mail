@@ -6,7 +6,7 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { ElMessage } from 'element-plus'
 
 // 设置页面标题
-usePageTitle('配额购买')
+usePageTitle('配额方案')
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,22 +15,6 @@ const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 // 套餐数据
 const plans = [
-  {
-    id: 'basic',
-    name: '基础套餐',
-    quota: 0,
-    price: '免费',
-    originalPrice: null,
-    popular: false, 
-    description: '新用户专享',
-    features: [
-      '免费注册',
-      '观看广告免费获取配额'
-    ],
-    buttonText: '观看广告获取',
-    buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
-    disabled: false
-  },
   {
     id: 'starter',
     name: '入门套餐',
@@ -44,7 +28,7 @@ const plans = [
       '50个邮箱配额',
       '额外赠送10个配额'
     ],
-    buttonText: '立即购买',
+    buttonText: '咨询购买',
     buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
     disabled: false
   },
@@ -61,7 +45,7 @@ const plans = [
       '100个邮箱配额',
       '额外赠送30个配额'
     ],
-    buttonText: '立即购买',
+    buttonText: '咨询购买',
     buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
     disabled: false
   },
@@ -78,7 +62,7 @@ const plans = [
       '200个邮箱配额',
       '额外赠送80个配额'
     ],
-    buttonText: '立即购买',
+    buttonText: '咨询购买',
     buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
     disabled: false
   },
@@ -95,7 +79,7 @@ const plans = [
       '500个邮箱配额',
       '额外赠送200个配额'
     ],
-    buttonText: '立即购买',
+    buttonText: '咨询购买',
     buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
     disabled: false
   }
@@ -105,19 +89,19 @@ const plans = [
 const faqs = [
   {
     question: '配额是什么？如何使用？',
-    answer: '配额是创建临时邮箱的额度，每创建一个临时邮箱消耗1个配额。配额购买后永久有效，不会过期。'
+    answer: '配额用于创建临时邮箱，每创建一个地址消耗 1 个配额。不同来源的有效期可能不同，请以配额记录中的到期时间为准。'
   },
   {
-    question: '购买后多久到账？',
-    answer: '支付成功后配额会立即到账，您可以在个人中心查看配额余额。'
+    question: '如何购买配额？',
+    answer: '登录后选择方案并按提示联系管理员。当前页面不直接处理支付，具体价格、付款方式和发放时间以管理员确认为准。'
   },
   {
-    question: '支持哪些支付方式？',
-    answer: '目前支持微信支付、支付宝、银行卡等多种支付方式，安全便捷。'
+    question: '配额如何到账？',
+    answer: '管理员确认后会提供兑换码或直接调整账户配额，您可以在配额记录中核对每一笔变动。'
   },
   {
     question: '配额可以退款吗？',
-    answer: '由于配额为虚拟商品，一经购买不支持退款。请根据实际需求选择合适的套餐。'
+    answer: '购买前请与管理员确认数量、有效期和售后规则；已经发放或使用的配额如何处理，以双方确认的方案为准。'
   },
   {
     question: '如何选择合适的套餐？',
@@ -132,13 +116,8 @@ const handlePurchase = (plan: typeof plans[0]) => {
     return
   }
 
-  if (plan.id === 'basic') {
-    router.push('/profile/checkin')
-    return
-  }
-
   ElMessage({
-    message: '购买配额请发送邮件联系 admin@oooo.icu',
+    message: `咨询“${plan.name}”请发送邮件联系 admin@oooo.icu`,
     type: 'info',
     duration: 5000,
     showClose: true
@@ -172,7 +151,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
 
           <!-- Title -->
           <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            配额购买
+            配额方案
           </h1>
 
           <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed">
@@ -180,7 +159,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
           </p>
 
           <p class="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
-            灵活的配额方案 · 永久有效 · 即买即用 · 安全支付
+            方案清晰 · 兑换码补充 · 流水可查 · 联系管理员
           </p>
         </div>
       </div>
@@ -194,11 +173,11 @@ const handlePurchase = (plan: typeof plans[0]) => {
             选择您的配额套餐
           </h2>
           <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            根据使用需求选择合适的配额方案，所有配额永久有效
+            根据使用需求选择合适的配额方案，具体有效期以发放说明为准
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             v-for="plan in plans"
             :key="plan.id"
@@ -275,12 +254,12 @@ const handlePurchase = (plan: typeof plans[0]) => {
               <div class="mt-auto">
                 <button
                   @click="handlePurchase(plan)"
-                  :disabled="plan.disabled || (!isLoggedIn && plan.id !== 'basic')"
+                  :disabled="plan.disabled"
                   :class="[
-                    'w-full py-2 px-4 rounded-md font-medium text-sm transition-all duration-200 hover:scale-102 shadow-sm hover:shadow-md',
+                    'w-full py-2 px-4 rounded-md font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md',
                     plan.buttonColor,
-                    (plan.disabled || (!isLoggedIn && plan.id !== 'basic'))
-                      ? 'opacity-50 cursor-not-allowed hover:scale-100'
+                    plan.disabled
+                      ? 'opacity-50 cursor-not-allowed'
                       : 'cursor-pointer'
                   ]"
                 >

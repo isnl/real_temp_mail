@@ -1,19 +1,22 @@
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
+import {
+  getEmailById,
   getEmails, 
   deleteEmail,
   formatNumber
 } from '@/api/admin'
+import { buildSandboxedEmailHtml } from '@/utils/safeEmailHtml'
 import type { 
   AdminEmailDetails, 
+  AdminEmailSummary,
   AdminEmailListParams,
   PaginatedResponse 
 } from '@/api/admin'
 
 const loading = ref(false)
-const emails = ref<AdminEmailDetails[]>([])
+const emails = ref<AdminEmailSummary[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
@@ -27,6 +30,9 @@ const searchForm = reactive<AdminEmailListParams>({
 
 const emailDetailVisible = ref(false)
 const selectedEmail = ref<AdminEmailDetails | null>(null)
+const detailLoading = ref(false)
+let detailRequestId = 0
+const sandboxedHtml = computed(() => buildSandboxedEmailHtml(selectedEmail.value?.html_content))
 
 const loadEmails = async () => {
   try {
@@ -39,7 +45,7 @@ const loadEmails = async () => {
     
     const response = await getEmails(params)
     if (response.success) {
-      const data = response.data as PaginatedResponse<AdminEmailDetails>
+      const data = response.data as PaginatedResponse<AdminEmailSummary>
       emails.value = data.data
       total.value = data.total
     } else {
@@ -72,12 +78,34 @@ const handlePageChange = (page: number) => {
   loadEmails()
 }
 
-const handleViewDetail = (email: AdminEmailDetails) => {
-  selectedEmail.value = email
+const handleViewDetail = async (email: AdminEmailSummary) => {
+  const requestId = ++detailRequestId
+  selectedEmail.value = null
   emailDetailVisible.value = true
+  detailLoading.value = true
+
+  try {
+    const response = await getEmailById(email.id)
+    if (requestId !== detailRequestId || !emailDetailVisible.value) return
+    if (!response.data) throw new Error(response.error || '邮件详情不存在')
+    selectedEmail.value = response.data
+  } catch (error) {
+    if (requestId === detailRequestId) {
+      ElMessage.error(error instanceof Error ? error.message : '获取邮件详情失败')
+      emailDetailVisible.value = false
+    }
+  } finally {
+    if (requestId === detailRequestId) detailLoading.value = false
+  }
 }
 
-const handleDelete = async (email: AdminEmailDetails) => {
+const handleDetailClosed = () => {
+  detailRequestId += 1
+  detailLoading.value = false
+  selectedEmail.value = null
+}
+
+const handleDelete = async (email: AdminEmailSummary) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除这封邮件吗？此操作不可恢复。`,
@@ -220,17 +248,9 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <div class="flex items-center space-x-2">
-              <el-tag :type="row.is_read ? 'success' : 'warning'" size="small">
-                {{ row.is_read ? '已读' : '未读' }}
-              </el-tag>
-              <font-awesome-icon 
-                v-if="row.verification_code" 
-                icon="key" 
-                class="text-orange-500" 
-                title="包含验证码"
-              />
-            </div>
+            <el-tag :type="row.is_read ? 'success' : 'warning'" size="small">
+              {{ row.is_read ? '已读' : '未读' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="接收时间" width="180">
@@ -279,8 +299,13 @@ onMounted(() => {
       title="邮件详情"
       width="800px"
       top="5vh"
+      @closed="handleDetailClosed"
     >
-      <div v-if="selectedEmail" class="flex flex-col gap-4">
+      <div v-if="detailLoading" class="email-detail-skeleton" aria-label="正在加载邮件详情">
+        <el-skeleton animated :rows="8" />
+      </div>
+
+      <div v-else-if="selectedEmail" class="flex flex-col gap-4">
         <!-- 邮件基本信息 -->
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -322,10 +347,13 @@ onMounted(() => {
             <!-- HTML内容 -->
             <div v-if="selectedEmail.html_content" class="p-4">
               <div class="text-xs text-gray-500 mb-2">HTML内容:</div>
-              <div 
-                class="prose prose-sm max-w-none dark:prose-invert"
-                v-html="selectedEmail.html_content"
-              ></div>
+              <iframe
+                class="email-audit-frame"
+                :srcdoc="sandboxedHtml"
+                sandbox=""
+                referrerpolicy="no-referrer"
+                title="隔离的邮件 HTML 内容"
+              />
             </div>
             
             <!-- 纯文本内容 -->
@@ -359,5 +387,20 @@ onMounted(() => {
 
 .btn-primary {
   @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
+}
+
+.email-audit-frame {
+  display: block;
+  width: 100%;
+  height: min(46vh, 420px);
+  min-height: 280px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.email-detail-skeleton {
+  min-height: 420px;
+  padding: 8px 2px;
 }
 </style>

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useMediaQuery } from '@vueuse/core'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 
@@ -8,19 +9,19 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
-
-// 初始化主题和认证状态
-onMounted(() => {
-  // 初始化主题
-  themeStore.initTheme()
-
-  // 检查并刷新token
-  if (authStore.isAuthenticated) {
-    authStore.checkAndRefreshToken()
-  }
-})
+const isMobile = useMediaQuery('(max-width: 900px)')
 
 const isCollapsed = ref(false)
+const mobileSidebarOpen = ref(false)
+const isSidebarCollapsed = computed(() => !isMobile.value && isCollapsed.value)
+
+watch(() => route.fullPath, () => {
+  mobileSidebarOpen.value = false
+})
+
+watch(isMobile, (mobile) => {
+  if (!mobile) mobileSidebarOpen.value = false
+})
 
 // 菜单项配置
 const menuItems = [
@@ -94,11 +95,16 @@ const activeMenuPath = computed(() => {
 
 // 切换侧边栏折叠状态
 const toggleSidebar = () => {
+  if (isMobile.value) {
+    mobileSidebarOpen.value = !mobileSidebarOpen.value
+    return
+  }
   isCollapsed.value = !isCollapsed.value
 }
 
 // 菜单选择处理
 const handleMenuSelect = (path: string) => {
+  mobileSidebarOpen.value = false
   router.push(path)
 }
 
@@ -108,26 +114,34 @@ const logout = async () => {
   router.push('/login')
 }
 
-// 返回用户端
-const goToUserDashboard = () => {
-  router.push('/dashboard')
-}
 </script>
 
 <template>
   <div id="admin-layout" class="admin-layout min-h-screen bg-gray-50 dark:bg-gray-900">
+    <button
+      v-if="isMobile && mobileSidebarOpen"
+      class="sidebar-backdrop"
+      type="button"
+      aria-label="关闭管理菜单"
+      @click="mobileSidebarOpen = false"
+    />
+
     <!-- 侧边栏 -->
     <aside
       :class="[
         'fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 shadow-lg',
-        isCollapsed ? 'w-16' : 'w-280',
+        isSidebarCollapsed ? 'w-16' : 'w-280',
+        { 'mobile-open': mobileSidebarOpen },
       ]"
+      aria-label="管理后台导航"
+      :aria-hidden="isMobile && !mobileSidebarOpen"
+      :inert="isMobile && !mobileSidebarOpen ? true : undefined"
     >
       <!-- 侧边栏头部 -->
       <div
         class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700"
       >
-        <div v-if="!isCollapsed" class="flex items-center space-x-3">
+        <div v-if="!isSidebarCollapsed" class="flex items-center space-x-3">
           <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <font-awesome-icon icon="shield-alt" class="text-white text-sm" />
           </div>
@@ -136,10 +150,11 @@ const goToUserDashboard = () => {
         <el-button
           @click="toggleSidebar"
           text
-          class="!p-2"
+          class="sidebar-collapse-button !p-2"
+          :aria-label="isMobile ? '关闭管理菜单' : (isCollapsed ? '展开侧边栏' : '收起侧边栏')"
         >
           <font-awesome-icon
-            :icon="isCollapsed ? 'chevron-right' : 'chevron-left'"
+            :icon="isSidebarCollapsed ? 'chevron-right' : 'chevron-left'"
             class="text-gray-500 dark:text-gray-400"
           />
         </el-button>
@@ -151,7 +166,7 @@ const goToUserDashboard = () => {
       <div class="flex-1">
         <el-menu
           :default-active="activeMenuPath"
-          :collapse="isCollapsed"
+          :collapse="isSidebarCollapsed"
           :unique-opened="true"
           background-color="transparent"
           text-color="var(--el-text-color-primary)"
@@ -174,7 +189,7 @@ const goToUserDashboard = () => {
       <!-- 侧边栏底部操作 -->
       <div class="p-3 border-t border-gray-200 dark:border-gray-700">
         <!-- 展开状态下的底部区域 -->
-        <div v-if="!isCollapsed" class="flex flex-col gap-3">
+        <div v-if="!isSidebarCollapsed" class="flex flex-col gap-3">
           <!-- 主题切换 -->
           <el-button
             @click="themeStore.toggleTheme"
@@ -247,10 +262,19 @@ const goToUserDashboard = () => {
     </aside>
 
     <!-- 主内容区域 -->
-    <div :class="['main-content', isCollapsed ? 'collapsed' : 'expanded']">
+    <div :class="['main-content', isSidebarCollapsed ? 'collapsed' : 'expanded']">
       <!-- 简化的顶部导航栏 -->
       <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
-        <div class="flex items-center h-full px-6">
+        <div class="flex items-center h-full gap-3 px-6">
+          <el-button
+            class="mobile-menu-button"
+            text
+            aria-label="打开管理菜单"
+            :aria-expanded="mobileSidebarOpen"
+            @click="mobileSidebarOpen = true"
+          >
+            <font-awesome-icon icon="bars" />
+          </el-button>
           <!-- 页面标题 -->
           <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {{ menuItems.find((item) => item.key === activeMenuItem)?.title || '管理后台' }}
@@ -259,7 +283,7 @@ const goToUserDashboard = () => {
       </header>
 
       <!-- 页面内容 -->
-      <main class="p-6 w-full max-w-none">
+      <main id="main-content" class="p-6 w-full max-w-none" tabindex="-1">
         <router-view />
       </main>
     </div>
@@ -268,91 +292,60 @@ const goToUserDashboard = () => {
 
 <style scoped>
 #admin-layout {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
-  background-color: #f9fafb;
-  /* 确保管理后台布局完全独立 */
   position: relative;
   z-index: 1;
+  min-height: 100dvh;
+  background: var(--page-bg);
 }
 
-.dark #admin-layout {
-  background-color: #111827;
-}
-
-.admin-layout {
-  min-height: 100vh;
-}
-
-/* 侧边栏样式 */
 aside {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-right: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  border-color: var(--border);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-md);
+  transition: width var(--transition-fast), transform var(--transition-fast);
 }
 
-.dark aside {
-  background-color: #1f2937;
-  border-right-color: #374151;
-}
-
-/* 主内容区域 */
 .main-content {
-  transition: margin-left 0.3s ease;
-  min-height: 100vh;
-  background-color: #f9fafb;
-}
-
-.dark .main-content {
-  background-color: #111827;
+  min-width: 0;
+  min-height: 100dvh;
+  background: var(--page-bg);
+  transition: margin-left var(--transition-fast);
 }
 
 .main-content.expanded {
-  margin-left: 280px; /* 280px 侧边栏宽度 */
+  margin-left: 280px;
 }
 
 .main-content.collapsed {
-  margin-left: 64px; /* 64px 折叠侧边栏宽度 */
+  margin-left: 64px;
 }
 
-/* 针对1080p及更高分辨率设备优化，移除响应式代码 */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-color: var(--border);
+  background: var(--surface-elevated);
+  backdrop-filter: blur(16px);
+}
+
 main {
   width: 100%;
-  max-width: none;
   padding: 32px 40px;
-  min-height: calc(100vh - 64px); /* 减去header高度 */
+  min-height: calc(100dvh - 64px);
 }
 
-/* 确保内容区域有合适的最大宽度，但不限制在1280px */
 main > * {
-  max-width: 1600px; /* 提高到1600px，适合高分辨率显示器 */
+  max-width: 1480px;
   margin: 0 auto;
 }
 
-.main-content.collapsed {
-  margin-left: 64px; /* 64px 折叠侧边栏宽度 */
+.mobile-menu-button,
+.sidebar-backdrop {
+  display: none;
 }
 
-
-.dark .main-content {
-  background-color: #111827;
-}
-
-/* 确保内容区域有合适的最大宽度 */
-main > * {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* 自定义滚动条 */
 .el-menu::-webkit-scrollbar {
   width: 4px;
 }
@@ -370,7 +363,6 @@ main > * {
   background: rgba(156, 163, 175, 0.5);
 }
 
-/* Element Plus Menu 自定义样式 */
 :deep(.el-menu) {
   border-right: none;
 }
@@ -391,7 +383,6 @@ main > * {
   color: var(--el-color-primary);
 }
 
-/* 菜单图标样式 */
 :deep(.el-menu-item svg) {
   margin-right: 12px;
   width: 16px;
@@ -399,7 +390,6 @@ main > * {
   flex-shrink: 0;
 }
 
-/* 折叠状态下的图标居中 */
 :deep(.el-menu--collapse .el-menu-item) {
   display: flex !important;
   align-items: center !important;
@@ -415,7 +405,6 @@ main > * {
   right: 0;
 }
 
-/* 确保折叠状态下隐藏文字 */
 :deep(.el-menu--collapse .el-menu-item .el-tooltip__trigger) {
   display: flex !important;
   align-items: center !important;
@@ -423,7 +412,6 @@ main > * {
   width: 100% !important;
 }
 
-/* 额外的居中保证 */
 :deep(.el-menu--collapse .el-menu-item) {
   margin: 4px 0 !important;
 }
@@ -432,8 +420,58 @@ main > * {
   margin: 0 auto !important;
 }
 
-/* 自定义宽度类 */
 .w-280 {
   width: 280px;
+}
+
+@media (max-width: 900px) {
+  aside {
+    width: min(84vw, 280px) !important;
+    transform: translateX(-105%);
+  }
+
+  aside.mobile-open {
+    transform: translateX(0);
+  }
+
+  .main-content.expanded,
+  .main-content.collapsed {
+    margin-left: 0;
+  }
+
+  .mobile-menu-button {
+    display: inline-flex;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(2, 15, 19, 0.52);
+    backdrop-filter: blur(2px);
+  }
+
+  main {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 520px) {
+  header > div {
+    padding-inline: 12px;
+  }
+
+  header h1 {
+    font-size: 1.05rem;
+  }
+
+  main {
+    padding: 18px 12px 28px;
+  }
 }
 </style>

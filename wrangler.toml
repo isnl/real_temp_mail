@@ -1,0 +1,37 @@
+#:schema node_modules/wrangler/config-schema.json
+
+name = "temp-email"
+main = "backend/src/index.ts"
+tsconfig = "backend/tsconfig.json"
+compatibility_date = "2024-09-23"
+
+# Static Assets serves the Vite output and falls back to index.html for Vue
+# Router history routes. API requests always reach the Worker first, including
+# unknown API paths, so they can never be mistaken for SPA navigation.
+[assets]
+directory = "frontend/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api", "/api/*", "/public-inbox", "/public-inbox/*"]
+
+[vars]
+ENVIRONMENT = "production"
+FRONTEND_DOMAIN = "oooo.icu"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "oooo-mail"
+database_id = "d1144511-217a-4db6-ab72-35f05dff553e"
+migrations_dir = "backend/migrations"
+
+[triggers]
+# Cloudflare Cron 使用 UTC；每天 03:17 UTC（北京时间 11:17）执行留存清理。
+crons = ["17 3 * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[dev]
+port = 8787
+local_protocol = "http"

@@ -12,7 +12,7 @@ usePageTitle()
         隐私政策
       </h1>
       <p class="text-gray-600 dark:text-gray-400">
-        最后更新时间：2024年3月1日
+        最后更新时间：2026年9月13日
       </p>
     </div>
 
@@ -26,7 +26,7 @@ usePageTitle()
           <ul class="list-disc pl-6 flex flex-col gap-2">
             <li>GitHub账户的公开信息（用户名、邮箱地址、头像等）</li>
             <li>您创建的临时邮箱地址信息</li>
-            <li>接收到的邮件内容（仅用于向您展示）</li>
+            <li>接收到的邮件内容（默认仅向您展示；主动开启公开收件箱后会向访问者公开，关闭后立即停止公开访问）</li>
             <li>服务使用日志和统计信息</li>
             <li>设备信息和IP地址（用于安全防护）</li>
           </ul>
@@ -82,14 +82,30 @@ usePageTitle()
 
       <section>
         <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          5. 您的权利
+          5. 数据保留
+        </h2>
+        <div class="text-gray-600 dark:text-gray-400 flex flex-col gap-3">
+          <ul class="list-disc pl-6 flex flex-col gap-2">
+            <li>邮件接收超过 7 天后立即停止通过接口提供，并在下一轮每日清理任务中物理删除</li>
+            <li>每个收件箱最多保留最近 50 封邮件，且可存储的邮件内容总量约为 4 MiB，以先达到的限制为准</li>
+            <li>您停用临时邮箱地址后，地址及其邮件会在下一轮每日清理任务中删除</li>
+            <li>安全审计与操作日志超过 30 天后，会在下一轮每日清理任务中删除</li>
+            <li>配额流水作为账户账本保留至账户删除</li>
+            <li>账户与第三方登录关联信息保留至账户删除；法律另有要求时除外</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+          6. 您的权利
         </h2>
         <div class="text-gray-600 dark:text-gray-400 flex flex-col gap-3">
           <p>您对自己的个人信息享有以下权利：</p>
           <ul class="list-disc pl-6 flex flex-col gap-2">
             <li>查看和更新您的账户信息</li>
             <li>删除您的临时邮箱地址</li>
-            <li>注销您的账户</li>
+            <li>联系管理员申请删除您的账户</li>
             <li>要求我们停止处理您的个人信息</li>
             <li>向相关监管部门投诉</li>
           </ul>
@@ -98,7 +114,7 @@ usePageTitle()
 
       <section>
         <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          6. 国际数据传输
+          7. 国际数据传输
         </h2>
         <p class="text-gray-600 dark:text-gray-400">
           由于我们的服务可能涉及跨境数据传输，您的个人信息可能被传输到您所在国家/地区以外的地方进行处理和存储。
@@ -108,7 +124,7 @@ usePageTitle()
 
       <section>
         <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          7. 法律合规
+          8. 法律合规
         </h2>
         <div class="text-gray-600 dark:text-gray-400 flex flex-col gap-3">
           <p>
