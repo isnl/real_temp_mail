@@ -43,12 +43,124 @@ WHERE provider = 'github' AND provider_id IS NOT NULL;
 
 CREATE INDEX idx_oauth_accounts_user_id ON oauth_accounts(user_id);
 
--- One operation id ties all statements in an atomic redeem batch to the usage
--- inserted by that request. Historical rows remain valid with NULL ids.
-ALTER TABLE redeem_code_usages ADD COLUMN operation_id TEXT;
+-- Some legacy setup paths created announcements without the companion read
+-- table. Create it here as a compatibility repair before the UTC migration
+-- normalizes its timestamps.
+CREATE TABLE IF NOT EXISTS user_announcement_reads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  announcement_id INTEGER NOT NULL,
+  read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
+  UNIQUE(user_id, announcement_id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_announcement_reads_user_id
+ON user_announcement_reads(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_announcement_reads_announcement_id
+ON user_announcement_reads(announcement_id);
+CREATE INDEX IF NOT EXISTS idx_user_announcement_reads_read_at
+ON user_announcement_reads(read_at);
+
+-- Legacy production databases key redeem_codes by the code string and store
+-- usage rows in redeem_code_usage. Convert the parent and child together so
+-- foreign-key cascades cannot discard redemption history. Earlier migrations
+-- intentionally preserve this legacy shape, making the conversion identical
+-- for fresh installs and upgrades whose d1_migrations table must be baselined.
+DROP TRIGGER IF EXISTS update_redeem_code_usage_count;
+
+CREATE TABLE redeem_codes_0014 (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT UNIQUE NOT NULL,
+  quota INTEGER NOT NULL CHECK (quota >= 0),
+  name TEXT,
+  max_uses INTEGER NOT NULL DEFAULT 1 CHECK (max_uses > 0),
+  used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
+  never_expires INTEGER NOT NULL DEFAULT 0 CHECK (never_expires IN (0, 1)),
+  used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0, 1)),
+  used_by INTEGER,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  used_at TIMESTAMP,
+  valid_until TIMESTAMP,
+  FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+INSERT INTO redeem_codes_0014
+  (code, quota, name, max_uses, used_count, never_expires, used, used_by,
+   created_at, used_at, valid_until)
+SELECT code, MAX(0, quota), name, MAX(1, COALESCE(max_uses, 1)),
+  MAX(0, COALESCE(used_count, CASE WHEN used = 1 THEN 1 ELSE 0 END)),
+  CASE WHEN never_expires = 1 THEN 1 ELSE 0 END,
+  CASE WHEN used = 1 THEN 1 ELSE 0 END,
+  used_by, COALESCE(datetime(created_at), CURRENT_TIMESTAMP),
+  CASE WHEN used_at IS NULL THEN NULL ELSE datetime(used_at) END,
+  CASE WHEN valid_until IS NULL THEN NULL ELSE datetime(valid_until) END
+FROM redeem_codes
+ORDER BY rowid;
+
+CREATE TABLE redeem_code_usages_0014 (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  redeem_code_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  quota_amount INTEGER NOT NULL CHECK (quota_amount >= 0),
+  operation_id TEXT,
+  used_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (redeem_code_id) REFERENCES redeem_codes_0014(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE(redeem_code_id, user_id)
+);
+
+INSERT INTO redeem_code_usages_0014
+  (id, redeem_code_id, user_id, quota_amount, operation_id, used_at)
+SELECT usage.id, canonical.id, usage.user_id, canonical.quota, NULL,
+  COALESCE(datetime(usage.used_at), CURRENT_TIMESTAMP)
+FROM redeem_code_usage usage
+JOIN redeem_codes_0014 canonical ON canonical.code = usage.code;
+
+-- Convert legacy quota-log code references only when they match a code. Rows
+-- using another related-id convention remain untouched.
+UPDATE quota_logs
+SET related_id = (
+  SELECT canonical.id
+  FROM redeem_codes_0014 canonical
+  WHERE canonical.code = CAST(quota_logs.related_id AS TEXT)
+)
+WHERE source = 'redeem_code'
+  AND related_id IS NOT NULL
+  AND EXISTS (
+    SELECT 1 FROM redeem_codes_0014 canonical
+    WHERE canonical.code = CAST(quota_logs.related_id AS TEXT)
+  );
+
+DROP TABLE redeem_code_usage;
+DROP TABLE redeem_codes;
+ALTER TABLE redeem_codes_0014 RENAME TO redeem_codes;
+ALTER TABLE redeem_code_usages_0014 RENAME TO redeem_code_usages;
+
+CREATE INDEX idx_redeem_codes_name ON redeem_codes(name);
+CREATE INDEX idx_redeem_codes_valid_until ON redeem_codes(valid_until);
+CREATE INDEX idx_redeem_code_usages_code_id ON redeem_code_usages(redeem_code_id);
+CREATE INDEX idx_redeem_code_usages_user_id ON redeem_code_usages(user_id);
+CREATE INDEX idx_redeem_code_usages_used_at ON redeem_code_usages(used_at);
 CREATE UNIQUE INDEX idx_redeem_code_usages_operation_id
 ON redeem_code_usages(operation_id)
 WHERE operation_id IS NOT NULL;
+
+-- Keep a conservative historical count if an older deployment incremented
+-- used_count without successfully persisting every usage row.
+UPDATE redeem_codes
+SET used_count = MAX(used_count, (
+  SELECT COUNT(*) FROM redeem_code_usages usage
+  WHERE usage.redeem_code_id = redeem_codes.id
+));
+
+CREATE TRIGGER update_redeem_code_usage_count
+AFTER INSERT ON redeem_code_usages
+BEGIN
+  UPDATE redeem_codes
+  SET used_count = used_count + 1
+  WHERE id = NEW.redeem_code_id;
+END;
 
 -- The 0003 migration historically renamed request_count to count in deployed
 -- databases. Rebuild using only columns common to both variants and reset the

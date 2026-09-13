@@ -136,6 +136,16 @@ npm run db:migrate
 
 两个脚本都通过稳定的 `DB` binding 定位 `wrangler.toml` 中配置的数据库。部署新代码前先备份生产数据库，再应用迁移。
 
+如果旧实例由历史初始化脚本创建，表中已有业务数据但 `d1_migrations` 为空，不能直接重放 0001-0013。先核对并执行带结构保护的基线脚本，再应用后续迁移：
+
+```bash
+npx wrangler d1 execute DB --remote \
+  --file backend/scripts/baseline-legacy-d1.sql
+npm run db:migrate
+```
+
+基线脚本只接受旧版 `code` 主键、`redeem_code_usage` 单数表且已具备公开收件箱与配额表的完整旧结构；空库、部分升级或已有迁移记录的数据库会校验失败，不会被误标记。
+
 迁移完成后，请在后台“域名管理”确认至少有一个已由 Cloudflare Email Routing 接管的启用域名。示例域名不可直接用于生产收信。
 
 ## 本地开发
