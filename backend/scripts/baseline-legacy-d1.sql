@@ -3,7 +3,10 @@
 -- The guard deliberately fails on an empty, partially upgraded, or already
 -- tracked database. Back up the remote D1 database before running this file.
 
-CREATE TEMP TABLE legacy_baseline_guard (
+-- D1 remote imports reject TEMP schema writes with SQLITE_AUTH. Use a regular
+-- table inside the import transaction so the compatibility guard also works
+-- against the production service, then remove it before committing.
+CREATE TABLE legacy_baseline_guard (
   valid INTEGER NOT NULL CHECK (valid = 1)
 );
 
