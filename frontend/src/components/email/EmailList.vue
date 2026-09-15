@@ -288,7 +288,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
     lowerSubject.includes('欢迎') ||
     lowerSubject.includes('确认')
   ) {
-    return { icon: 'user-plus', color: 'text-blue-500' }
+    return { icon: 'user-plus', color: 'text-primary-500' }
   }
 
   return { icon: 'envelope', color: 'text-gray-500' }
@@ -300,7 +300,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
     <!-- Toolbar -->
     <div
       v-if="emails.length > 0 && !readonly"
-      class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10"
+      class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10"
     >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex min-w-0 items-center sm:space-x-4">
@@ -318,7 +318,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 
             <div class="flex items-center space-x-2">
               <div
-                class="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm"
+                class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm"
               >
                 <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-xs" />
               </div>
@@ -378,7 +378,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               />
             </div>
             <div
-              class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg"
+              class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg"
             >
               <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-sm" />
             </div>
@@ -410,7 +410,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
           class="group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer"
           :class="{
             'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md': true,
-            'ring-2 ring-blue-200 dark:ring-blue-800 bg-blue-50/30 dark:bg-blue-900/10':
+            'ring-2 ring-primary-200 dark:ring-primary-800 bg-primary-50/30 dark:bg-primary-900/10':
               !readonly && !Boolean(email.is_read),
           }"
           @click="handleEmailClick(email)"
@@ -423,7 +423,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
           <!-- 未读邮件的装饰条 -->
           <div
             v-if="!readonly && !Boolean(email.is_read)"
-            class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-l-xl"
+            class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-l-xl"
           ></div>
 
           <div class="flex items-start gap-3 sm:gap-4">
@@ -442,13 +442,10 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               <div
                 class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
                 :class="{
-                  'bg-gradient-to-br from-green-500 to-emerald-600 text-white':
-                    getEmailTypeIcon(email.subject || '', email.content || '').icon ===
-                    'shield-alt',
+                  'bg-gradient-to-br from-primary-500 to-primary-600 text-white':
+                    ['shield-alt', 'user-plus'].includes(getEmailTypeIcon(email.subject || '', email.content || '').icon),
                   'bg-gradient-to-br from-orange-500 to-red-600 text-white':
                     getEmailTypeIcon(email.subject || '', email.content || '').icon === 'key',
-                  'bg-gradient-to-br from-blue-500 to-indigo-600 text-white':
-                    getEmailTypeIcon(email.subject || '', email.content || '').icon === 'user-plus',
                   'bg-gradient-to-br from-gray-400 to-gray-600 text-white':
                     getEmailTypeIcon(email.subject || '', email.content || '').icon === 'envelope',
                 }"
@@ -471,9 +468,9 @@ const getEmailTypeIcon = (subject: string, content: string) => {
                   <div v-if="!readonly" class="flex items-center space-x-2">
                     <span
                       v-if="!Boolean(email.is_read)"
-                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300"
                     >
-                      <div class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-1 animate-pulse"></div>
+                      <div class="w-1.5 h-1.5 bg-primary-500 rounded-full mr-1 animate-pulse"></div>
                       新邮件
                     </span>
                     <span
@@ -506,7 +503,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               <!-- Verification Code -->
               <div v-if="email.verification_code" class="mb-4">
                 <div
-                  class="inline-flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800"
+                  class="inline-flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-100 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl border border-green-200 dark:border-green-800"
                 >
                   <div class="flex items-center space-x-2">
                     <div class="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
@@ -565,10 +562,10 @@ const getEmailTypeIcon = (subject: string, content: string) => {
                     @click.stop="handleEmailClick(email)"
                     size="small"
                     circle
-                    class="hover:bg-blue-100 dark:hover:bg-blue-900/30 shadow-sm"
+                    class="hover:bg-primary-100 dark:hover:bg-primary-900/30 shadow-sm"
                     title="查看详情"
                   >
-                    <font-awesome-icon :icon="['fas', 'eye']" class="text-blue-500 text-xs" />
+                    <font-awesome-icon :icon="['fas', 'eye']" class="text-primary-500 text-xs" />
                   </el-button>
 
                   <el-button
@@ -591,12 +588,12 @@ const getEmailTypeIcon = (subject: string, content: string) => {
       <!-- Footer -->
       <div
         v-if="emails.length > 0"
-        class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-green-50/30 dark:from-gray-800/50 dark:to-green-900/10"
+        class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10"
       >
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center space-x-3">
             <div
-              class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm"
+              class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm"
             >
               <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-white text-xs" />
             </div>
@@ -623,10 +620,10 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 
           <div v-if="!readonly" class="flex items-center space-x-4">
             <div
-              class="flex items-center space-x-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full"
+              class="flex items-center space-x-1 px-3 py-1 bg-primary-100 dark:bg-primary-900/30 rounded-full"
             >
-              <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span class="text-xs font-medium text-blue-700 dark:text-blue-300">
+              <div class="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
+              <span class="text-xs font-medium text-primary-700 dark:text-primary-300">
                 {{ emails.filter((e) => !e.is_read).length }} 未读
               </span>
             </div>

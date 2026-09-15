@@ -120,6 +120,8 @@ GitHub OAuth Application 的 callback URL 应设置为：
 https://你的统一域名/api/auth/github/callback
 ```
 
+回调地址由 `FRONTEND_DOMAIN` 自动生成，后台只读展示并支持复制。将这个地址填入 GitHub OAuth App 的 Authorization callback URL；旧的手动回调配置不再生效。通过兼容 API 域名发起登录时，会先跳转到正式站点再开始授权。
+
 ## 数据库迁移
 
 本地 D1：

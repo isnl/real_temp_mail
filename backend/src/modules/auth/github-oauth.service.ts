@@ -2,6 +2,7 @@ import type { Env, GitHubOAuthResponse, GitHubUser, User } from '@/types'
 import { AppError, AuthenticationError, ValidationError } from '@/types'
 import { DatabaseService } from '@/modules/shared/database.service'
 import { SystemSettingsService } from '@/modules/settings/settings.service'
+import { getGitHubCallbackUrl } from '@/utils/site-url'
 import { decideOAuthEmailCollision } from './oauth-link-policy'
 
 interface GitHubConfig {
@@ -66,16 +67,14 @@ export class GitHubOAuthService {
     if (!await this.settings.getBoolean('github_oauth_enabled')) {
       throw new ValidationError('GitHub 登录未启用')
     }
-    const [clientId, clientSecret, configuredCallback] = await Promise.all([
+    const [clientId, clientSecret] = await Promise.all([
       this.settings.getValue('github_client_id'),
-      this.settings.getValue('github_client_secret'),
-      this.settings.getValue('github_callback_url')
+      this.settings.getValue('github_client_secret')
     ])
     if (!clientId || !clientSecret) {
       throw new AppError('GitHub 登录尚未正确配置', 503, 'OAUTH_NOT_CONFIGURED')
     }
-    const callbackUrl = configuredCallback ||
-      new URL('/api/auth/github/callback', requestUrl).toString()
+    const callbackUrl = getGitHubCallbackUrl(this.env, requestUrl)
     return { clientId, clientSecret, callbackUrl }
   }
 

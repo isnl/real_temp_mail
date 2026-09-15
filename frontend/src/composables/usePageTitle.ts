@@ -1,12 +1,13 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
-const baseTitle = '临时邮箱管理'
+const baseTitle = '临时邮箱管理系统'
 
 // 页面标题映射
 const pageTitleMap: Record<string, string> = {
   // 主要页面
   'home': '首页',
+  'pricing': '价格',
   'features': '功能特色',
   'about': '关于我们',
   'terms': '服务条款',
@@ -18,7 +19,7 @@ const pageTitleMap: Record<string, string> = {
   'register': '用户注册',
   
   // 邮箱管理
-  'dashboard': '邮箱管理',
+  'dashboard': '控制台',
   'public-inbox': '公开收件箱',
   
   // 个人中心

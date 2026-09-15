@@ -22,7 +22,7 @@ onMounted(async () => {
   try {
     // JWT 中的角色不是授权真相；刷新数据库用户也能及时反映停用和降权。
     await authStore.fetchCurrentUser()
-    if (route.meta.requiresAdmin && !authStore.isAdmin) await router.replace('/dashboard')
+    if (route.meta.requiresAdmin && !authStore.isAdmin) await router.replace('/profile')
   } catch {
     // API 客户端会清理无效会话并跳转登录页。
   }

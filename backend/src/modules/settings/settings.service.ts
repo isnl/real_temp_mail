@@ -1,3 +1,4 @@
+import { getGitHubCallbackUrl } from '@/utils/site-url'
 import type {
   Env,
   PublicSystemSettings,
@@ -82,7 +83,7 @@ export const SYSTEM_SETTING_DEFINITIONS: Record<SystemSettingKey, SettingDefinit
   },
   github_callback_url: {
     defaultValue: '',
-    description: 'GitHub OAuth 回调地址；留空时使用当前站点',
+    description: 'GitHub OAuth 回调地址（由站点自动生成）',
     kind: 'url'
   },
   admin_username: {
@@ -152,7 +153,7 @@ export class SystemSettingsService {
     }
   }
 
-  async getAdminSettings(): Promise<SystemSetting[]> {
+  async getAdminSettings(requestUrl?: string): Promise<SystemSetting[]> {
     const result = await this.env.DB.prepare(`
       SELECT id, setting_key, setting_value, description, created_at, updated_at
       FROM system_settings
@@ -166,7 +167,7 @@ export class SystemSettingsService {
     for (const key of SETTING_KEYS) {
       const definition = SYSTEM_SETTING_DEFINITIONS[key]
       const row = rows.get(key)
-      const raw = row?.setting_value ?? definition.defaultValue
+      const raw = key === 'github_callback_url' ? getGitHubCallbackUrl(this.env, requestUrl) : (row?.setting_value ?? definition.defaultValue)
       const decrypted = definition.secret && raw ? await this.decrypt(raw) : raw
       const configured = key === 'admin_password'
         ? await this.hasPrimaryAdminPassword()
@@ -203,6 +204,7 @@ export class SystemSettingsService {
     for (const [untypedKey, input] of Object.entries(inputs)) {
       if (!this.isKnownKey(untypedKey)) throw new ValidationError(`未知的系统设置: ${untypedKey}`)
       if (typeof input !== 'string') throw new ValidationError(`${untypedKey} 的值必须是字符串`)
+      if (untypedKey === 'github_callback_url') throw new ValidationError('GitHub 回调地址由站点自动生成，不能修改')
       const key = untypedKey
       const definition = SYSTEM_SETTING_DEFINITIONS[key]
       if (

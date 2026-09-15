@@ -6,7 +6,7 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { ElMessage } from 'element-plus'
 
 // 设置页面标题
-usePageTitle('配额方案')
+usePageTitle('价格')
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -29,7 +29,7 @@ const plans = [
       '额外赠送10个配额'
     ],
     buttonText: '咨询购买',
-    buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
+    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
     disabled: false
   },
   {
@@ -46,7 +46,7 @@ const plans = [
       '额外赠送30个配额'
     ],
     buttonText: '咨询购买',
-    buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
+    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
     disabled: false
   },
   {
@@ -63,7 +63,7 @@ const plans = [
       '额外赠送80个配额'
     ],
     buttonText: '咨询购买',
-    buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
+    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
     disabled: false
   },
   {
@@ -80,7 +80,7 @@ const plans = [
       '额外赠送200个配额'
     ],
     buttonText: '咨询购买',
-    buttonColor: 'bg-blue-400 hover:bg-blue-500 text-white border-0',
+    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
     disabled: false
   }
 ]
@@ -130,18 +130,18 @@ const handlePurchase = (plan: typeof plans[0]) => {
 <template>
   <div class="h-full overflow-y-auto bg-white dark:bg-gray-900">
     <!-- Hero Section -->
-    <section class="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+    <section class="relative overflow-hidden bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 dark:from-gray-900 dark:via-primary-900/20 dark:to-primary-900/20">
       <!-- 背景装饰 -->
       <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute -top-40 -right-32 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-32 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl"></div>
+        <div class="absolute -top-40 -right-32 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-32 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"></div>
       </div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div class="text-center">
           <!-- Icon -->
           <div class="flex justify-center mb-8">
-            <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl">
+            <div class="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-2xl">
               <font-awesome-icon
                 :icon="['fas', 'chart-pie']"
                 class="text-white text-3xl"
@@ -150,8 +150,8 @@ const handlePurchase = (plan: typeof plans[0]) => {
           </div>
 
           <!-- Title -->
-          <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            配额方案
+          <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary-600 via-primary-600 to-primary-600 bg-clip-text text-transparent mb-6">
+            价格
           </h1>
 
           <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed">
@@ -184,13 +184,13 @@ const handlePurchase = (plan: typeof plans[0]) => {
             :class="[
               'relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border h-full flex flex-col',
               plan.popular
-                ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20'
+                ? 'border-primary-500 dark:border-primary-400 ring-2 ring-primary-500/20'
                 : 'border-gray-200 dark:border-gray-700'
             ]"
           >
             <!-- 热门标签 -->
             <div v-if="plan.popular" class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
                 最受欢迎
               </div>
             </div>
@@ -216,7 +216,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
                     {{ plan.originalPrice }}
                   </span>
                 </div>
-                <div v-if="plan.quota > 0" class="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+                <div v-if="plan.quota > 0" class="text-2xl font-semibold text-primary-600 dark:text-primary-400">
                   <span v-if="plan.bonusQuota">
                     {{ plan.quota + plan.bonusQuota }} 个配额
                   </span>
@@ -291,7 +291,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
             class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
           >
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              <font-awesome-icon :icon="['fas', 'question-circle']" class="text-blue-500 mr-2" />
+              <font-awesome-icon :icon="['fas', 'question-circle']" class="text-primary-500 mr-2" />
               {{ faq.question }}
             </h3>
             <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -303,7 +303,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
     </section>
 
     <!-- CTA Section -->
-    <section class="py-20 bg-gradient-to-r from-green-600 to-blue-600">
+    <section class="py-20 bg-gradient-to-r from-primary-600 to-primary-600">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-3xl font-bold text-white mb-6">
           还有疑问？

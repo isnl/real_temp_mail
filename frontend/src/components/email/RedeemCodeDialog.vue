@@ -112,7 +112,7 @@ const handleTurnstileError = (error: string) => {
     <template #header>
       <div class="relative overflow-hidden">
         <!-- Background Gradient -->
-        <div class="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-600 to-primary-700"></div>
         <div class="absolute inset-0 bg-black/10"></div>
 
         <!-- Decorative Elements -->

@@ -98,7 +98,7 @@ const handleRegister = async () => {
       turnstileToken: turnstile.required.value ? turnstile.turnstileToken.value : undefined,
     })
     ElMessage.success('账号创建成功')
-    await router.replace('/dashboard')
+    await router.replace('/profile')
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '注册失败，请稍后重试')
     if (turnstile.required.value) resetChallenge()

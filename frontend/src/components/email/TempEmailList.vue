@@ -88,13 +88,13 @@ const formatDate = (dateString: string) => {
     <div v-else-if="tempEmails.length === 0" class="flex items-center justify-center h-full p-12">
       <div class="text-center max-w-sm">
         <div class="relative mb-8">
-          <div class="w-32 h-32 mx-auto bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center shadow-inner">
+          <div class="w-32 h-32 mx-auto bg-gradient-to-br from-primary-100 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/30 rounded-full flex items-center justify-center shadow-inner">
             <font-awesome-icon
               :icon="['fas', 'envelope-open']"
-              class="text-4xl text-blue-500 dark:text-blue-400"
+              class="text-4xl text-primary-500 dark:text-primary-400"
             />
           </div>
-          <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+          <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg">
             <font-awesome-icon :icon="['fas', 'plus']" class="text-white text-sm" />
           </div>
         </div>
@@ -107,12 +107,12 @@ const formatDate = (dateString: string) => {
         </p>
 
         <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-          <div class="flex items-center justify-center space-x-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <font-awesome-icon :icon="['fas', 'bolt']" class="text-blue-500" />
+          <div class="flex items-center justify-center space-x-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+            <font-awesome-icon :icon="['fas', 'bolt']" class="text-primary-500" />
             <span>集中查看邮箱来信</span>
           </div>
-          <div class="flex items-center justify-center space-x-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <font-awesome-icon :icon="['fas', 'magic']" class="text-purple-500" />
+          <div class="flex items-center justify-center space-x-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+            <font-awesome-icon :icon="['fas', 'magic']" class="text-primary-500" />
             <span>自动识别验证码</span>
           </div>
         </div>
@@ -126,7 +126,7 @@ const formatDate = (dateString: string) => {
         :key="tempEmail.id"
         class="mailbox-item group relative p-4 rounded-xl transition-colors duration-200 cursor-pointer border"
         :class="{
-          'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 shadow-md':
+          'bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-primary-200 dark:border-primary-700 shadow-md':
             selectedTempEmail?.id === tempEmail.id,
           'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md':
             selectedTempEmail?.id !== tempEmail.id
@@ -142,7 +142,7 @@ const formatDate = (dateString: string) => {
         <!-- 选中状态的装饰条 -->
         <div
           v-if="selectedTempEmail?.id === tempEmail.id"
-          class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-l-xl"
+          class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-l-xl"
         ></div>
 
         <div class="flex items-start justify-between">
@@ -152,8 +152,8 @@ const formatDate = (dateString: string) => {
               <div class="flex-shrink-0">
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center"
                      :class="{
-                       'bg-blue-500 text-white shadow-lg': selectedTempEmail?.id === tempEmail.id,
-                       'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 group-hover:text-blue-600 dark:group-hover:text-blue-400': selectedTempEmail?.id !== tempEmail.id
+                       'bg-primary-500 text-white shadow-lg': selectedTempEmail?.id === tempEmail.id,
+                       'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400': selectedTempEmail?.id !== tempEmail.id
                      }">
                   <font-awesome-icon :icon="['fas', 'at']" class="text-sm" />
                 </div>
@@ -163,7 +163,7 @@ const formatDate = (dateString: string) => {
                 <div class="flex items-center space-x-2">
                   <span class="text-sm font-semibold truncate"
                         :class="{
-                          'text-blue-900 dark:text-blue-100': selectedTempEmail?.id === tempEmail.id,
+                          'text-primary-900 dark:text-primary-100': selectedTempEmail?.id === tempEmail.id,
                           'text-gray-900 dark:text-gray-100': selectedTempEmail?.id !== tempEmail.id
                         }">
                     {{ tempEmail.email }}
@@ -176,7 +176,7 @@ const formatDate = (dateString: string) => {
                     circle
                     class="flex-shrink-0"
                     :class="{
-                      'hover:bg-blue-100 dark:hover:bg-blue-900/30': selectedTempEmail?.id === tempEmail.id,
+                      'hover:bg-primary-100 dark:hover:bg-primary-900/30': selectedTempEmail?.id === tempEmail.id,
                       'hover:bg-gray-200 dark:hover:bg-gray-600': selectedTempEmail?.id !== tempEmail.id
                     }"
                     title="复制邮箱地址"
@@ -185,7 +185,7 @@ const formatDate = (dateString: string) => {
                       :icon="['fas', 'copy']"
                       class="text-xs"
                       :class="{
-                        'text-blue-600 dark:text-blue-400': selectedTempEmail?.id === tempEmail.id,
+                        'text-primary-600 dark:text-primary-400': selectedTempEmail?.id === tempEmail.id,
                         'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300': selectedTempEmail?.id !== tempEmail.id
                       }"
                     />
@@ -213,7 +213,7 @@ const formatDate = (dateString: string) => {
                 <!-- 状态标签 -->
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
                       :class="{
-                        'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300': selectedTempEmail?.id === tempEmail.id,
+                        'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300': selectedTempEmail?.id === tempEmail.id,
                         'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300': selectedTempEmail?.id !== tempEmail.id
                       }">
                   <font-awesome-icon :icon="['fas', 'circle']" class="mr-1 text-xs" />
@@ -271,10 +271,10 @@ const formatDate = (dateString: string) => {
     </div>
 
     <!-- Quick Actions -->
-    <div v-if="tempEmails.length > 0" class="flex-shrink-0 p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-blue-50/30 dark:from-gray-800/50 dark:to-blue-900/10">
+    <div v-if="tempEmails.length > 0" class="flex-shrink-0 p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+          <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm">
             <font-awesome-icon :icon="['fas', 'list']" class="text-white text-xs" />
           </div>
           <div>

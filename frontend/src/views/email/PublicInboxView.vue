@@ -292,7 +292,7 @@ watch(
             @keyup.enter="handleSubmit({ force: true })"
           >
             <template #prefix>
-              <font-awesome-icon :icon="['fas', 'at']" class="text-blue-500 text-lg" />
+              <font-awesome-icon :icon="['fas', 'at']" class="text-primary-500 text-lg" />
             </template>
           </el-input>
 
@@ -399,9 +399,9 @@ watch(
           <div v-else class="h-full flex items-center justify-center p-8">
             <div class="text-center max-w-sm">
               <div
-                class="w-24 h-24 mx-auto mb-6 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center"
+                class="w-24 h-24 mx-auto mb-6 rounded-full bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center"
               >
-                <font-awesome-icon :icon="['fas', 'inbox']" class="text-3xl text-blue-500" />
+                <font-awesome-icon :icon="['fas', 'inbox']" class="text-3xl text-primary-500" />
               </div>
               <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 等待查询
@@ -422,7 +422,7 @@ watch(
   min-height: 64px;
   padding: 0 22px;
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(50, 35, 24, 0.08);
   border: 1px solid #dbeafe;
   background: #ffffff;
   transition:
@@ -439,7 +439,7 @@ watch(
 .public-email-input :deep(.el-input__inner) {
   font-size: 18px;
   font-weight: 600;
-  color: #0f172a;
+  color: #29231f;
 }
 
 .public-query-button {

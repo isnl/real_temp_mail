@@ -20,7 +20,7 @@ usePageTitle()
       <div class="card-base p-6">
         <font-awesome-icon 
           :icon="['fas', 'shield-alt']" 
-          class="text-blue-500 text-3xl mb-4"
+          class="text-primary-500 text-3xl mb-4"
         />
         <h3 class="text-xl font-semibold mb-2">隔离阅读</h3>
         <p class="text-gray-600 dark:text-gray-400">
@@ -42,7 +42,7 @@ usePageTitle()
       <div class="card-base p-6">
         <font-awesome-icon 
           :icon="['fas', 'code']" 
-          class="text-purple-500 text-3xl mb-4"
+          class="text-primary-500 text-3xl mb-4"
         />
         <h3 class="text-xl font-semibold mb-2">智能识别</h3>
         <p class="text-gray-600 dark:text-gray-400">

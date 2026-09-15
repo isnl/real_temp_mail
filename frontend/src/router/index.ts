@@ -33,9 +33,7 @@ const router = createRouter({
         },
         {
           path: 'dashboard',
-          name: 'dashboard',
-          component: () => import('@/views/email/DashboardView.vue'),
-          meta: { requiresAuth: true },
+          redirect: (to) => ({ path: '/profile', query: to.query, hash: to.hash }),
         },
         {
           path: 'public-inbox',
@@ -76,7 +74,8 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/profile/overview',
+          name: 'dashboard',
+          component: () => import('@/views/email/DashboardView.vue'),
         },
         {
           path: 'overview',
@@ -175,12 +174,13 @@ router.beforeEach((to, _from, next) => {
 
   // 持久化数据可能因为旧版本、手动清理或异常退出而只剩下一部分。
   // 这类状态不能视为已登录，否则会先进入受保护页面再被接口踢回登录页。
-  if (!hasValidSession && (
-    authStore.isAuthenticated
-    || Boolean(authStore.accessToken)
-    || Boolean(authStore.refreshToken)
-    || Boolean(authStore.user)
-  )) {
+  if (
+    !hasValidSession &&
+    (authStore.isAuthenticated ||
+      Boolean(authStore.accessToken) ||
+      Boolean(authStore.refreshToken) ||
+      Boolean(authStore.user))
+  ) {
     authStore.clearAuthData()
   }
 

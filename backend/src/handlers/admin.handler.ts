@@ -579,7 +579,7 @@ export class AdminHandler {
     try {
       await this.validateAdminAuth(request)
 
-      const settings = await this.adminService.getSystemSettings()
+      const settings = await this.adminService.getSystemSettings(request.url)
       return this.createResponse(settings)
     } catch (error) {
       console.error('获取系统设置失败:', error)

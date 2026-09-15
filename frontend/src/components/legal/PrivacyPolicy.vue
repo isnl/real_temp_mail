@@ -37,7 +37,7 @@ defineExpose({
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">1. 信息收集</h3>
           <p class="mb-3">
-            我们致力于保护您的隐私。在您使用临时邮箱管理服务时，我们可能收集以下信息：
+            我们致力于保护您的隐私。在您使用临时邮箱管理系统服务时，我们可能收集以下信息：
           </p>
           <ul class="list-disc pl-6 space-y-2">
             <li>GitHub账户的公开信息（用户名、邮箱地址、头像等）</li>

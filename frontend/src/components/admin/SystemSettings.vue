@@ -6,7 +6,7 @@ import { loadPublicSettings } from '@/composables/usePublicSettings'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
-type FieldType = 'switch' | 'text' | 'password' | 'number' | 'url'
+type FieldType = 'switch' | 'text' | 'password' | 'number' | 'url' | 'readonly'
 
 interface SettingField {
   key: string
@@ -53,8 +53,7 @@ const sections: SettingSection[] = [
       {
         key: 'github_callback_url',
         label: 'Callback URL',
-        type: 'url',
-        placeholder: 'https://example.com/api/auth/github/callback',
+        type: 'readonly',
       },
     ],
   },
@@ -112,6 +111,7 @@ const unknownSettings = computed(() =>
 )
 
 const isFieldDirty = (field: SettingField) => {
+  if (field.type === 'readonly') return false
   const value = values[field.key] ?? ''
   if (secretKeys.has(field.key)) return Boolean(value)
   const normalized = field.type === 'switch' ? normalizeBoolean(value) : value.trim()
@@ -264,6 +264,15 @@ const displayValue = (setting: SystemSetting) => {
   return setting.setting_value || '未设置'
 }
 
+const copyCallbackUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(values.github_callback_url || '')
+    ElMessage.success('回调地址已复制')
+  } catch {
+    ElMessage.error('复制失败，请选中地址手动复制')
+  }
+}
+
 onMounted(loadSettings)
 </script>
 
@@ -327,6 +336,15 @@ onMounted(loadSettings)
                 controls-position="right"
                 @update:model-value="values[field.key] = String($event ?? 0)"
               />
+              <div v-else-if="field.type === 'readonly'" class="settings-readonly-control">
+                <el-input :id="`setting-${field.key}`" :model-value="values[field.key]" readonly />
+                <el-button
+                  :disabled="!values[field.key]"
+                  @click="copyCallbackUrl"
+                  aria-label="复制 GitHub 回调地址"
+                  >复制</el-button
+                >
+              </div>
               <el-input
                 v-else
                 :id="`setting-${field.key}`"

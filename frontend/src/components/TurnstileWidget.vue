@@ -191,7 +191,7 @@ defineExpose({
       <!-- 加载状态 -->
       <div v-if="!isLoaded && !loadingError" class="flex items-center justify-center p-4">
         <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-          <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent"></div>
           <span class="text-sm">
             加载人机验证...
           </span>

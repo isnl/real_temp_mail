@@ -980,8 +980,8 @@ export class AdminService {
 
   // ==================== 系统设置管理 ====================
 
-  async getSystemSettings(): Promise<SystemSetting[]> {
-    return await this.settings.getAdminSettings()
+  async getSystemSettings(requestUrl?: string): Promise<SystemSetting[]> {
+    return await this.settings.getAdminSettings(requestUrl)
   }
 
   async getSystemSetting(key: string): Promise<SystemSetting | null> {

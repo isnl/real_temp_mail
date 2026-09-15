@@ -22,7 +22,7 @@ usePageTitle()
           1. 信息收集
         </h2>
         <div class="text-gray-600 dark:text-gray-400 flex flex-col gap-3">
-          <p>我们致力于保护您的隐私。在您使用临时邮箱管理服务时，我们可能收集以下信息：</p>
+          <p>我们致力于保护您的隐私。在您使用临时邮箱管理系统服务时，我们可能收集以下信息：</p>
           <ul class="list-disc pl-6 flex flex-col gap-2">
             <li>GitHub账户的公开信息（用户名、邮箱地址、头像等）</li>
             <li>您创建的临时邮箱地址信息</li>

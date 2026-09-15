@@ -271,9 +271,9 @@
   position: relative;
   overflow: hidden;
   padding: 28px 32px;
-  border: 1px solid #276779;
+  border: 1px solid #bb6031;
   border-radius: 18px;
-  background: linear-gradient(115deg, #103f50, #17667a);
+  background: linear-gradient(115deg, #a44920, #bd5722);
   color: #fff;
   box-shadow: var(--shadow-sm);
 }
@@ -303,7 +303,7 @@
   border: 1px solid #ffffff30;
   border-radius: 6px;
   font-size: 11px;
-  color: #d8eef3;
+  color: #fff0e2;
 }
 .dashboard-mail-value {
   margin: 15px 0 24px;
@@ -317,7 +317,7 @@
   margin-left: 12px;
   font-size: 14px;
   letter-spacing: 0;
-  color: #c8e1e9;
+  color: #fbe5d2;
   font-weight: 400;
 }
 .dashboard-mail-summary {
@@ -329,7 +329,7 @@
 }
 .dashboard-mail-summary span {
   display: block;
-  color: #c8e1e9;
+  color: #fbe5d2;
   font-size: 12px;
 }
 .dashboard-mail-summary strong {
@@ -620,3 +620,46 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 14px;
+}
+.admin-table-card .el-table .admin-row-action.el-button {
+  padding: 0;
+  margin: 0;
+  min-width: auto;
+  height: 28px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+.admin-table-card .el-table .admin-row-action.el-button:hover,
+.admin-table-card .el-table .admin-row-action.el-button:focus {
+  background: transparent;
+  box-shadow: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.settings-readonly-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 640px;
+}
+.settings-readonly-control .el-input {
+  min-width: 0;
+  flex: 1;
+}
+.settings-readonly-control .el-input__inner {
+  font-size: 12px;
+}
+.admin-table-card .admin-row-action.el-button:not(.el-button--danger) { color: var(--el-color-primary); }
+.admin-table-card .admin-row-action.el-button--danger { color: var(--danger); }
+.admin-table-card .admin-row-action.el-button:hover { opacity: .85; }

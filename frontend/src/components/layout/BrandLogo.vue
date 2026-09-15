@@ -1,0 +1,33 @@
+<script setup lang="ts">
+defineProps<{ compact?: boolean }>()
+</script>
+
+<template>
+  <router-link to="/" class="brand-logo" aria-label="临时邮箱管理系统首页">
+    <img src="/brand-mark.png" alt="" width="36" height="36" />
+    <span v-if="!compact">临时邮箱管理系统</span>
+  </router-link>
+</template>
+
+<style scoped>
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.brand-logo img {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.brand-logo span {
+  font-size: 16px;
+  font-weight: 720;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+</style>

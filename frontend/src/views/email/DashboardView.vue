@@ -335,19 +335,13 @@ const handleRandomCreateEmail = async () => {
 </script>
 
 <template>
-  <div class="dashboard-page max-w-1500px mx-auto px-4 sm:px-6 lg:px-8 flex flex-col min-h-full">
+  <div class="dashboard-page flex flex-col">
     <!-- Header -->
     <div
-      class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 mt-4"
+      class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700"
     >
       <div class="px-6 py-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <!-- Title Section -->
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">邮箱管理</h1>
-            <p class="text-sm text-gray-600 dark:text-gray-400">管理您的临时邮箱和接收的邮件</p>
-          </div>
-
+        <div class="flex justify-end gap-4">
           <!-- Action Buttons -->
           <div class="flex items-center gap-3">
             <el-button @click="showRedeemDialog = true" type="primary" size="default">
@@ -375,7 +369,7 @@ const handleRandomCreateEmail = async () => {
             class="quota-summary-card"
           >
             <div class="flex items-center">
-              <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
+              <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center mr-4">
                 <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-lg" />
               </div>
               <div>
@@ -431,13 +425,13 @@ const handleRandomCreateEmail = async () => {
             class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
           >
             <!-- 顶部装饰条 -->
-            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500"></div>
+            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-primary-500 via-primary-500 to-primary-500"></div>
 
             <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
               <div class="flex flex-col gap-4">
                 <div class="flex items-center space-x-3">
                   <div
-                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg"
+                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <font-awesome-icon :icon="['fas', 'inbox']" class="text-white text-lg" />
                   </div>
@@ -520,13 +514,13 @@ const handleRandomCreateEmail = async () => {
             class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
           >
             <!-- 顶部装饰条 -->
-            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
+            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-primary-500 via-primary-500 to-primary-500"></div>
 
             <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center space-x-3 min-w-0">
                   <div
-                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg"
+                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <font-awesome-icon
                       :icon="['fas', 'envelope-open-text']"
@@ -622,6 +616,7 @@ const handleRandomCreateEmail = async () => {
 </template>
 
 <style scoped>
+.dashboard-page { min-width: 0; }
 .mailbox-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -668,7 +663,8 @@ const handleRandomCreateEmail = async () => {
 }
 
 @media (max-width: 1023px) {
-  .mailbox-grid {
+  .dashboard-page { min-width: 0; }
+.mailbox-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

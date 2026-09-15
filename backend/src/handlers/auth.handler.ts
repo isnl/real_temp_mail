@@ -1,3 +1,4 @@
+import { getSiteOrigin } from '@/utils/site-url'
 import type {
   AdminBootstrapRequest,
   ApiResponse,
@@ -106,6 +107,14 @@ export class AuthHandler {
   // GitHub OAuth 相关方法
   private async handleGithubAuth(request: Request): Promise<Response> {
     try {
+      const siteOrigin = getSiteOrigin(this.env, request.url)
+      if (new URL(request.url).origin !== siteOrigin) {
+        // Set the host-only OAuth state cookie on the canonical callback host.
+        return new Response(null, { status: 302, headers: {
+          Location: new URL('/api/auth/github', siteOrigin).toString(),
+          'Cache-Control': 'no-store'
+        } })
+      }
       const authorization = await this.githubOAuthService.createAuthorization(request)
       return new Response(null, {
         status: 302,
@@ -255,9 +264,7 @@ export class AuthHandler {
   }
 
   private getFrontendUrl(request: Request): string {
-    if (!this.env.FRONTEND_DOMAIN) return new URL(request.url).origin
-    if (/^https?:\/\//.test(this.env.FRONTEND_DOMAIN)) return this.env.FRONTEND_DOMAIN
-    return `${this.env.ENVIRONMENT === 'production' ? 'https' : 'http'}://${this.env.FRONTEND_DOMAIN}`
+    return getSiteOrigin(this.env, request.url)
   }
 
   private async parseJson<T>(request: Request): Promise<T> {

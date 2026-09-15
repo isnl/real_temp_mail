@@ -188,7 +188,7 @@ onMounted(() => {
           <el-table-column label="临时邮箱" min-width="180">
             <template #default="{ row }">
               <div class="flex items-center">
-                <font-awesome-icon icon="envelope" class="mr-2 text-blue-500" />
+                <font-awesome-icon icon="envelope" class="mr-2 text-primary-500" />
                 <span class="font-mono text-sm">{{ row.tempEmailAddress }}</span>
               </div>
             </template>
@@ -225,27 +225,27 @@ onMounted(() => {
           </el-table-column>
           <el-table-column label="操作" width="150" fixed="right">
             <template #default="{ row }">
-              <div class="flex space-x-2">
+              <div class="admin-row-actions">
                 <el-button
+                  link
+                  class="admin-row-action"
                   type="primary"
                   size="small"
-                  text
                   @click="handleViewDetail(row)"
                   aria-label="查看"
                   title="查看"
+                  >查看</el-button
                 >
-                  <font-awesome-icon icon="eye" />
-                </el-button>
                 <el-button
+                  link
+                  class="admin-row-action"
                   type="danger"
                   size="small"
-                  text
                   @click="handleDelete(row)"
                   aria-label="删除"
                   title="删除"
+                  >删除</el-button
                 >
-                  <font-awesome-icon icon="trash" />
-                </el-button>
               </div>
             </template>
           </el-table-column>

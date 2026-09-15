@@ -180,7 +180,6 @@ await updateSettings(adminToken, {
 await updateSettings(adminToken, {
   github_client_id: 'integration-client-id',
   github_client_secret: 'integration-client-secret',
-  github_callback_url: new URL('/api/auth/github/callback', baseUrl).toString(),
   github_oauth_enabled: 'true'
 }, 'GitHub OAuth configuration')
 

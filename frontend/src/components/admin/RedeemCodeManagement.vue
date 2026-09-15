@@ -543,7 +543,7 @@ onMounted(() => {
                   size="small"
                   text
                   @click="copyToClipboard(row.code)"
-                  class="text-blue-500 hover:text-blue-600"
+                  class="text-primary-500 hover:text-primary-600"
                 >
                   <font-awesome-icon icon="copy" />
                 </el-button>
@@ -622,16 +622,16 @@ onMounted(() => {
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="{ row }">
               <el-button
+                link
+                class="admin-row-action"
                 type="danger"
                 size="small"
-                text
                 @click="handleDelete(row)"
                 aria-label="删除"
                 title="删除"
                 :disabled="row.used"
+                >删除</el-button
               >
-                <font-awesome-icon icon="trash" />
-              </el-button>
             </template>
           </el-table-column>
         </el-table>

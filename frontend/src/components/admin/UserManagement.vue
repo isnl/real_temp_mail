@@ -247,37 +247,37 @@ onMounted(() => {
           </el-table-column>
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <div class="flex space-x-2">
+              <div class="admin-row-actions">
                 <el-button
+                  link
+                  class="admin-row-action"
                   type="primary"
                   size="small"
-                  text
                   @click="handleEdit(row)"
                   aria-label="编辑"
                   title="编辑"
+                  >编辑</el-button
                 >
-                  <font-awesome-icon icon="edit" />
-                </el-button>
                 <el-button
+                  link
+                  class="admin-row-action"
                   type="success"
                   size="small"
-                  text
                   @click="handleAllocateQuota(row)"
                   aria-label="分配配额"
                   title="分配配额"
+                  >分配配额</el-button
                 >
-                  <font-awesome-icon icon="coins" />
-                </el-button>
                 <el-button
+                  link
+                  class="admin-row-action"
                   type="danger"
                   size="small"
-                  text
                   @click="handleDelete(row)"
                   aria-label="删除"
                   title="删除"
+                  >删除</el-button
                 >
-                  <font-awesome-icon icon="trash" />
-                </el-button>
               </div>
             </template>
           </el-table-column>
