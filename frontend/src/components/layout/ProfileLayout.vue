@@ -91,18 +91,7 @@ watch(isMobile, (mobile) => {
               to="/"
               class="flex items-center space-x-2 no-underline hover:no-underline focus:no-underline"
             >
-              <img class="profile-logo" src="/favicon.png" alt="四欧临时邮箱" width="60" height="52" />
-              <div class="flex flex-col justify-center">
-                <h1
-                  class="text-sm m0 font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400"
-                >
-                  四欧临时邮箱
-                </h1>
-                <div>
-                  <span class="text-xs font-bold text-green-500 font-italic">OOOO</span>
-                  <span class="text-xs font-bold font-italic text-orange-500">.ICU</span>
-                </div>
-              </div>
+              <h1 class="app-brand-title">临时邮箱管理</h1>
             </router-link>
           </div>
           <el-button
@@ -253,12 +242,6 @@ watch(isMobile, (mobile) => {
   background: var(--surface-elevated);
   box-shadow: var(--shadow-sm);
   transition: width var(--transition-fast), transform var(--transition-fast);
-}
-
-.profile-logo {
-  width: 60px;
-  height: 52px;
-  object-fit: contain;
 }
 
 .profile-content-header {

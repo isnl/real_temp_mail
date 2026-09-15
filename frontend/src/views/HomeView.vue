@@ -124,7 +124,7 @@ const stats = [
 
           <!-- Title -->
           <h1 class="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-6">
-            四欧临时邮箱管理系统
+            临时邮箱管理
           </h1>
 
           <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed">
@@ -422,9 +422,7 @@ const stats = [
             <div class="space-y-3 text-gray-400">
               <div class="flex items-center">
                 <font-awesome-icon :icon="['fas', 'envelope']" class="mr-2 text-blue-500" />
-                <a href="mailto:admin@oooo.icu" class="hover:text-white transition-colors">
-                  admin@oooo.icu
-                </a>
+                <span>如需帮助，请联系本站管理员</span>
               </div>
             </div>
           </div>

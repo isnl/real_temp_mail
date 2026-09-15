@@ -68,25 +68,14 @@ onMounted(() => {
           <router-link
             to="/"
             class="app-brand"
-            aria-label="四欧临时邮箱首页"
+            aria-label="临时邮箱管理首页"
           >
-            <img class="app-brand-logo" src="/favicon.png" alt="" width="60" height="48" />
-            <div class="app-brand-copy">
-              <h1
-                class="text-lg m0 font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400"
-              >
-                四欧临时邮箱
-              </h1>
-              <div>
-                <span class="text-sm font-bold text-green-500 font-italic">OOOO</span>
-                <span class="text-sm font-bold font-italic text-orange-500">.ICU</span>
-              </div>
-            </div>
+            <h1 class="app-brand-title">临时邮箱管理</h1>
           </router-link>
         </div>
 
         <!-- Navigation & User Actions -->
-        <div class="flex items-center space-x-4">
+        <div class="app-header-actions flex items-center space-x-4">
           <!-- Navigation Links -->
           <nav class="hidden md:flex items-center space-x-6">
             <router-link

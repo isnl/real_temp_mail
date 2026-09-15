@@ -47,13 +47,13 @@ export class AdminHandler {
     }
   }
 
-  private createResponse<T>(data: T, message?: string): Response {
+  private createResponse<T>(data: T, message?: string, options?: { normalizeBooleans?: boolean }): Response {
     const response: ApiResponse<T> = {
       success: true,
       data,
       message
     }
-    return new Response(JSON.stringify(normalizeApiTimestamps(response)), {
+    return new Response(JSON.stringify(normalizeApiTimestamps(response, options)), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
@@ -90,7 +90,8 @@ export class AdminHandler {
     try {
       await this.validateAdminAuth(request)
       const stats = await this.adminService.getDashboardStats()
-      return this.createResponse(stats)
+      // Aggregate active/used values are counts, including when they are 0 or 1.
+      return this.createResponse(stats, undefined, { normalizeBooleans: false })
     } catch (error) {
       console.error('获取仪表板统计失败:', error)
       if (error instanceof AuthorizationError) {

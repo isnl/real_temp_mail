@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue'
+import '@/assets/admin.css'
 import { useRouter, useRoute } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { useAuthStore } from '@/stores/auth'
@@ -15,9 +16,12 @@ const isCollapsed = ref(false)
 const mobileSidebarOpen = ref(false)
 const isSidebarCollapsed = computed(() => !isMobile.value && isCollapsed.value)
 
-watch(() => route.fullPath, () => {
-  mobileSidebarOpen.value = false
-})
+watch(
+  () => route.fullPath,
+  () => {
+    mobileSidebarOpen.value = false
+  },
+)
 
 watch(isMobile, (mobile) => {
   if (!mobile) mobileSidebarOpen.value = false
@@ -81,12 +85,6 @@ const menuItems = [
   },
 ]
 
-// 当前激活的菜单项
-const activeMenuItem = computed(() => {
-  const currentPath = route.path
-  return menuItems.find((item) => currentPath.startsWith(item.path))?.key || 'dashboard'
-})
-
 // 当前激活的菜单路径（用于el-menu）
 const activeMenuPath = computed(() => {
   const currentPath = route.path
@@ -113,7 +111,6 @@ const logout = async () => {
   await authStore.logout()
   router.push('/login')
 }
-
 </script>
 
 <template>
@@ -151,7 +148,7 @@ const logout = async () => {
           @click="toggleSidebar"
           text
           class="sidebar-collapse-button !p-2"
-          :aria-label="isMobile ? '关闭管理菜单' : (isCollapsed ? '展开侧边栏' : '收起侧边栏')"
+          :aria-label="isMobile ? '关闭管理菜单' : isCollapsed ? '展开侧边栏' : '收起侧边栏'"
         >
           <font-awesome-icon
             :icon="isSidebarCollapsed ? 'chevron-right' : 'chevron-left'"
@@ -159,8 +156,6 @@ const logout = async () => {
           />
         </el-button>
       </div>
-
-
 
       <!-- 主菜单 -->
       <div class="flex-1">
@@ -173,12 +168,8 @@ const logout = async () => {
           active-text-color="var(--el-color-primary)"
           @select="handleMenuSelect"
         >
-          <el-menu-item
-            v-for="item in menuItems"
-            :key="item.key"
-            :index="item.path"
-          >
-            <font-awesome-icon :icon="item.icon" class="text-gray-600 dark:text-gray-400"/>
+          <el-menu-item v-for="item in menuItems" :key="item.key" :index="item.path">
+            <font-awesome-icon :icon="item.icon" class="text-gray-600 dark:text-gray-400" />
             <template #title>
               <span>{{ item.title }}</span>
             </template>
@@ -215,13 +206,7 @@ const logout = async () => {
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400">管理员</div>
             </div>
-            <el-button
-              @click="logout"
-              text
-              type="danger"
-              class="!p-2"
-              title="退出登录"
-            >
+            <el-button @click="logout" text type="danger" class="!p-2" title="退出登录">
               <font-awesome-icon icon="sign-out-alt" class="text-red-500" />
             </el-button>
           </div>
@@ -247,13 +232,7 @@ const logout = async () => {
             <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <font-awesome-icon icon="user" class="text-white text-xs" />
             </div>
-            <el-button
-              @click="logout"
-              text
-              type="danger"
-              class="!p-1"
-              title="退出登录"
-            >
+            <el-button @click="logout" text type="danger" class="!p-1" title="退出登录">
               <font-awesome-icon icon="sign-out-alt" class="text-red-500 text-sm" />
             </el-button>
           </div>
@@ -264,7 +243,9 @@ const logout = async () => {
     <!-- 主内容区域 -->
     <div :class="['main-content', isSidebarCollapsed ? 'collapsed' : 'expanded']">
       <!-- 简化的顶部导航栏 -->
-      <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
+      <header
+        class="admin-mobile-header bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16"
+      >
         <div class="flex items-center h-full gap-3 px-6">
           <el-button
             class="mobile-menu-button"
@@ -275,10 +256,6 @@ const logout = async () => {
           >
             <font-awesome-icon icon="bars" />
           </el-button>
-          <!-- 页面标题 -->
-          <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            {{ menuItems.find((item) => item.key === activeMenuItem)?.title || '管理后台' }}
-          </h1>
         </div>
       </header>
 
@@ -303,7 +280,9 @@ aside {
   border-color: var(--border);
   background: var(--surface-elevated);
   box-shadow: var(--shadow-md);
-  transition: width var(--transition-fast), transform var(--transition-fast);
+  transition:
+    width var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .main-content {
@@ -321,7 +300,8 @@ aside {
   margin-left: 64px;
 }
 
-header {
+.admin-mobile-header {
+  display: none;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -333,7 +313,7 @@ header {
 main {
   width: 100%;
   padding: 32px 40px;
-  min-height: calc(100dvh - 64px);
+  min-height: 100dvh;
 }
 
 main > * {
@@ -425,6 +405,9 @@ main > * {
 }
 
 @media (max-width: 900px) {
+  .admin-mobile-header {
+    display: block;
+  }
   aside {
     width: min(84vw, 280px) !important;
     transform: translateX(-105%);

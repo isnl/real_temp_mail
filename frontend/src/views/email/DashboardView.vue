@@ -335,7 +335,7 @@ const handleRandomCreateEmail = async () => {
 </script>
 
 <template>
-  <div class="dashboard-page max-w-1500px mx-auto px-4 sm:px-6 lg:px-8 flex flex-col min-h-full lg:h-full">
+  <div class="dashboard-page max-w-1500px mx-auto px-4 sm:px-6 lg:px-8 flex flex-col min-h-full">
     <!-- Header -->
     <div
       class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700 mt-4"
@@ -423,21 +423,21 @@ const handleRandomCreateEmail = async () => {
     </div>
 
     <!-- Main Content -->
-    <div class="dashboard-content flex-1 py-6 lg:min-h-0 lg:overflow-hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 lg:h-full lg:min-h-0 lg:overflow-hidden">
+    <div class="dashboard-content flex-1 py-6">
+      <div class="mailbox-grid">
         <!-- Temp Email List -->
-        <div class="group relative min-h-[34rem] lg:min-h-0 lg:h-full overflow-hidden">
+        <div class="mailbox-panel group relative">
           <div
             class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
           >
             <!-- 顶部装饰条 -->
-            <div class="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500"></div>
+            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500"></div>
 
             <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
-              <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-2">
+              <div class="flex flex-col gap-4">
                 <div class="flex items-center space-x-3">
                   <div
-                    class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg"
+                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <font-awesome-icon :icon="['fas', 'inbox']" class="text-white text-lg" />
                   </div>
@@ -446,13 +446,14 @@ const handleRandomCreateEmail = async () => {
                     <p class="text-sm text-gray-600 dark:text-gray-400">点击邮箱查看收到的邮件</p>
                   </div>
                 </div>
-                <div class="flex flex-col gap-3 min-w-0 xl:min-w-[23rem]">
+                <div class="mailbox-create-controls">
                   <!-- 指定域名创建 -->
-                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div class="mailbox-create-row">
                     <el-select
                       v-model="selectedDomainId"
                       placeholder="选择域名"
-                      class="w-full sm:w-44 flex-shrink-0"
+                      class="mailbox-domain-select"
+                      aria-label="邮箱域名"
                       :disabled="emailStore.availableDomains.length === 0"
                       size="default"
                     >
@@ -501,7 +502,7 @@ const handleRandomCreateEmail = async () => {
               </div>
             </div>
 
-            <div class="flex-1 overflow-hidden">
+            <div class="flex-1 min-h-0 overflow-hidden">
               <TempEmailList
                 :loading="loading"
                 :deleting-id="deletingEmailId"
@@ -514,30 +515,30 @@ const handleRandomCreateEmail = async () => {
         </div>
 
         <!-- Email List -->
-        <div class="group relative min-h-[34rem] lg:min-h-0 lg:h-full overflow-hidden">
+        <div class="mailbox-panel group relative">
           <div
             class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
           >
             <!-- 顶部装饰条 -->
-            <div class="h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
+            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
 
             <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center space-x-3 min-w-0">
                   <div
-                    class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg"
+                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <font-awesome-icon
                       :icon="['fas', 'envelope-open-text']"
                       class="text-white text-lg"
                     />
                   </div>
-                  <div>
+                  <div class="min-w-0">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">邮件列表</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                       <span v-if="selectedTempEmail" class="flex items-center space-x-2">
                         <font-awesome-icon :icon="['fas', 'at']" class="text-green-500 text-xs" />
-                        <span class="font-medium">{{ selectedTempEmail.email }}</span>
+                        <span class="font-medium truncate" :title="selectedTempEmail.email">{{ selectedTempEmail.email }}</span>
                         <el-button
                           @click.stop="copyToClipboard(selectedTempEmail.email)"
                           size="small"
@@ -556,7 +557,7 @@ const handleRandomCreateEmail = async () => {
                 </div>
 
                 <!-- 刷新按钮 - 只在选中临时邮箱时显示 -->
-                <div v-if="selectedTempEmail" class="flex items-center gap-2">
+                <div v-if="selectedTempEmail" class="flex items-center gap-2 flex-shrink-0">
                   <el-button
                     @click="handleEmailRefresh"
                     :disabled="emailStore.isLoading"
@@ -586,7 +587,7 @@ const handleRandomCreateEmail = async () => {
                 @page-change="handleEmailPageChange"
               />
 
-              <div v-else class="flex items-center justify-center h-full">
+              <div v-else class="flex items-center justify-center h-full p-6">
                 <div class="text-center max-w-sm">
                   <div class="relative mb-8">
                     <div
@@ -619,3 +620,60 @@ const handleRandomCreateEmail = async () => {
 
   </div>
 </template>
+
+<style scoped>
+.mailbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.mailbox-panel {
+  min-width: 0;
+  height: max(36rem, calc(100dvh - 20rem));
+  container-type: inline-size;
+}
+
+.mailbox-panel > div {
+  border-style: solid;
+}
+
+.mailbox-create-controls {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mailbox-create-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.mailbox-domain-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.mailbox-create-controls :deep(.el-button) {
+  width: 100%;
+  margin: 0;
+}
+
+@container (max-width: 380px) {
+  .mailbox-create-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .mailbox-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mailbox-panel {
+    height: 36rem;
+  }
+}
+</style>

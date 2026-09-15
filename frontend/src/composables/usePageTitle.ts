@@ -1,7 +1,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
-const baseTitle = '临时邮箱系统'
+const baseTitle = '临时邮箱管理'
 
 // 页面标题映射
 const pageTitleMap: Record<string, string> = {

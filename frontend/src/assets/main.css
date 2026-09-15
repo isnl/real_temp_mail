@@ -92,9 +92,16 @@ svg {
 }
 
 .el-button {
-  min-height: 38px;
   font-weight: 650;
   transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.el-button:not(.is-circle):not(.el-button--small) {
+  min-height: 38px;
+}
+
+.el-button.is-circle {
+  flex-shrink: 0;
 }
 
 .el-button:not(.is-disabled):hover {
@@ -189,18 +196,13 @@ svg {
   background: var(--surface-muted);
 }
 
-.app-brand-logo {
-  width: 50px;
-  height: 42px;
-  object-fit: contain;
-  flex: none;
-}
-
-.app-brand-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: center;
+.app-brand-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
 }
 
 .user-menu-trigger {
@@ -1208,20 +1210,6 @@ svg {
     gap: 7px;
   }
 
-  .app-brand-logo {
-    width: 42px;
-    height: 36px;
-  }
-
-  .app-brand-copy h1 {
-    max-width: 118px;
-    overflow: hidden;
-    font-size: 0.84rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .app-brand-copy > div,
   .app-header nav {
     display: none;
   }
@@ -1240,11 +1228,21 @@ svg {
     padding-inline: 17px;
   }
 
-  .app-brand-copy {
-    display: none;
-  }
-
   .quota-overview-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header-actions {
+    gap: 6px;
+  }
+
+  .app-header-actions > * + * {
+    margin-left: 0;
+  }
+
+  .app-header .user-menu-trigger > span {
+    display: none;
   }
 }

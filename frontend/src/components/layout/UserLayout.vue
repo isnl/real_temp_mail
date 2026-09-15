@@ -7,7 +7,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
     <AppHeader />
     <main
       id="main-content"
-      class="flex-1 min-h-0 w-full mx-auto overflow-y-auto lg:overflow-hidden"
+      class="flex-1 min-h-0 w-full mx-auto overflow-y-auto"
       tabindex="-1"
     >
       <router-view />

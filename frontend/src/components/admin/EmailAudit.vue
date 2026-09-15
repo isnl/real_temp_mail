@@ -1,18 +1,15 @@
 <script lang="ts" setup>
+import AdminFilterBar from '@/components/admin/AdminFilterBar.vue'
+import AdminPagination from '@/components/admin/AdminPagination.vue'
 import { computed, ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  getEmailById,
-  getEmails, 
-  deleteEmail,
-  formatNumber
-} from '@/api/admin'
+import { getEmailById, getEmails, deleteEmail } from '@/api/admin'
 import { buildSandboxedEmailHtml } from '@/utils/safeEmailHtml'
-import type { 
-  AdminEmailDetails, 
+import type {
+  AdminEmailDetails,
   AdminEmailSummary,
   AdminEmailListParams,
-  PaginatedResponse 
+  PaginatedResponse,
 } from '@/api/admin'
 
 const loading = ref(false)
@@ -25,7 +22,7 @@ const searchForm = reactive<AdminEmailListParams>({
   search: '',
   sender: '',
   startDate: '',
-  endDate: ''
+  endDate: '',
 })
 
 const emailDetailVisible = ref(false)
@@ -40,9 +37,9 @@ const loadEmails = async () => {
     const params = {
       ...searchForm,
       page: currentPage.value,
-      limit: pageSize.value
+      limit: pageSize.value,
     }
-    
+
     const response = await getEmails(params)
     if (response.success) {
       const data = response.data as PaginatedResponse<AdminEmailSummary>
@@ -69,6 +66,12 @@ const handleReset = () => {
   searchForm.sender = ''
   searchForm.startDate = ''
   searchForm.endDate = ''
+  currentPage.value = 1
+  loadEmails()
+}
+
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
   currentPage.value = 1
   loadEmails()
 }
@@ -107,16 +110,12 @@ const handleDetailClosed = () => {
 
 const handleDelete = async (email: AdminEmailSummary) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除这封邮件吗？此操作不可恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
+    await ElMessageBox.confirm(`确定要删除这封邮件吗？此操作不可恢复。`, '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
     const response = await deleteEmail(email.id)
     if (response.success) {
       ElMessage.success('邮件删除成功')
@@ -143,32 +142,23 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <!-- 搜索表单 -->
-    <div class="card-base p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <el-input
-          v-model="searchForm.search"
-          placeholder="搜索主题或内容"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+  <div class="admin-module">
+    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="关键词">
+        <el-input v-model="searchForm.search" placeholder="搜索主题或内容" clearable>
           <template #prefix>
             <font-awesome-icon icon="search" />
           </template>
         </el-input>
-        
-        <el-input
-          v-model="searchForm.sender"
-          placeholder="发件人"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+      </el-form-item>
+      <el-form-item label="发件人">
+        <el-input v-model="searchForm.sender" placeholder="发件人" clearable>
           <template #prefix>
             <font-awesome-icon icon="user" />
           </template>
         </el-input>
-        
+      </el-form-item>
+      <el-form-item label="开始日期">
         <el-date-picker
           v-model="searchForm.startDate"
           type="date"
@@ -177,7 +167,8 @@ onMounted(() => {
           value-format="YYYY-MM-DD"
           clearable
         />
-        
+      </el-form-item>
+      <el-form-item label="结束日期">
         <el-date-picker
           v-model="searchForm.endDate"
           type="date"
@@ -186,115 +177,94 @@ onMounted(() => {
           value-format="YYYY-MM-DD"
           clearable
         />
-        
-        <div class="flex space-x-2">
-          <el-button type="primary" @click="handleSearch" class="btn-primary">
-            <font-awesome-icon icon="search" class="mr-2" />
-            搜索
-          </el-button>
-          <el-button @click="handleReset">
-            <font-awesome-icon icon="refresh" class="mr-2" />
-            重置
-          </el-button>
-        </div>
-      </div>
-    </div>
+      </el-form-item>
+    </AdminFilterBar>
 
     <!-- 邮件列表 -->
-    <div class="card-base flex flex-col h-[calc(100vh-400px)]">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          邮件审查
-        </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          共 {{ formatNumber(total) }} 封邮件
-        </p>
-      </div>
-
-      <div class="flex-1 overflow-hidden">
-        <el-table
-          :data="emails"
-          :loading="loading"
-          stripe
-          class="w-full"
-          height="100%"
-        >
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="临时邮箱" min-width="180">
-          <template #default="{ row }">
-            <div class="flex items-center">
-              <font-awesome-icon icon="envelope" class="mr-2 text-blue-500" />
-              <span class="font-mono text-sm">{{ row.tempEmailAddress }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="用户" min-width="150">
-          <template #default="{ row }">
-            <div class="flex items-center">
-              <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
-              <span class="text-sm">{{ row.userEmail }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="发件人" min-width="150">
-          <template #default="{ row }">
-            <span class="text-sm">{{ truncateText(row.sender, 30) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="主题" min-width="200">
-          <template #default="{ row }">
-            <span class="text-sm">{{ truncateText(row.subject || '无主题', 40) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.is_read ? 'success' : 'warning'" size="small">
-              {{ row.is_read ? '已读' : '未读' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="接收时间" width="180">
-          <template #default="{ row }">
-            {{ new Date(row.received_at).toLocaleString() }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <div class="flex space-x-2">
-              <el-button
-                type="primary"
-                size="small"
-                @click="handleViewDetail(row)"
-              >
-                <font-awesome-icon icon="eye" />
-              </el-button>
-              <el-button
-                type="danger"
-                size="small"
-                @click="handleDelete(row)"
-              >
-                <font-awesome-icon icon="trash" />
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
+    <div class="admin-table-card">
+      <div class="admin-table-body">
+        <el-table :data="emails" v-loading="loading" class="w-full" :max-height="640">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column label="临时邮箱" min-width="180">
+            <template #default="{ row }">
+              <div class="flex items-center">
+                <font-awesome-icon icon="envelope" class="mr-2 text-blue-500" />
+                <span class="font-mono text-sm">{{ row.tempEmailAddress }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="用户" min-width="150">
+            <template #default="{ row }">
+              <div class="flex items-center">
+                <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
+                <span class="text-sm">{{ row.userEmail }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="发件人" min-width="150">
+            <template #default="{ row }">
+              <span class="text-sm">{{ truncateText(row.sender, 30) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="主题" min-width="200">
+            <template #default="{ row }">
+              <span class="text-sm">{{ truncateText(row.subject || '无主题', 40) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.is_read ? 'success' : 'warning'" size="small">
+                {{ row.is_read ? '已读' : '未读' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="接收时间" width="180">
+            <template #default="{ row }">
+              {{ new Date(row.received_at).toLocaleString() }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <div class="flex space-x-2">
+                <el-button
+                  type="primary"
+                  size="small"
+                  text
+                  @click="handleViewDetail(row)"
+                  aria-label="查看"
+                  title="查看"
+                >
+                  <font-awesome-icon icon="eye" />
+                </el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  text
+                  @click="handleDelete(row)"
+                  aria-label="删除"
+                  title="删除"
+                >
+                  <font-awesome-icon icon="trash" />
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
 
       <!-- 分页 -->
-      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="total"
-          layout="total, prev, pager, next, jumper"
-          @current-change="handlePageChange"
-        />
-      </div>
+      <AdminPagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
+      />
     </div>
 
     <!-- 邮件详情对话框 -->
     <el-dialog
+      class="admin-dialog"
       v-model="emailDetailVisible"
       title="邮件详情"
       width="800px"
@@ -325,13 +295,13 @@ onMounted(() => {
             <p class="text-sm">{{ new Date(selectedEmail.received_at).toLocaleString() }}</p>
           </div>
         </div>
-        
+
         <!-- 主题 -->
         <div>
           <label class="text-sm font-medium text-gray-600 dark:text-gray-400">主题:</label>
           <p class="text-sm mt-1">{{ selectedEmail.subject || '无主题' }}</p>
         </div>
-        
+
         <!-- 验证码 -->
         <div v-if="selectedEmail.verification_code">
           <label class="text-sm font-medium text-gray-600 dark:text-gray-400">验证码:</label>
@@ -339,7 +309,7 @@ onMounted(() => {
             {{ selectedEmail.verification_code }}
           </p>
         </div>
-        
+
         <!-- 邮件内容 -->
         <div>
           <label class="text-sm font-medium text-gray-600 dark:text-gray-400">内容:</label>
@@ -355,25 +325,29 @@ onMounted(() => {
                 title="隔离的邮件 HTML 内容"
               />
             </div>
-            
+
             <!-- 纯文本内容 -->
-            <div v-if="selectedEmail.content" class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div
+              v-if="selectedEmail.content"
+              class="p-4 border-t border-gray-200 dark:border-gray-700"
+            >
               <div class="text-xs text-gray-500 mb-2">纯文本内容:</div>
               <pre class="whitespace-pre-wrap text-sm">{{ selectedEmail.content }}</pre>
             </div>
-            
-            <div v-if="!selectedEmail.content && !selectedEmail.html_content" class="p-4 text-center text-gray-500">
+
+            <div
+              v-if="!selectedEmail.content && !selectedEmail.html_content"
+              class="p-4 text-center text-gray-500"
+            >
               无邮件内容
             </div>
           </div>
         </div>
       </div>
-      
+
       <template #footer>
         <div class="flex justify-end">
-          <el-button @click="emailDetailVisible = false">
-            关闭
-          </el-button>
+          <el-button @click="emailDetailVisible = false"> 关闭 </el-button>
         </div>
       </template>
     </el-dialog>
@@ -381,14 +355,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-base {
-  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md;
-}
-
-.btn-primary {
-  @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
-}
-
 .email-audit-frame {
   display: block;
   width: 100%;

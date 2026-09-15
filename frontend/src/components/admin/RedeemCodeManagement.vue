@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import AdminFilterBar from '@/components/admin/AdminFilterBar.vue'
+import AdminPagination from '@/components/admin/AdminPagination.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -6,14 +8,13 @@ import {
   createRedeemCode,
   createBatchRedeemCodes,
   deleteRedeemCode,
-  formatNumber
 } from '@/api/admin'
 import type {
   AdminRedeemCodeDetails,
   AdminRedeemCodeCreateData,
   BatchRedeemCodeCreate,
   AdminRedeemCodeListParams,
-  PaginatedResponse
+  PaginatedResponse,
 } from '@/api/admin'
 
 const loading = ref(false)
@@ -36,7 +37,7 @@ const filters = reactive<AdminRedeemCodeListParams>({
   status: 'all',
   validityStatus: 'all',
   startDate: '',
-  endDate: ''
+  endDate: '',
 })
 
 // 导出配置
@@ -47,7 +48,7 @@ const exportConfig = reactive({
   includeMaxUses: false,
   includeValidUntil: false,
   includeCreatedAt: false,
-  separator: ' ' // 分隔符：空格、制表符、逗号
+  separator: ' ', // 分隔符：空格、制表符、逗号
 })
 
 const createForm = reactive<AdminRedeemCodeCreateData>({
@@ -55,7 +56,7 @@ const createForm = reactive<AdminRedeemCodeCreateData>({
   quota: 5,
   validUntil: '',
   maxUses: 1,
-  neverExpires: false
+  neverExpires: false,
 })
 
 const batchCreateForm = reactive<BatchRedeemCodeCreate>({
@@ -65,7 +66,7 @@ const batchCreateForm = reactive<BatchRedeemCodeCreate>({
   count: 10,
   prefix: '',
   maxUses: 1,
-  neverExpires: false
+  neverExpires: false,
 })
 
 const loadCodes = async () => {
@@ -75,13 +76,15 @@ const loadCodes = async () => {
     const params: AdminRedeemCodeListParams = {
       page: currentPage.value,
       limit: pageSize.value,
-      ...filters
+      ...filters,
     }
 
     // 清理空值参数
-    Object.keys(params).forEach(key => {
-      if (params[key as keyof AdminRedeemCodeListParams] === '' ||
-          params[key as keyof AdminRedeemCodeListParams] === 'all') {
+    Object.keys(params).forEach((key) => {
+      if (
+        params[key as keyof AdminRedeemCodeListParams] === '' ||
+        params[key as keyof AdminRedeemCodeListParams] === 'all'
+      ) {
         delete params[key as keyof AdminRedeemCodeListParams]
       }
     })
@@ -126,7 +129,7 @@ const handleResetFilters = () => {
     status: 'all',
     validityStatus: 'all',
     startDate: '',
-    endDate: ''
+    endDate: '',
   })
   currentPage.value = 1
   loadCodes()
@@ -176,20 +179,18 @@ const handleSaveCreate = async () => {
       recentlyCreatedCodes.value = [response.data!]
 
       // 询问是否导出
-      ElMessageBox.confirm(
-        '兑换码创建成功！是否立即导出为TXT文件？',
-        '导出确认',
-        {
-          confirmButtonText: '导出',
-          cancelButtonText: '稍后',
-          type: 'success'
-        }
-      ).then(() => {
-        exportDialogVisible.value = true
-      }).catch(() => {
-        // 用户选择稍后，清空临时数据
-        recentlyCreatedCodes.value = []
+      ElMessageBox.confirm('兑换码创建成功！是否立即导出为TXT文件？', '导出确认', {
+        confirmButtonText: '导出',
+        cancelButtonText: '稍后',
+        type: 'success',
       })
+        .then(() => {
+          exportDialogVisible.value = true
+        })
+        .catch(() => {
+          // 用户选择稍后，清空临时数据
+          recentlyCreatedCodes.value = []
+        })
 
       loadCodes()
     } else {
@@ -236,14 +237,16 @@ const handleSaveBatchCreate = async () => {
         {
           confirmButtonText: '导出',
           cancelButtonText: '稍后',
-          type: 'success'
-        }
-      ).then(() => {
-        exportDialogVisible.value = true
-      }).catch(() => {
-        // 用户选择稍后，清空临时数据
-        recentlyCreatedCodes.value = []
-      })
+          type: 'success',
+        },
+      )
+        .then(() => {
+          exportDialogVisible.value = true
+        })
+        .catch(() => {
+          // 用户选择稍后，清空临时数据
+          recentlyCreatedCodes.value = []
+        })
 
       loadCodes()
     } else {
@@ -257,16 +260,12 @@ const handleSaveBatchCreate = async () => {
 
 const handleDelete = async (code: AdminRedeemCodeDetails) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除兑换码 "${code.code}" 吗？此操作不可恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
+    await ElMessageBox.confirm(`确定要删除兑换码 "${code.code}" 吗？此操作不可恢复。`, '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
     const response = await deleteRedeemCode(code.code)
     if (response.success) {
       ElMessage.success('兑换码删除成功')
@@ -300,7 +299,7 @@ const exportCodes = (codesToExport: AdminRedeemCodeDetails[]) => {
 
   const lines: string[] = []
 
-  codesToExport.forEach(code => {
+  codesToExport.forEach((code) => {
     const fields: string[] = []
 
     if (exportConfig.includeCode) {
@@ -350,12 +349,14 @@ const handleExportCurrentList = () => {
 
 // 检查是否选择了字段
 const hasSelectedFields = computed(() => {
-  return exportConfig.includeCode ||
-         exportConfig.includeName ||
-         exportConfig.includeQuota ||
-         exportConfig.includeMaxUses ||
-         exportConfig.includeValidUntil ||
-         exportConfig.includeCreatedAt
+  return (
+    exportConfig.includeCode ||
+    exportConfig.includeName ||
+    exportConfig.includeQuota ||
+    exportConfig.includeMaxUses ||
+    exportConfig.includeValidUntil ||
+    exportConfig.includeCreatedAt
+  )
 })
 
 // 获取预览行
@@ -389,8 +390,10 @@ const getPreviewLine = () => {
 
 const formatLocalDateTime = (date: Date): string => {
   const pad = (value: number) => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
-    + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  )
 }
 
 const getDefaultValidUntil = (): string => {
@@ -458,240 +461,190 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="admin-module">
     <!-- 操作栏 -->
-    <div class="flex justify-between items-center">
-      <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 flex-1 mr-4">
-        <p class="text-sm text-green-700 dark:text-green-400">
-          管理系统兑换码，用户可通过兑换码获取配额
-        </p>
-      </div>
+    <div class="admin-toolbar">
       <div class="flex space-x-2">
-        <el-button type="primary" @click="handleCreate" class="btn-primary">
+        <el-button type="primary" @click="handleCreate">
           <font-awesome-icon icon="plus" class="mr-2" />
           创建兑换码
         </el-button>
-        <el-button type="success" @click="handleBatchCreate">
+        <el-button @click="handleBatchCreate">
           <font-awesome-icon icon="layer-group" class="mr-2" />
           批量创建
         </el-button>
-        <el-button type="warning" @click="handleExportCurrentList" :disabled="codes.length === 0">
+        <el-button @click="handleExportCurrentList" :disabled="codes.length === 0">
           <font-awesome-icon icon="download" class="mr-2" />
           导出列表
         </el-button>
-        <el-button @click="loadCodes" :loading="loading">
-          <font-awesome-icon icon="refresh" class="mr-2" />
-          刷新
-        </el-button>
       </div>
     </div>
 
-    <!-- 筛选器 -->
-    <div class="card-base mb-6">
-      <div class="p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">筛选条件</h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <el-input
-            v-model="filters.search"
-            placeholder="搜索兑换码"
-            clearable
-            @keyup.enter="handleSearch"
-          >
-            <template #prefix>
-              <font-awesome-icon icon="search" class="text-gray-400" />
-            </template>
-          </el-input>
-
-          <el-input
-            v-model="filters.name"
-            placeholder="按名称筛选"
-            clearable
-            @keyup.enter="handleSearch"
-          >
-            <template #prefix>
-              <font-awesome-icon icon="tag" class="text-gray-400" />
-            </template>
-          </el-input>
-
-          <el-select v-model="filters.status" placeholder="使用状态">
-            <el-option label="全部状态" value="all" />
-            <el-option label="未使用" value="unused" />
-            <el-option label="已使用" value="used" />
-            <el-option label="已过期" value="expired" />
-          </el-select>
-
-          <el-select v-model="filters.validityStatus" placeholder="有效期状态">
-            <el-option label="全部" value="all" />
-            <el-option label="有效" value="valid" />
-            <el-option label="已过期" value="expired" />
-          </el-select>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <el-date-picker
-            v-model="filters.startDate"
-            type="date"
-            placeholder="创建开始日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-          />
-
-          <el-date-picker
-            v-model="filters.endDate"
-            type="date"
-            placeholder="创建结束日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-          />
-
-          <div class="flex space-x-2">
-            <el-button type="primary" @click="handleSearch">
-              <font-awesome-icon icon="search" class="mr-2" />
-              搜索
-            </el-button>
-            <el-button @click="handleResetFilters">
-              <font-awesome-icon icon="refresh" class="mr-2" />
-              重置
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleResetFilters">
+      <el-form-item label="兑换码">
+        <el-input v-model="filters.search" placeholder="搜索兑换码" clearable>
+          <template #prefix>
+            <font-awesome-icon icon="search" class="text-gray-400" />
+          </template>
+        </el-input>
+      </el-form-item>
+      <el-form-item label="名称">
+        <el-input v-model="filters.name" placeholder="按名称筛选" clearable>
+          <template #prefix>
+            <font-awesome-icon icon="tag" class="text-gray-400" />
+          </template>
+        </el-input>
+      </el-form-item>
+      <el-form-item label="使用状态">
+        <el-select v-model="filters.status" placeholder="使用状态">
+          <el-option label="全部状态" value="all" />
+          <el-option label="未使用" value="unused" />
+          <el-option label="已使用" value="used" />
+          <el-option label="已过期" value="expired" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="有效期状态">
+        <el-select v-model="filters.validityStatus" placeholder="有效期状态">
+          <el-option label="全部" value="all" />
+          <el-option label="有效" value="valid" />
+          <el-option label="已过期" value="expired" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="开始日期">
+        <el-date-picker
+          v-model="filters.startDate"
+          type="date"
+          placeholder="创建开始日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+        />
+      </el-form-item>
+      <el-form-item label="结束日期">
+        <el-date-picker
+          v-model="filters.endDate"
+          type="date"
+          placeholder="创建结束日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+        />
+      </el-form-item>
+    </AdminFilterBar>
 
     <!-- 兑换码列表 -->
-    <div class="card-base flex flex-col h-[calc(100vh-400px)]">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          兑换码列表
-        </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          共 {{ formatNumber(total) }} 个兑换码
-        </p>
-      </div>
-
-      <div class="flex-1 overflow-hidden">
-        <el-table
-          :data="codes"
-          :loading="loading"
-          stripe
-          class="w-full"
-          height="100%"
-        >
-        <el-table-column label="兑换码" min-width="150">
-          <template #default="{ row }">
-            <div class="flex items-center space-x-2">
-              <span class="font-mono text-sm font-semibold">{{ row.code }}</span>
+    <div class="admin-table-card">
+      <div class="admin-table-body">
+        <el-table :data="codes" v-loading="loading" class="w-full" :max-height="640">
+          <el-table-column label="兑换码" min-width="150">
+            <template #default="{ row }">
+              <div class="flex items-center space-x-2">
+                <span class="font-mono text-sm font-semibold">{{ row.code }}</span>
+                <el-button
+                  type="text"
+                  size="small"
+                  text
+                  @click="copyToClipboard(row.code)"
+                  class="text-blue-500 hover:text-blue-600"
+                >
+                  <font-awesome-icon icon="copy" />
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="名称" min-width="120">
+            <template #default="{ row }">
+              <span v-if="row.name" class="text-sm">{{ row.name }}</span>
+              <span v-else class="text-sm text-gray-400">无名称</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="quota" label="配额" width="80" />
+          <el-table-column label="使用次数" width="120">
+            <template #default="{ row }">
+              <div class="text-sm">
+                <span class="font-semibold">{{ row.currentUses || 0 }}</span>
+                <span class="text-gray-500"> / {{ row.max_uses }}</span>
+              </div>
+              <div class="text-xs text-gray-400">
+                {{ row.max_uses === 1 ? '单次使用' : '多次使用' }}
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getStatusType(row)" size="small">
+                {{ getStatusText(row) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="使用记录" min-width="200">
+            <template #default="{ row }">
+              <div v-if="row.usageList && row.usageList.length > 0" class="space-y-1">
+                <div
+                  v-for="(usage, index) in row.usageList.slice(0, 2)"
+                  :key="index"
+                  class="flex items-center text-sm"
+                >
+                  <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
+                  <span class="truncate">{{ usage.userEmail }}</span>
+                  <span class="text-xs text-gray-400 ml-2">
+                    {{ new Date(usage.usedAt).toLocaleDateString() }}
+                  </span>
+                </div>
+                <div v-if="row.usageList.length > 2" class="text-xs text-gray-400">
+                  还有 {{ row.usageList.length - 2 }} 条记录...
+                </div>
+              </div>
+              <span v-else class="text-gray-400 text-sm">未使用</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="使用时间" width="180">
+            <template #default="{ row }">
+              <span v-if="row.used_at" class="text-sm">
+                {{ new Date(row.used_at).toLocaleString() }}
+              </span>
+              <span v-else class="text-gray-400 text-sm">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="有效期" width="180">
+            <template #default="{ row }">
+              <span v-if="row.never_expires" class="text-sm text-green-600 font-medium">
+                永不过期
+              </span>
+              <span v-else class="text-sm">
+                {{ new Date(row.valid_until).toLocaleString() }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="创建时间" width="180">
+            <template #default="{ row }">
+              {{ new Date(row.created_at).toLocaleString() }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" fixed="right">
+            <template #default="{ row }">
               <el-button
-                type="text"
+                type="danger"
                 size="small"
-                @click="copyToClipboard(row.code)"
-                class="text-blue-500 hover:text-blue-600"
+                text
+                @click="handleDelete(row)"
+                aria-label="删除"
+                title="删除"
+                :disabled="row.used"
               >
-                <font-awesome-icon icon="copy" />
+                <font-awesome-icon icon="trash" />
               </el-button>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="名称" min-width="120">
-          <template #default="{ row }">
-            <span v-if="row.name" class="text-sm">{{ row.name }}</span>
-            <span v-else class="text-sm text-gray-400">无名称</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="quota" label="配额" width="80" />
-        <el-table-column label="使用次数" width="120">
-          <template #default="{ row }">
-            <div class="text-sm">
-              <span class="font-semibold">{{ row.currentUses || 0 }}</span>
-              <span class="text-gray-500"> / {{ row.max_uses }}</span>
-            </div>
-            <div class="text-xs text-gray-400">
-              {{ row.max_uses === 1 ? '单次使用' : '多次使用' }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag
-              :type="getStatusType(row)"
-              size="small"
-            >
-              {{ getStatusText(row) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="使用记录" min-width="200">
-          <template #default="{ row }">
-            <div v-if="row.usageList && row.usageList.length > 0" class="space-y-1">
-              <div
-                v-for="(usage, index) in row.usageList.slice(0, 2)"
-                :key="index"
-                class="flex items-center text-sm"
-              >
-                <font-awesome-icon icon="user" class="mr-2 text-gray-500" />
-                <span class="truncate">{{ usage.userEmail }}</span>
-                <span class="text-xs text-gray-400 ml-2">
-                  {{ new Date(usage.usedAt).toLocaleDateString() }}
-                </span>
-              </div>
-              <div v-if="row.usageList.length > 2" class="text-xs text-gray-400">
-                还有 {{ row.usageList.length - 2 }} 条记录...
-              </div>
-            </div>
-            <span v-else class="text-gray-400 text-sm">未使用</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="使用时间" width="180">
-          <template #default="{ row }">
-            <span v-if="row.used_at" class="text-sm">
-              {{ new Date(row.used_at).toLocaleString() }}
-            </span>
-            <span v-else class="text-gray-400 text-sm">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="有效期" width="180">
-          <template #default="{ row }">
-            <span v-if="row.never_expires" class="text-sm text-green-600 font-medium">
-              永不过期
-            </span>
-            <span v-else class="text-sm">
-              {{ new Date(row.valid_until).toLocaleString() }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="180">
-          <template #default="{ row }">
-            {{ new Date(row.created_at).toLocaleString() }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="danger"
-              size="small"
-              @click="handleDelete(row)"
-              :disabled="row.used"
-            >
-              <font-awesome-icon icon="trash" />
-            </el-button>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
 
       <!-- 分页 -->
-      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="handlePageChange"
-          @size-change="handlePageSizeChange"
-        />
-      </div>
+      <AdminPagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        @current-change="handlePageChange"
+        @size-change="handlePageSizeChange"
+      />
     </div>
 
     <!-- 创建兑换码对话框 -->
@@ -699,23 +652,9 @@ onMounted(() => {
       v-model="createDialogVisible"
       title="创建兑换码"
       width="600px"
-      class="create-dialog"
+      class="admin-dialog create-dialog"
     >
-      <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
-        <div class="flex items-center">
-          <font-awesome-icon icon="info-circle" class="text-blue-500 mr-2" />
-          <span class="text-sm text-blue-700 dark:text-blue-400">
-            创建单个兑换码，用户可通过此兑换码获取指定配额
-          </span>
-        </div>
-      </div>
-
-      <el-form
-        :model="createForm"
-        label-width="100px"
-        label-position="left"
-        class="create-form"
-      >
+      <el-form :model="createForm" label-width="100px" label-position="left" class="create-form">
         <el-form-item label="名称" class="form-item-enhanced">
           <el-input
             v-model="createForm.name"
@@ -724,9 +663,6 @@ onMounted(() => {
             clearable
             size="large"
           />
-          <div class="form-help-text">
-            可选，便于管理和识别兑换码用途
-          </div>
         </el-form-item>
 
         <div class="grid grid-cols-2 gap-6">
@@ -739,9 +675,6 @@ onMounted(() => {
               class="w-full"
               size="large"
             />
-            <div class="form-help-text">
-              用户使用此兑换码可获得的配额数量
-            </div>
           </el-form-item>
 
           <el-form-item label="使用次数" required class="form-item-enhanced">
@@ -753,9 +686,6 @@ onMounted(() => {
               class="w-full"
               size="large"
             />
-            <div class="form-help-text">
-              此兑换码最多可被使用的次数
-            </div>
           </el-form-item>
         </div>
 
@@ -775,17 +705,12 @@ onMounted(() => {
               <span class="font-medium">永不过期</span>
             </el-checkbox>
           </div>
-          <div class="form-help-text">
-            勾选永不过期后，兑换码将不会过期，获得的配额也永不过期
-          </div>
         </el-form-item>
       </el-form>
 
       <template #footer>
         <div class="flex justify-end space-x-3 pt-4">
-          <el-button @click="createDialogVisible = false" size="large">
-            取消
-          </el-button>
+          <el-button @click="createDialogVisible = false" size="large"> 取消 </el-button>
           <el-button type="primary" @click="handleSaveCreate" size="large" class="px-8">
             <font-awesome-icon icon="plus" class="mr-2" />
             创建兑换码
@@ -799,17 +724,8 @@ onMounted(() => {
       v-model="batchCreateDialogVisible"
       title="批量创建兑换码"
       width="700px"
-      class="batch-create-dialog"
+      class="admin-dialog batch-create-dialog"
     >
-      <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-6">
-        <div class="flex items-center">
-          <font-awesome-icon icon="layer-group" class="text-green-500 mr-2" />
-          <span class="text-sm text-green-700 dark:text-green-400">
-            批量创建多个兑换码，所有兑换码将具有相同的配额和有效期设置
-          </span>
-        </div>
-      </div>
-
       <el-form
         :model="batchCreateForm"
         label-width="100px"
@@ -824,9 +740,6 @@ onMounted(() => {
             clearable
             size="large"
           />
-          <div class="form-help-text">
-            可选，所有批量创建的兑换码将使用相同的名称
-          </div>
         </el-form-item>
 
         <div class="grid grid-cols-2 gap-6">
@@ -839,9 +752,6 @@ onMounted(() => {
               class="w-full"
               size="large"
             />
-            <div class="form-help-text">
-              每个兑换码的配额数量
-            </div>
           </el-form-item>
 
           <el-form-item label="使用次数" required class="form-item-enhanced">
@@ -853,9 +763,6 @@ onMounted(() => {
               class="w-full"
               size="large"
             />
-            <div class="form-help-text">
-              每个兑换码的最大使用次数
-            </div>
           </el-form-item>
 
           <el-form-item label="创建数量" required class="form-item-enhanced">
@@ -867,9 +774,6 @@ onMounted(() => {
               class="w-full"
               size="large"
             />
-            <div class="form-help-text">
-              一次最多创建100个兑换码
-            </div>
           </el-form-item>
 
           <el-form-item label="兑换码前缀" class="form-item-enhanced">
@@ -880,9 +784,6 @@ onMounted(() => {
               clearable
               size="large"
             />
-            <div class="form-help-text">
-              可选，最多4个字符的前缀
-            </div>
           </el-form-item>
         </div>
 
@@ -902,17 +803,12 @@ onMounted(() => {
               <span class="font-medium">永不过期</span>
             </el-checkbox>
           </div>
-          <div class="form-help-text">
-            勾选永不过期后，所有兑换码将不会过期，获得的配额也永不过期
-          </div>
         </el-form-item>
       </el-form>
 
       <template #footer>
         <div class="flex justify-end space-x-3 pt-4">
-          <el-button @click="batchCreateDialogVisible = false" size="large">
-            取消
-          </el-button>
+          <el-button @click="batchCreateDialogVisible = false" size="large"> 取消 </el-button>
           <el-button type="primary" @click="handleSaveBatchCreate" size="large" class="px-8">
             <font-awesome-icon icon="layer-group" class="mr-2" />
             批量创建
@@ -926,17 +822,8 @@ onMounted(() => {
       v-model="exportDialogVisible"
       title="导出兑换码"
       width="600px"
-      class="export-dialog"
+      class="admin-dialog export-dialog"
     >
-      <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 mb-6">
-        <div class="flex items-center">
-          <font-awesome-icon icon="download" class="text-orange-500 mr-2" />
-          <span class="text-sm text-orange-700 dark:text-orange-400">
-            将要导出 {{ recentlyCreatedCodes.length }} 个兑换码到TXT文件
-          </span>
-        </div>
-      </div>
-
       <div class="space-y-6">
         <div>
           <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">选择导出字段</h4>
@@ -985,9 +872,7 @@ onMounted(() => {
 
       <template #footer>
         <div class="flex justify-end space-x-3 pt-4">
-          <el-button @click="exportDialogVisible = false" size="large">
-            取消
-          </el-button>
+          <el-button @click="exportDialogVisible = false" size="large"> 取消 </el-button>
           <el-button
             type="primary"
             @click="exportCodes(recentlyCreatedCodes)"
@@ -1005,14 +890,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card-base {
-  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md;
-}
-
-.btn-primary {
-  @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
-}
-
 /* 表单样式优化 */
 .create-dialog :deep(.el-dialog__body) {
   padding: 20px 30px;
@@ -1038,17 +915,6 @@ onMounted(() => {
 
 .dark .form-item-enhanced :deep(.el-form-item__label) {
   color: #f3f4f6;
-}
-
-.form-help-text {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
-  line-height: 1.4;
-}
-
-.dark .form-help-text {
-  color: #9ca3af;
 }
 
 .create-form :deep(.el-input-number),

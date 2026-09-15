@@ -15,9 +15,12 @@ const SQLITE_BOOLEAN_KEYS = new Set([
  * contract is UTC, so make that explicit at the API boundary instead of
  * letting browsers interpret the value in their local timezone.
  */
-export function normalizeApiTimestamps<T>(value: T): T {
+export function normalizeApiTimestamps<T>(
+  value: T,
+  options: { normalizeBooleans?: boolean } = {},
+): T {
   if (Array.isArray(value)) {
-    return value.map(item => normalizeApiTimestamps(item)) as T
+    return value.map(item => normalizeApiTimestamps(item, options)) as T
   }
   if (!value || typeof value !== 'object') return value
   if (value instanceof Date) return value.toISOString() as T
@@ -26,10 +29,10 @@ export function normalizeApiTimestamps<T>(value: T): T {
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
     if (typeof item === 'string' && isTimestampKey(key)) {
       normalized[key] = normalizeSqliteUtcTimestamp(item)
-    } else if (typeof item === 'number' && (item === 0 || item === 1) && SQLITE_BOOLEAN_KEYS.has(key)) {
+    } else if (options.normalizeBooleans !== false && typeof item === 'number' && (item === 0 || item === 1) && SQLITE_BOOLEAN_KEYS.has(key)) {
       normalized[key] = item === 1
     } else {
-      normalized[key] = normalizeApiTimestamps(item)
+      normalized[key] = normalizeApiTimestamps(item, options)
     }
   }
   return normalized as T

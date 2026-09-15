@@ -1,308 +1,197 @@
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getDashboardStats, formatNumber } from '@/api/admin'
-import type { AdminDashboardStats } from '@/api/admin'
+import { getDashboardStats, type AdminDashboardStats } from '@/api/admin'
+import AdminMetricCard from './AdminMetricCard.vue'
 
-const loading = ref(false)
+const loading = ref(true)
 const stats = ref<AdminDashboardStats | null>(null)
+const formatNumber = (value: number) => (Number.isFinite(value) ? value.toLocaleString() : '—')
+const percentage = (value: number, total: number) =>
+  total > 0 ? Math.min(100, Math.max(0, Math.round((value / total) * 100))) : 0
+const healthLabel = computed(() =>
+  stats.value?.systemHealth.status === 'healthy' ? '运行正常' : '需要关注',
+)
+const quotaPercent = computed(() =>
+  stats.value
+    ? percentage(
+        stats.value.quotaDistribution.usedQuota,
+        stats.value.quotaDistribution.totalQuota + stats.value.quotaDistribution.usedQuota,
+      )
+    : 0,
+)
 
 const loadStats = async () => {
+  loading.value = true
   try {
-    loading.value = true
     const response = await getDashboardStats()
-    if (response.success) {
-      stats.value = response.data!
-    } else {
-      ElMessage.error(response.error || '获取统计数据失败')
-    }
+    if (!response.success || !response.data) throw new Error(response.error || '获取统计数据失败')
+    stats.value = response.data
   } catch (error) {
-    console.error('获取统计数据失败:', error)
-    ElMessage.error('获取统计数据失败')
+    ElMessage.error(error instanceof Error ? error.message : '获取统计数据失败')
   } finally {
     loading.value = false
   }
 }
-
-onMounted(() => {
-  loadStats()
-})
+onMounted(loadStats)
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-        系统概览
-      </h2>
-      <el-button 
-        type="primary" 
-        :loading="loading" 
-        @click="loadStats"
-        class="btn-primary"
-      >
-        <font-awesome-icon icon="refresh" class="mr-2" />
-        刷新数据
-      </el-button>
-    </div>
-
-    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" aria-label="正在加载统计数据">
-      <div v-for="index in 8" :key="index" class="card-base p-6">
-        <el-skeleton animated :rows="2" />
+  <div class="admin-module admin-dashboard">
+    <div v-if="loading" class="admin-metric-grid" aria-label="正在加载统计数据">
+      <div v-for="index in 8" :key="index" class="admin-metric-card">
+        <el-skeleton animated :rows="3" />
       </div>
     </div>
-
-    <div v-else-if="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <!-- 用户统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon 
-              icon="users" 
-              class="text-3xl text-blue-500 dark:text-blue-400"
-            />
+    <template v-else-if="stats">
+      <div class="dashboard-lead-grid">
+        <article class="dashboard-mail-card">
+          <div class="dashboard-mail-top">
+            <span><font-awesome-icon icon="envelope-open" />今日收件</span
+            ><span class="dashboard-period">今日</span>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              用户总数
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.users.total) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              活跃: {{ formatNumber(stats.users.active) }} | 
-              管理员: {{ formatNumber(stats.users.admins) }}
-            </p>
+          <div class="dashboard-mail-value">
+            {{ formatNumber(stats.emails.today) }}<span>封</span>
           </div>
-        </div>
-      </div>
-
-      <!-- 临时邮箱统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon 
-              icon="envelope" 
-              class="text-3xl text-green-500 dark:text-green-400"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              临时邮箱
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.tempEmails.total) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              活跃: {{ formatNumber(stats.tempEmails.active) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 邮件统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon 
-              icon="inbox" 
-              class="text-3xl text-purple-500 dark:text-purple-400"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              邮件总数
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.emails.total) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              今日: {{ formatNumber(stats.emails.today) }} | 
-              本周: {{ formatNumber(stats.emails.thisWeek) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 域名统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon 
-              icon="globe" 
-              class="text-3xl text-orange-500 dark:text-orange-400"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              域名总数
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.domains.total) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              启用: {{ formatNumber(stats.domains.active) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 兑换码统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon 
-              icon="ticket" 
-              class="text-3xl text-red-500 dark:text-red-400"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              兑换码
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.redeemCodes.total) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              已用: {{ formatNumber(stats.redeemCodes.used) }} | 
-              可用: {{ formatNumber(stats.redeemCodes.unused) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 配额统计 -->
-      <div class="card-base p-6 md:col-span-2 lg:col-span-3">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon 
-              icon="chart-pie" 
-              class="text-3xl text-indigo-500 dark:text-indigo-400"
-            />
-          </div>
-          <div class="ml-4 flex-1">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              配额使用情况
-            </p>
-            <div class="mt-2 grid grid-cols-3 gap-4">
-              <div>
-                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {{ formatNumber(stats.quotaDistribution.totalQuota) }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-500">剩余配额</p>
-              </div>
-              <div>
-                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {{ formatNumber(stats.quotaDistribution.usedQuota) }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-500">已使用</p>
-              </div>
-              <div>
-                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {{ formatNumber(Math.round(stats.quotaDistribution.averageQuotaPerUser)) }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-500">平均配额</p>
-              </div>
+          <div class="dashboard-mail-summary">
+            <div>
+              <span>本周收件</span><strong>{{ formatNumber(stats.emails.thisWeek) }}</strong>
+            </div>
+            <div>
+              <span>本月收件</span><strong>{{ formatNumber(stats.emails.thisMonth) }}</strong>
+            </div>
+            <div>
+              <span>累计收件</span><strong>{{ formatNumber(stats.emails.total) }}</strong>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 新增统计卡片 -->
-    <div v-if="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <!-- 配额活动统计 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon
-              icon="coins"
-              class="text-3xl text-yellow-500 dark:text-yellow-400"
-            />
+        </article>
+        <article class="dashboard-health-card">
+          <div class="dashboard-health-heading">
+            <span class="admin-metric-icon"><font-awesome-icon icon="shield-alt" /></span
+            ><span>系统状态</span>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              配额活动
-            </p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-              +{{ formatNumber(stats.quotaActivity.totalEarned) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              今日: +{{ formatNumber(stats.quotaActivity.todayEarned) }}
-            </p>
-          </div>
-        </div>
+          <strong
+            class="dashboard-health-status"
+            :class="stats.systemHealth.status === 'healthy' ? 'is-healthy' : 'is-warning'"
+            ><span />{{ healthLabel }}</strong
+          >
+          <dl class="dashboard-health-details">
+            <div>
+              <dt>接口响应</dt>
+              <dd>{{ formatNumber(stats.systemHealth.responseTime) }} <span>ms</span></dd>
+            </div>
+            <div>
+              <dt>可用域名</dt>
+              <dd>
+                {{ formatNumber(stats.domains.active) }}
+                <span>/ {{ formatNumber(stats.domains.total) }}</span>
+              </dd>
+            </div>
+          </dl>
+        </article>
       </div>
 
-      <!-- 用户活跃度 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon
-              icon="user-clock"
-              class="text-3xl text-purple-500 dark:text-purple-400"
-            />
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              活跃用户
-            </p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {{ formatNumber(stats.recentActivity.todayActiveUsers) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              本周: {{ formatNumber(stats.recentActivity.weekActiveUsers) }}
-            </p>
-          </div>
-        </div>
+      <div class="admin-metric-grid">
+        <AdminMetricCard
+          label="用户总数"
+          :value="stats.users.total"
+          icon="users"
+          :detail="`活跃 ${formatNumber(stats.users.active)} · 管理员 ${formatNumber(stats.users.admins)}`"
+        />
+        <AdminMetricCard
+          label="临时邮箱"
+          :value="stats.tempEmails.total"
+          icon="envelope"
+          tone="success"
+          :detail="`可用邮箱 ${formatNumber(stats.tempEmails.active)}`"
+        />
+        <AdminMetricCard
+          label="今日活跃用户"
+          :value="stats.recentActivity.todayActiveUsers"
+          icon="user-clock"
+          :detail="`本周活跃 ${formatNumber(stats.recentActivity.weekActiveUsers)}`"
+        />
+        <AdminMetricCard
+          label="今日新增用户"
+          :value="stats.recentActivity.todayRegistrations"
+          icon="user-plus"
+          tone="warm"
+          :detail="`本周新增 ${formatNumber(stats.recentActivity.weekRegistrations)}`"
+        />
       </div>
 
-      <!-- 系统健康状态 -->
-      <div class="card-base p-6">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <font-awesome-icon
-              :icon="stats.systemHealth.status === 'healthy' ? 'heart' : 'exclamation-triangle'"
-              :class="[
-                'text-3xl',
-                stats.systemHealth.status === 'healthy' ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'
-              ]"
-            />
+      <div class="dashboard-detail-grid">
+        <article class="dashboard-detail-card">
+          <div class="dashboard-detail-heading">
+            <span class="admin-metric-icon"><font-awesome-icon icon="chart-pie" /></span>
+            <h3>邮箱配额</h3>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              系统状态
-            </p>
-            <p :class="[
-              'text-2xl font-bold',
-              stats.systemHealth.status === 'healthy' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            ]">
-              {{ stats.systemHealth.status === 'healthy' ? '健康' : '异常' }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-500">
-              响应时间: {{ stats.systemHealth.responseTime }}ms
-            </p>
+          <div class="dashboard-quota-value">
+            <strong>{{ formatNumber(stats.quotaDistribution.totalQuota) }}</strong
+            ><span>剩余可用</span>
           </div>
+          <el-progress :percentage="quotaPercent" :show-text="false" :stroke-width="8" />
+          <div class="dashboard-progress-label">
+            <span>已使用 {{ formatNumber(stats.quotaDistribution.usedQuota) }}</span
+            ><span>{{ quotaPercent }}%</span>
+          </div>
+          <div class="dashboard-inline-stats">
+            <div>
+              <span>累计发放</span
+              ><strong>{{ formatNumber(stats.quotaActivity.totalEarned) }}</strong>
+            </div>
+            <div>
+              <span>累计消费</span
+              ><strong>{{ formatNumber(stats.quotaActivity.totalConsumed) }}</strong>
+            </div>
+            <div>
+              <span>人均剩余</span
+              ><strong>{{
+                formatNumber(Math.round(stats.quotaDistribution.averageQuotaPerUser))
+              }}</strong>
+            </div>
+          </div>
+        </article>
+        <article class="dashboard-detail-card">
+          <div class="dashboard-detail-heading">
+            <span class="admin-metric-icon"><font-awesome-icon icon="ticket-alt" /></span>
+            <h3>兑换码</h3>
+          </div>
+          <div class="dashboard-quota-value">
+            <strong>{{ formatNumber(stats.redeemCodes.total) }}</strong
+            ><span>累计创建</span>
+          </div>
+          <dl class="dashboard-code-stats">
+            <div>
+              <dt><i class="code-dot available" />未使用</dt>
+              <dd>{{ formatNumber(stats.redeemCodes.unused) }}</dd>
+            </div>
+            <div>
+              <dt><i class="code-dot used" />已使用</dt>
+              <dd>{{ formatNumber(stats.redeemCodes.used) }}</dd>
+            </div>
+            <div>
+              <dt><i class="code-dot expired" />已过期</dt>
+              <dd>{{ formatNumber(stats.redeemCodes.expired) }}</dd>
+            </div>
+          </dl>
+        </article>
+      </div>
+      <div class="dashboard-activity-strip">
+        <div>
+          <span class="admin-metric-icon"><font-awesome-icon icon="plus-circle" /></span
+          ><span>今日获得配额</span
+          ><strong>{{ formatNumber(stats.quotaActivity.todayEarned) }}</strong>
+        </div>
+        <div>
+          <span class="admin-metric-icon"><font-awesome-icon icon="minus-circle" /></span
+          ><span>今日消费配额</span
+          ><strong>{{ formatNumber(stats.quotaActivity.todayConsumed) }}</strong>
         </div>
       </div>
-    </div>
-
-    <div v-else class="text-center py-12">
-      <font-awesome-icon 
-        icon="exclamation-triangle" 
-        class="text-4xl text-gray-400 dark:text-gray-600 mb-4"
-      />
-      <p class="text-gray-600 dark:text-gray-400">暂无统计数据</p>
-    </div>
+    </template>
+    <el-empty v-else description="无法加载统计数据"
+      ><el-button type="primary" @click="loadStats">重试</el-button></el-empty
+    >
   </div>
 </template>
-
-<style scoped>
-.card-base {
-  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md;
-}
-
-.btn-primary {
-  @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
-}
-</style>

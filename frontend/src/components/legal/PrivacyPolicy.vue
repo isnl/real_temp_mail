@@ -37,7 +37,7 @@ defineExpose({
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">1. 信息收集</h3>
           <p class="mb-3">
-            我们致力于保护您的隐私。在您使用四欧临时邮箱（oooo.icu）服务时，我们可能收集以下信息：
+            我们致力于保护您的隐私。在您使用临时邮箱管理服务时，我们可能收集以下信息：
           </p>
           <ul class="list-disc pl-6 space-y-2">
             <li>GitHub账户的公开信息（用户名、邮箱地址、头像等）</li>
@@ -145,7 +145,7 @@ defineExpose({
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">11. 联系我们</h3>
           <p class="mb-3">
-            如您对本隐私政策有任何疑问或建议，请发送邮件至 admin@oooo.icu 与我们联系。
+            如您对本隐私政策有任何疑问或建议，请联系本站管理员。
             我们将在合理时间内回复您的询问。
           </p>
         </section>

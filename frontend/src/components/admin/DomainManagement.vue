@@ -1,22 +1,55 @@
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue'
+import AdminFilterBar from './AdminFilterBar.vue'
+import AdminPagination from './AdminPagination.vue'
+import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  getDomains, 
-  createDomain, 
-  updateDomain, 
+import {
+  getDomains,
+  createDomain,
+  updateDomain,
   deleteDomain,
-  formatDomainStatus
+  formatDomainStatus,
 } from '@/api/admin'
 import type { Domain, AdminDomainCreateData } from '@/api/admin'
 
 const loading = ref(false)
 const domains = ref<Domain[]>([])
+const currentPage = ref(1)
+const pageSize = ref(20)
+const filters = reactive({ search: '', status: '' as '' | number })
+const appliedFilters = reactive({ search: '', status: '' as '' | number })
+const filteredDomains = computed(() =>
+  domains.value.filter(
+    (domain) =>
+      domain.domain.toLowerCase().includes(appliedFilters.search.toLowerCase()) &&
+      (appliedFilters.status === '' || domain.status === appliedFilters.status),
+  ),
+)
+const visibleDomains = computed(() =>
+  filteredDomains.value.slice(
+    (currentPage.value - 1) * pageSize.value,
+    currentPage.value * pageSize.value,
+  ),
+)
+watch(
+  () => filteredDomains.value.length,
+  (total) => {
+    currentPage.value = Math.min(currentPage.value, Math.max(1, Math.ceil(total / pageSize.value)))
+  },
+)
+const handleSearch = () => {
+  Object.assign(appliedFilters, filters)
+  currentPage.value = 1
+}
+const handleReset = () => {
+  Object.assign(filters, { search: '', status: '' })
+  handleSearch()
+}
 
 const createDialogVisible = ref(false)
 const createForm = reactive<AdminDomainCreateData>({
   domain: '',
-  status: 1
+  status: 1,
 })
 
 const loadDomains = async () => {
@@ -47,14 +80,15 @@ const handleSaveCreate = async () => {
     ElMessage.error('请输入域名')
     return
   }
-  
+
   // 域名格式验证 - 支持多级域名（如 json.edu.kg）
-  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
+  const domainRegex =
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/
   if (!domainRegex.test(createForm.domain)) {
     ElMessage.error('请输入有效的域名格式')
     return
   }
-  
+
   try {
     const response = await createDomain({
       ...createForm,
@@ -76,18 +110,14 @@ const handleSaveCreate = async () => {
 const handleToggleStatus = async (domain: Domain) => {
   const newStatus = domain.status === 1 ? 0 : 1
   const statusText = newStatus === 1 ? '启用' : '禁用'
-  
+
   try {
-    await ElMessageBox.confirm(
-      `确定要${statusText}域名 "${domain.domain}" 吗？`,
-      '确认操作',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
+    await ElMessageBox.confirm(`确定要${statusText}域名 "${domain.domain}" 吗？`, '确认操作', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+
     const response = await updateDomain(domain.id, newStatus)
     if (response.success) {
       ElMessage.success(`域名${statusText}成功`)
@@ -111,10 +141,10 @@ const handleDelete = async (domain: Domain) => {
       {
         confirmButtonText: '确认移除',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     )
-    
+
     const response = await deleteDomain(domain.id)
     if (response.success) {
       ElMessage.success('域名已从可用列表移除')
@@ -136,34 +166,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <!-- 操作栏 -->
-    <div class="flex justify-between items-center">
-      <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 flex-1 mr-4">
-        <p class="text-sm text-blue-700 dark:text-blue-400">
-          管理系统支持的邮箱域名，用户可以选择这些域名创建临时邮箱
-        </p>
-      </div>
-      <div class="flex space-x-2">
-        <el-button type="primary" @click="handleCreate" class="btn-primary">
-          <font-awesome-icon icon="plus" class="mr-2" />
-          添加域名
-        </el-button>
-        <el-button @click="loadDomains" :loading="loading">
-          <font-awesome-icon icon="refresh" class="mr-2" />
-          刷新
-        </el-button>
-      </div>
+  <div class="admin-module">
+    <div class="admin-toolbar">
+      <el-button type="primary" @click="handleCreate"
+        ><font-awesome-icon icon="plus" />添加域名</el-button
+      >
     </div>
+    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="域名"
+        ><el-input v-model="filters.search" placeholder="搜索域名" clearable
+      /></el-form-item>
+      <el-form-item label="状态"
+        ><el-select v-model="filters.status" placeholder="全部状态" clearable
+          ><el-option label="启用" :value="1" /><el-option label="禁用" :value="0" /></el-select
+      ></el-form-item>
+    </AdminFilterBar>
 
     <!-- 域名列表 -->
-    <div class="card-base">
-      <el-table
-        :data="domains"
-        :loading="loading"
-        stripe
-        class="w-full"
-      >
+    <div class="admin-table-card">
+      <el-table :data="visibleDomains" v-loading="loading" :max-height="640" class="w-full">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="domain" label="域名" min-width="200">
           <template #default="{ row }">
@@ -191,18 +212,19 @@ onMounted(() => {
               <el-button
                 :type="row.status === 1 ? 'warning' : 'success'"
                 size="small"
+                text
                 @click="handleToggleStatus(row)"
               >
-                <font-awesome-icon 
-                  :icon="row.status === 1 ? 'pause' : 'play'" 
-                  class="mr-1"
-                />
+                <font-awesome-icon :icon="row.status === 1 ? 'pause' : 'play'" class="mr-1" />
                 {{ row.status === 1 ? '禁用' : '启用' }}
               </el-button>
               <el-button
                 type="danger"
                 size="small"
+                text
                 @click="handleDelete(row)"
+                aria-label="删除域名"
+                title="删除域名"
               >
                 <font-awesome-icon icon="trash" />
               </el-button>
@@ -210,45 +232,25 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-      
-      <div v-if="domains.length === 0 && !loading" class="text-center py-12">
-        <font-awesome-icon 
-          icon="globe" 
-          class="text-4xl text-gray-400 dark:text-gray-600 mb-4"
-        />
-        <p class="text-gray-600 dark:text-gray-400">暂无域名</p>
-        <el-button type="primary" @click="handleCreate" class="mt-4">
-          添加第一个域名
-        </el-button>
-      </div>
+
+      <AdminPagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="filteredDomains.length"
+      />
     </div>
 
     <!-- 创建域名对话框 -->
-    <el-dialog
-      v-model="createDialogVisible"
-      title="添加域名"
-      width="500px"
-    >
-      <el-form
-        :model="createForm"
-        label-width="80px"
-        label-position="left"
-      >
+    <el-dialog class="admin-dialog" v-model="createDialogVisible" title="添加域名" width="500px">
+      <el-form :model="createForm" label-width="80px" label-position="left">
         <el-form-item label="域名" required>
-          <el-input
-            v-model="createForm.domain"
-            placeholder="例如: example.com"
-            clearable
-          >
+          <el-input v-model="createForm.domain" placeholder="例如: example.com" clearable>
             <template #prefix>
               <font-awesome-icon icon="globe" />
             </template>
           </el-input>
-          <div class="text-xs text-gray-500 mt-1">
-            请输入完整的域名，例如: example.com
-          </div>
         </el-form-item>
-        
+
         <el-form-item label="状态">
           <el-radio-group v-model="createForm.status">
             <el-radio :label="1">启用</el-radio>
@@ -256,27 +258,13 @@ onMounted(() => {
           </el-radio-group>
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <div class="flex justify-end space-x-2">
-          <el-button @click="createDialogVisible = false">
-            取消
-          </el-button>
-          <el-button type="primary" @click="handleSaveCreate">
-            添加
-          </el-button>
+          <el-button @click="createDialogVisible = false"> 取消 </el-button>
+          <el-button type="primary" @click="handleSaveCreate"> 添加 </el-button>
         </div>
       </template>
     </el-dialog>
   </div>
 </template>
-
-<style scoped>
-.card-base {
-  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md;
-}
-
-.btn-primary {
-  @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors;
-}
-</style>

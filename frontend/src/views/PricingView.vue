@@ -117,7 +117,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
   }
 
   ElMessage({
-    message: `咨询“${plan.name}”请发送邮件联系 admin@oooo.icu`,
+    message: `咨询“${plan.name}”请联系本站管理员`,
     type: 'info',
     duration: 5000,
     showClose: true
@@ -309,17 +309,11 @@ const handlePurchase = (plan: typeof plans[0]) => {
           还有疑问？
         </h2>
         <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
-          如果您有其他问题或需要定制化服务，欢迎通过邮件联系我们
+          如果您有其他问题或需要定制化服务，请联系本站管理员
         </p>
 
         <div class="flex justify-center">
-          <a
-            href="mailto:admin@oooo.icu"
-            class="inline-flex items-center px-8 py-3 text-lg font-semibold bg-white text-green-600 hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 no-underline"
-          >
-            <font-awesome-icon :icon="['fas', 'envelope']" class="mr-2" />
-            admin@oooo.icu
-          </a>
+          <p class="text-white">配额咨询与定制服务请联系本站管理员</p>
         </div>
       </div>
     </section>

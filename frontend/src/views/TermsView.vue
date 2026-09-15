@@ -22,7 +22,7 @@ usePageTitle()
           1. 服务说明
         </h2>
         <p class="text-gray-600 dark:text-gray-400 mb-3">
-          四欧临时邮箱（oooo.icu）为用户提供临时邮箱地址生成、邮件接收等功能。
+          临时邮箱管理为用户提供临时邮箱地址生成、邮件接收等功能。
           本服务旨在帮助用户保护隐私，避免垃圾邮件骚扰。
         </p>
         <p class="text-gray-600 dark:text-gray-400">

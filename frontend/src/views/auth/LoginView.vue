@@ -139,7 +139,7 @@ onMounted(async () => {
         <div class="auth-brand-mark" aria-hidden="true">
           <font-awesome-icon :icon="['fas', 'envelope-open-text']" />
         </div>
-        <p class="auth-eyebrow">OOOO.ICU</p>
+        <p class="auth-eyebrow">临时邮箱管理</p>
         <h1 id="login-heading">欢迎回来</h1>
         <p>安全管理临时邮箱、验证码与配额，所有入口均由系统策略统一控制。</p>
         <ul class="auth-benefits" aria-label="服务特点">

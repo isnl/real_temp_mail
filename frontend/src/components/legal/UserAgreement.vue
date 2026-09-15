@@ -37,7 +37,7 @@ defineExpose({
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">1. 服务说明</h3>
           <p class="mb-3">
-            欢迎使用四欧临时邮箱（oooo.icu）服务。本服务为用户提供临时邮箱地址生成、邮件接收等功能。
+            欢迎使用临时邮箱管理服务。本服务为用户提供临时邮箱地址生成、邮件接收等功能。
             通过注册或使用本服务，您同意遵守本协议的所有条款。
           </p>
         </section>
@@ -96,7 +96,7 @@ defineExpose({
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">7. 联系我们</h3>
           <p class="mb-3">
-            如您对本协议有任何疑问，请发送邮件至 admin@oooo.icu 与我们联系。
+            如您对本协议有任何疑问，请联系本站管理员。
           </p>
         </section>
       </div>

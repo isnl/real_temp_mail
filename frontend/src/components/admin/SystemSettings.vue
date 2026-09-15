@@ -11,7 +11,6 @@ type FieldType = 'switch' | 'text' | 'password' | 'number' | 'url'
 interface SettingField {
   key: string
   label: string
-  description: string
   type: FieldType
   placeholder?: string
   min?: number
@@ -21,8 +20,6 @@ interface SettingField {
 interface SettingSection {
   key: string
   title: string
-  description: string
-  icon: string
   fields: SettingField[]
 }
 
@@ -30,48 +27,60 @@ const sections: SettingSection[] = [
   {
     key: 'access',
     title: '账号与访问',
-    description: '控制新用户入口，并维护主管理员的登录凭据。',
-    icon: 'users-gear',
     fields: [
-      { key: 'registration_enabled', label: '开放新用户注册', description: '关闭后隐藏所有注册入口，注册接口也会拒绝请求。', type: 'switch' },
-      { key: 'admin_username', label: '管理员账号', description: '可在登录页使用该账号或管理员邮箱登录。', type: 'text', placeholder: 'admin' },
-      { key: 'admin_password', label: '新管理员密码', description: '密码不会回显；留空表示保持当前密码不变。', type: 'password', placeholder: '留空则不修改' },
+      { key: 'registration_enabled', label: '开放新用户注册', type: 'switch' },
+      { key: 'admin_username', label: '管理员账号', type: 'text', placeholder: 'admin' },
+      {
+        key: 'admin_password',
+        label: '新管理员密码',
+        type: 'password',
+        placeholder: '留空则不修改',
+      },
     ],
   },
   {
     key: 'github',
     title: 'GitHub OAuth',
-    description: '配置第三方登录。关闭后登录页不会展示 GitHub 入口。',
-    icon: 'code-branch',
     fields: [
-      { key: 'github_oauth_enabled', label: '启用 GitHub 登录', description: '需同时正确配置 Client ID 与 Client Secret。', type: 'switch' },
-      { key: 'github_client_id', label: 'Client ID', description: 'GitHub OAuth App 的 Client ID。', type: 'text', placeholder: 'Ov23li…' },
-      { key: 'github_client_secret', label: 'Client Secret', description: '仅写入，不会回显；留空保持现有值。', type: 'password', placeholder: '留空则不修改' },
-      { key: 'github_callback_url', label: 'Callback URL', description: '应与 GitHub OAuth App 中配置的回调地址完全一致。', type: 'url', placeholder: 'https://example.com/api/auth/github/callback' },
+      { key: 'github_oauth_enabled', label: '启用 GitHub 登录', type: 'switch' },
+      { key: 'github_client_id', label: 'Client ID', type: 'text', placeholder: 'Ov23li…' },
+      {
+        key: 'github_client_secret',
+        label: 'Client Secret',
+        type: 'password',
+        placeholder: '留空则不修改',
+      },
+      {
+        key: 'github_callback_url',
+        label: 'Callback URL',
+        type: 'url',
+        placeholder: 'https://example.com/api/auth/github/callback',
+      },
     ],
   },
   {
     key: 'turnstile',
     title: 'Cloudflare Turnstile',
-    description: '总开关与场景开关同时开启时，客户端才展示并要求人机验证。',
-    icon: 'shield-halved',
     fields: [
-      { key: 'turnstile_enabled', label: '启用 Turnstile', description: '人机验证总开关。', type: 'switch' },
-      { key: 'turnstile_site_key', label: 'Site Key', description: '公开站点密钥，用于前端渲染验证组件。', type: 'text', placeholder: '0x4AAAA…' },
-      { key: 'turnstile_secret_key', label: 'Secret Key', description: '服务端验证密钥；留空保持现有值。', type: 'password', placeholder: '留空则不修改' },
-      { key: 'turnstile_login_enabled', label: '登录时验证', description: '账号密码登录前要求完成人机验证。', type: 'switch' },
-      { key: 'turnstile_register_enabled', label: '注册时验证', description: '创建新账号前要求完成人机验证。', type: 'switch' },
-      { key: 'turnstile_redeem_enabled', label: '兑换配额时验证', description: '提交兑换码前要求完成人机验证。', type: 'switch' },
-      { key: 'turnstile_public_inbox_enabled', label: '公开收件箱验证', description: '查询公开收件箱前要求完成人机验证。', type: 'switch' },
+      { key: 'turnstile_enabled', label: '启用 Turnstile', type: 'switch' },
+      { key: 'turnstile_site_key', label: 'Site Key', type: 'text', placeholder: '0x4AAAA…' },
+      {
+        key: 'turnstile_secret_key',
+        label: 'Secret Key',
+        type: 'password',
+        placeholder: '留空则不修改',
+      },
+      { key: 'turnstile_login_enabled', label: '登录时验证', type: 'switch' },
+      { key: 'turnstile_register_enabled', label: '注册时验证', type: 'switch' },
+      { key: 'turnstile_redeem_enabled', label: '兑换配额时验证', type: 'switch' },
+      { key: 'turnstile_public_inbox_enabled', label: '公开收件箱验证', type: 'switch' },
     ],
   },
   {
     key: 'quota',
     title: '配额策略',
-    description: '设置新账号创建后的初始可用配额。',
-    icon: 'gauge-high',
     fields: [
-      { key: 'default_user_quota', label: '新用户默认配额', description: '新账号创建后获得的初始邮箱配额。', type: 'number', min: 0, max: 1000 },
+      { key: 'default_user_quota', label: '新用户默认配额', type: 'number', min: 0, max: 1000 },
     ],
   },
 ]
@@ -79,6 +88,10 @@ const sections: SettingSection[] = [
 const secretKeys = new Set(['admin_password', 'github_client_secret', 'turnstile_secret_key'])
 const knownKeys = new Set(sections.flatMap((section) => section.fields.map((field) => field.key)))
 const retiredKeys = new Set(['daily_checkin_quota'])
+const activeSection = ref('access')
+const visibleSections = computed(() =>
+  sections.filter((section) => section.key === activeSection.value),
+)
 const loading = ref(false)
 const savingSection = ref('')
 const settings = ref<SystemSetting[]>([])
@@ -90,11 +103,13 @@ const authStore = useAuthStore()
 let loadVersion = 0
 
 const toBoolean = (value: string) => value === 'true' || value === '1'
-const normalizeBoolean = (value: string) => toBoolean(value) ? 'true' : 'false'
+const normalizeBoolean = (value: string) => (toBoolean(value) ? 'true' : 'false')
 
-const unknownSettings = computed(() => settings.value.filter((setting) => (
-  !knownKeys.has(setting.setting_key) && !retiredKeys.has(setting.setting_key)
-)))
+const unknownSettings = computed(() =>
+  settings.value.filter(
+    (setting) => !knownKeys.has(setting.setting_key) && !retiredKeys.has(setting.setting_key),
+  ),
+)
 
 const isFieldDirty = (field: SettingField) => {
   const value = values[field.key] ?? ''
@@ -122,7 +137,8 @@ const loadSettings = async () => {
           values[field.key] = ''
           originalValues[field.key] = ''
           configuredSecrets[field.key] = Boolean(
-            setting?.is_configured || (setting?.setting_value && setting.setting_value === '********'),
+            setting?.is_configured ||
+              (setting?.setting_value && setting.setting_value === '********'),
           )
         } else {
           const fallback = field.type === 'switch' ? 'false' : ''
@@ -147,7 +163,11 @@ const validateSection = (section: SettingSection): string => {
     const value = values[field.key] ?? ''
     if (field.type === 'number' && value) {
       const number = Number(value)
-      if (!Number.isInteger(number) || number < (field.min ?? 0) || number > (field.max ?? Number.MAX_SAFE_INTEGER)) {
+      if (
+        !Number.isInteger(number) ||
+        number < (field.min ?? 0) ||
+        number > (field.max ?? Number.MAX_SAFE_INTEGER)
+      ) {
         return `${field.label}必须是 ${field.min ?? 0}–${field.max} 之间的整数`
       }
     }
@@ -163,16 +183,20 @@ const validateSection = (section: SettingSection): string => {
 
   if (section.key === 'access') {
     if (!values.admin_username?.trim()) return '管理员账号不能为空'
-    if (values.admin_password && values.admin_password.length < 8) return '新管理员密码至少需要 8 位'
-    if (values.admin_password !== adminPasswordConfirmation.value) return '两次输入的管理员密码不一致'
+    if (values.admin_password && values.admin_password.length < 8)
+      return '新管理员密码至少需要 8 位'
+    if (values.admin_password !== adminPasswordConfirmation.value)
+      return '两次输入的管理员密码不一致'
   }
   if (section.key === 'github' && toBoolean(values.github_oauth_enabled)) {
     if (!values.github_client_id?.trim()) return '启用 GitHub 登录前请填写 Client ID'
-    if (!configuredSecrets.github_client_secret && !values.github_client_secret) return '启用 GitHub 登录前请填写 Client Secret'
+    if (!configuredSecrets.github_client_secret && !values.github_client_secret)
+      return '启用 GitHub 登录前请填写 Client Secret'
   }
   if (section.key === 'turnstile' && toBoolean(values.turnstile_enabled)) {
     if (!values.turnstile_site_key?.trim()) return '启用 Turnstile 前请填写 Site Key'
-    if (!configuredSecrets.turnstile_secret_key && !values.turnstile_secret_key) return '启用 Turnstile 前请填写 Secret Key'
+    if (!configuredSecrets.turnstile_secret_key && !values.turnstile_secret_key)
+      return '启用 Turnstile 前请填写 Secret Key'
   }
   return ''
 }
@@ -191,11 +215,13 @@ const saveSection = async (section: SettingSection) => {
   }
 
   savingSection.value = section.key
-  const payload = Object.fromEntries(changedFields.map((field) => {
-    const rawValue = values[field.key] ?? ''
-    const value = field.type === 'switch' ? normalizeBoolean(rawValue) : rawValue.trim()
-    return [field.key, value]
-  }))
+  const payload = Object.fromEntries(
+    changedFields.map((field) => {
+      const rawValue = values[field.key] ?? ''
+      const value = field.type === 'switch' ? normalizeBoolean(rawValue) : rawValue.trim()
+      return [field.key, value]
+    }),
+  )
 
   try {
     const response = await updateSystemSettings(payload)
@@ -243,50 +269,40 @@ onMounted(loadSettings)
 
 <template>
   <div class="settings-page">
-    <div class="page-heading-row">
-      <div>
-        <p class="page-eyebrow">System configuration</p>
-        <h2>系统设置</h2>
-        <p>认证、第三方登录与安全策略均在此处集中管理。</p>
-      </div>
-      <el-button :loading="loading" @click="loadSettings">
-        <font-awesome-icon :icon="['fas', 'rotate']" />
-        刷新配置
-      </el-button>
-    </div>
-
-    <div class="settings-notice" role="note">
-      <font-awesome-icon :icon="['fas', 'lock']" />
-      <div>
-        <strong>敏感值采用只写模式</strong>
-        <p>密钥和密码不会回显。输入框留空时不会修改已保存的值。</p>
-      </div>
-    </div>
+    <el-tabs v-model="activeSection" class="settings-tabs" aria-label="设置分类">
+      <el-tab-pane v-for="section in sections" :key="section.key" :name="section.key">
+        <template #label>
+          <span class="settings-tab-label"
+            >{{ section.title
+            }}<span
+              v-if="isSectionDirty(section)"
+              class="settings-tab-dot"
+              aria-label="有未保存修改"
+          /></span>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane v-if="unknownSettings.length" name="other" label="其他配置" />
+    </el-tabs>
 
     <div v-if="loading && !settings.length" class="settings-skeleton" aria-label="正在加载系统设置">
       <el-skeleton v-for="index in 3" :key="index" :rows="4" animated />
     </div>
 
     <div v-else class="settings-sections">
-      <section v-for="section in sections" :key="section.key" class="settings-section">
-        <header>
-          <div class="settings-section-icon" aria-hidden="true">
-            <font-awesome-icon :icon="['fas', section.icon]" />
-          </div>
-          <div>
-            <h3>{{ section.title }}</h3>
-            <p>{{ section.description }}</p>
-          </div>
-          <span v-if="isSectionDirty(section)" class="settings-dirty-badge">有未保存修改</span>
-        </header>
-
+      <section
+        v-for="section in visibleSections"
+        :key="section.key"
+        class="settings-section"
+        :aria-label="section.title"
+      >
         <div class="settings-fields">
           <div v-for="field in section.fields" :key="field.key" class="settings-field">
             <div class="settings-field-copy">
               <label :for="`setting-${field.key}`">{{ field.label }}</label>
-              <p>{{ field.description }}</p>
               <span v-if="secretKeys.has(field.key)" class="secret-status">
-                <font-awesome-icon :icon="['fas', configuredSecrets[field.key] ? 'circle-check' : 'circle-minus']" />
+                <font-awesome-icon
+                  :icon="['fas', configuredSecrets[field.key] ? 'circle-check' : 'circle-minus']"
+                />
                 {{ configuredSecrets[field.key] ? '已配置' : '未配置' }}
               </span>
             </div>
@@ -340,19 +356,21 @@ onMounted(loadSettings)
           <el-button
             type="primary"
             :loading="savingSection === section.key"
-            :disabled="!isSectionDirty(section) || (!!savingSection && savingSection !== section.key)"
+            :disabled="
+              !isSectionDirty(section) || (!!savingSection && savingSection !== section.key)
+            "
             @click="saveSection(section)"
           >
-            保存{{ section.title }}设置
+            保存设置
           </el-button>
         </footer>
       </section>
 
-      <section v-if="unknownSettings.length" class="settings-section">
-        <header>
-          <div class="settings-section-icon"><font-awesome-icon :icon="['fas', 'sliders']" /></div>
-          <div><h3>其他只读配置</h3><p>由旧版本保留、尚未归类的配置项。</p></div>
-        </header>
+      <section
+        v-if="activeSection === 'other' && unknownSettings.length"
+        class="settings-section"
+        aria-label="其他配置"
+      >
         <dl class="settings-unknown-list">
           <div v-for="setting in unknownSettings" :key="setting.setting_key">
             <dt>{{ setting.description || setting.setting_key }}</dt>

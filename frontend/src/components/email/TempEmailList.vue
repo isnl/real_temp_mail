@@ -78,7 +78,7 @@ const formatDate = (dateString: string) => {
 </script>
 
 <template>
-  <div class="h-full px-10px pb-10px overflow-hidden flex flex-col">
+  <div class="temp-email-list min-h-0 h-full px-10px pb-10px overflow-hidden flex flex-col">
     <!-- Loading State -->
     <div v-if="loading" class="p-6 text-center">
       <el-skeleton :rows="3" animated />
@@ -120,11 +120,11 @@ const formatDate = (dateString: string) => {
     </div>
 
     <!-- Email List -->
-    <div v-else class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div v-else class="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
       <div
         v-for="tempEmail in tempEmails"
         :key="tempEmail.id"
-        class="group relative p-4 rounded-xl transition-colors duration-200 cursor-pointer border"
+        class="mailbox-item group relative p-4 rounded-xl transition-colors duration-200 cursor-pointer border"
         :class="{
           'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-700 shadow-md':
             selectedTempEmail?.id === tempEmail.id,
@@ -228,10 +228,10 @@ const formatDate = (dateString: string) => {
                 </span>
               </div>
 
-              <div class="flex items-center gap-2" @click.stop>
+              <div class="mailbox-actions flex items-center gap-2" @click.stop>
                 <el-switch
                   :model-value="Boolean(tempEmail.public_inbox_enabled)"
-                  size="small"
+                  :aria-label="`公开收件箱：${tempEmail.email}`"
                   inline-prompt
                   active-text="公开"
                   inactive-text="私密"
@@ -271,7 +271,7 @@ const formatDate = (dateString: string) => {
     </div>
 
     <!-- Quick Actions -->
-    <div v-if="tempEmails.length > 0" class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-blue-50/30 dark:from-gray-800/50 dark:to-blue-900/10">
+    <div v-if="tempEmails.length > 0" class="flex-shrink-0 p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-blue-50/30 dark:from-gray-800/50 dark:to-blue-900/10">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
@@ -297,3 +297,18 @@ const formatDate = (dateString: string) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.mailbox-item {
+  border-style: solid;
+}
+
+.mailbox-actions :deep(.el-button) {
+  margin-left: 0;
+}
+
+.mailbox-actions :deep(.el-switch) {
+  --el-switch-off-color: #64748b;
+  flex-shrink: 0;
+}
+</style>
