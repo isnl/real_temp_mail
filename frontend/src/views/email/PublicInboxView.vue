@@ -442,7 +442,7 @@ watch(
 .public-email-input :deep(.el-input__wrapper:hover),
 .public-email-input :deep(.el-input__wrapper.is-focus) {
   border-color: var(--focus);
-  box-shadow: 0 14px 36px rgba(52, 211, 153, 0.16);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--brand-500) 16%, transparent);
 }
 
 .public-email-input :deep(.el-input__inner) {
@@ -457,7 +457,7 @@ watch(
   border-radius: 8px;
   font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(52, 211, 153, 0.25);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--brand-500) 16%, transparent);
 }
 
 .dark .public-email-input :deep(.el-input__wrapper) {
@@ -469,7 +469,7 @@ watch(
 .dark .public-email-input :deep(.el-input__wrapper:hover),
 .dark .public-email-input :deep(.el-input__wrapper.is-focus) {
   border-color: var(--focus);
-  box-shadow: 0 12px 30px rgba(52, 211, 153, 0.18);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--brand-400) 14%, transparent);
 }
 
 .dark .public-email-input :deep(.el-input__inner) {

@@ -258,12 +258,12 @@ const handleTurnstileError = (error: string) => {
 
 .redeem-input :deep(.el-input__wrapper:hover) {
   border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 10%, transparent);
 }
 
 .redeem-input :deep(.el-input__wrapper.is-focus) {
   border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 20%, transparent);
 }
 
 .redeem-button {

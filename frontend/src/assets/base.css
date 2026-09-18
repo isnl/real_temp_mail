@@ -1,19 +1,19 @@
 :root {
   color-scheme: light;
   --brand-50: #f3fbf8;
-  --brand-100: #def8ed;
-  --brand-200: #b6efd7;
-  --brand-400: #6ee7b7;
-  --brand-500: #34d399;
+  --brand-100: #e4f2ec;
+  --brand-200: #bde5d6;
+  --brand-400: #83c7b0;
+  --brand-500: #25856a;
   --brand-600: #23775e;
   --brand-700: #1b604b;
   --brand-800: #164c3e;
   --brand-accent: #38bdf8;
   --brand-link: #23775e;
-  --brand-soft: #def8ed;
-  --brand-button: #34d399;
-  --brand-button-hover: #44d7a1;
-  --brand-button-active: #26c58c;
+  --brand-soft: var(--brand-100);
+  --brand-button: var(--brand-500);
+  --brand-button-hover: #20765e;
+  --brand-button-active: #1b654f;
   --brand-button-text: #ffffff;
   --page-bg: #f3fbf8;
   --page-bg-accent: #effaf6;
@@ -37,12 +37,12 @@
   --radius-xl: 24px;
   --transition-fast: 160ms ease;
 
-  /* Text and solid controls use separate tokens so links remain legible. */
+  /* Opaque mint controls keep white text readable; interaction states deepen the color. */
   --el-color-primary: var(--brand-link);
-  --el-color-primary-light-3: #62ba9b;
-  --el-color-primary-light-5: #99dfc4;
-  --el-color-primary-light-7: #c4efdf;
-  --el-color-primary-light-8: #d5f4e7;
+  --el-color-primary-light-3: #60a58e;
+  --el-color-primary-light-5: #92c2b1;
+  --el-color-primary-light-7: #c1ddd2;
+  --el-color-primary-light-8: #d3e7df;
   --el-color-primary-light-9: var(--brand-soft);
   --el-color-primary-dark-2: #1b604b;
   --el-border-radius-base: 10px;
@@ -58,7 +58,7 @@
 
 html.dark {
   color-scheme: dark;
-  --brand-link: #6ee7b7;
+  --brand-link: var(--brand-400);
   --brand-soft: #183c30;
   --page-bg: #101b18;
   --page-bg-accent: #13241e;
@@ -70,20 +70,20 @@ html.dark {
   --text-tertiary: #96b2a2;
   --border: #30473a;
   --border-strong: #496553;
-  --focus: #6ee7b7;
-  --success: #6ee7b7;
+  --focus: var(--brand-400);
+  --success: var(--brand-400);
   --warning: #fbbf24;
   --danger: #f87171;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 22px rgba(0, 0, 0, 0.12);
   --shadow-md: 0 22px 55px rgba(0, 0, 0, 0.28);
 
   --el-color-primary: var(--brand-link);
-  --el-color-primary-light-3: #8aecc8;
-  --el-color-primary-light-5: #a9f1d8;
+  --el-color-primary-light-3: #9ad3bf;
+  --el-color-primary-light-5: #b4dfd0;
   --el-color-primary-light-7: #305a46;
   --el-color-primary-light-8: #234a39;
   --el-color-primary-light-9: var(--brand-soft);
-  --el-color-primary-dark-2: #96edcc;
+  --el-color-primary-dark-2: #9ad3bf;
   --el-bg-color: var(--surface);
   --el-bg-color-page: var(--page-bg);
   --el-bg-color-overlay: #20342a;
@@ -162,7 +162,7 @@ a {
 
 ::selection {
   color: #123b32;
-  background: #b6efd7;
+  background: var(--brand-200);
 }
 
 ::-webkit-scrollbar {
