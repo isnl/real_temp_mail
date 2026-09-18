@@ -318,7 +318,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
 
             <div class="flex items-center space-x-2">
               <div
-                class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm"
+                class="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center shadow-sm"
               >
                 <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-xs" />
               </div>
@@ -378,7 +378,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               />
             </div>
             <div
-              class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg"
+              class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-lg"
             >
               <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-sm" />
             </div>
@@ -423,7 +423,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
           <!-- 未读邮件的装饰条 -->
           <div
             v-if="!readonly && !Boolean(email.is_read)"
-            class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-l-xl"
+            class="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-l-xl"
           ></div>
 
           <div class="flex items-start gap-3 sm:gap-4">
@@ -442,7 +442,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
               <div
                 class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
                 :class="{
-                  'bg-gradient-to-br from-primary-500 to-primary-600 text-white':
+                  'bg-primary-500 text-white':
                     ['shield-alt', 'user-plus'].includes(getEmailTypeIcon(email.subject || '', email.content || '').icon),
                   'bg-gradient-to-br from-orange-500 to-red-600 text-white':
                     getEmailTypeIcon(email.subject || '', email.content || '').icon === 'key',
@@ -593,7 +593,7 @@ const getEmailTypeIcon = (subject: string, content: string) => {
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center space-x-3">
             <div
-              class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm"
+              class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center shadow-sm"
             >
               <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-white text-xs" />
             </div>

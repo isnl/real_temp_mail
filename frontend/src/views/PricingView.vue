@@ -24,13 +24,10 @@ const plans = [
     originalPrice: '¥19.9',
     popular: false,
     description: '小量使用首选',
-    features: [
-      '50个邮箱配额',
-      '额外赠送10个配额'
-    ],
+    features: ['50个邮箱配额', '额外赠送10个配额'],
     buttonText: '咨询购买',
-    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
-    disabled: false
+    buttonColor: 'mint-solid-button border-0',
+    disabled: false,
   },
   {
     id: 'standard',
@@ -41,13 +38,10 @@ const plans = [
     originalPrice: '¥39.9',
     popular: true,
     description: '最受欢迎的选择',
-    features: [
-      '100个邮箱配额',
-      '额外赠送30个配额'
-    ],
+    features: ['100个邮箱配额', '额外赠送30个配额'],
     buttonText: '咨询购买',
-    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
-    disabled: false
+    buttonColor: 'mint-solid-button border-0',
+    disabled: false,
   },
   {
     id: 'premium',
@@ -58,13 +52,10 @@ const plans = [
     originalPrice: '¥79.9',
     popular: false,
     description: '适合重度使用',
-    features: [
-      '200个邮箱配额',
-      '额外赠送80个配额'
-    ],
+    features: ['200个邮箱配额', '额外赠送80个配额'],
     buttonText: '咨询购买',
-    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
-    disabled: false
+    buttonColor: 'mint-solid-button border-0',
+    disabled: false,
   },
   {
     id: 'pro',
@@ -75,41 +66,42 @@ const plans = [
     originalPrice: '¥159.9',
     popular: false,
     description: '专业用户专享',
-    features: [
-      '500个邮箱配额',
-      '额外赠送200个配额'
-    ],
+    features: ['500个邮箱配额', '额外赠送200个配额'],
     buttonText: '咨询购买',
-    buttonColor: 'bg-primary-600 hover:bg-primary-700 text-white border-0',
-    disabled: false
-  }
+    buttonColor: 'mint-solid-button border-0',
+    disabled: false,
+  },
 ]
 
 // FAQ数据
 const faqs = [
   {
     question: '配额是什么？如何使用？',
-    answer: '配额用于创建临时邮箱，每创建一个地址消耗 1 个配额。不同来源的有效期可能不同，请以配额记录中的到期时间为准。'
+    answer:
+      '配额用于创建临时邮箱，每创建一个地址消耗 1 个配额。不同来源的有效期可能不同，请以配额记录中的到期时间为准。',
   },
   {
     question: '如何购买配额？',
-    answer: '登录后选择方案并按提示联系管理员。当前页面不直接处理支付，具体价格、付款方式和发放时间以管理员确认为准。'
+    answer:
+      '登录后选择方案并按提示联系管理员。当前页面不直接处理支付，具体价格、付款方式和发放时间以管理员确认为准。',
   },
   {
     question: '配额如何到账？',
-    answer: '管理员确认后会提供兑换码或直接调整账户配额，您可以在配额记录中核对每一笔变动。'
+    answer: '管理员确认后会提供兑换码或直接调整账户配额，您可以在配额记录中核对每一笔变动。',
   },
   {
     question: '配额可以退款吗？',
-    answer: '购买前请与管理员确认数量、有效期和售后规则；已经发放或使用的配额如何处理，以双方确认的方案为准。'
+    answer:
+      '购买前请与管理员确认数量、有效期和售后规则；已经发放或使用的配额如何处理，以双方确认的方案为准。',
   },
   {
     question: '如何选择合适的套餐？',
-    answer: '建议根据您的使用频率选择：偶尔使用选择入门套餐，日常使用选择标准套餐，重度使用选择高级或专业套餐。'
-  }
+    answer:
+      '建议根据您的使用频率选择：偶尔使用选择入门套餐，日常使用选择标准套餐，重度使用选择高级或专业套餐。',
+  },
 ]
 
-const handlePurchase = (plan: typeof plans[0]) => {
+const handlePurchase = (plan: (typeof plans)[0]) => {
   if (!isLoggedIn.value) {
     ElMessage.warning('请先登录后再购买配额')
     router.push('/login')
@@ -120,41 +112,42 @@ const handlePurchase = (plan: typeof plans[0]) => {
     message: `咨询“${plan.name}”请联系本站管理员`,
     type: 'info',
     duration: 5000,
-    showClose: true
+    showClose: true,
   })
 }
-
-
 </script>
 
 <template>
   <div class="h-full overflow-y-auto bg-white dark:bg-gray-900">
     <!-- Hero Section -->
-    <section class="relative overflow-hidden bg-gradient-to-br from-primary-50 via-primary-50 to-primary-50 dark:from-gray-900 dark:via-primary-900/20 dark:to-primary-900/20">
+    <section class="marketing-hero relative overflow-hidden">
       <!-- 背景装饰 -->
       <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute -top-40 -right-32 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-32 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"></div>
+        <div
+          class="absolute -top-40 -right-32 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"
+        ></div>
+        <div
+          class="absolute -bottom-40 -left-32 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"
+        ></div>
       </div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div class="text-center">
           <!-- Icon -->
           <div class="flex justify-center mb-8">
-            <div class="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-2xl">
-              <font-awesome-icon
-                :icon="['fas', 'chart-pie']"
-                class="text-white text-3xl"
-              />
+            <div
+              class="w-20 h-20 bg-primary-500 rounded-2xl flex items-center justify-center shadow-sm"
+            >
+              <font-awesome-icon :icon="['fas', 'chart-pie']" class="text-white text-3xl" />
             </div>
           </div>
 
           <!-- Title -->
-          <h1 class="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary-600 via-primary-600 to-primary-600 bg-clip-text text-transparent mb-6">
-            价格
-          </h1>
+          <h1 class="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6">价格</h1>
 
-          <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed">
+          <p
+            class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed"
+          >
             选择适合您的配额套餐
           </p>
 
@@ -169,9 +162,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
     <section class="py-20 bg-gray-50 dark:bg-gray-800/50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            选择您的配额套餐
-          </h2>
+          <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">选择您的配额套餐</h2>
           <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             根据使用需求选择合适的配额方案，具体有效期以发放说明为准
           </p>
@@ -182,15 +173,15 @@ const handlePurchase = (plan: typeof plans[0]) => {
             v-for="plan in plans"
             :key="plan.id"
             :class="[
-              'relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border h-full flex flex-col',
+              'relative bg-white dark:bg-gray-800 rounded-2xl transition-colors duration-200 border h-full flex flex-col',
               plan.popular
                 ? 'border-primary-500 dark:border-primary-400 ring-2 ring-primary-500/20'
-                : 'border-gray-200 dark:border-gray-700'
+                : 'border-gray-200 dark:border-gray-700',
             ]"
           >
             <!-- 热门标签 -->
             <div v-if="plan.popular" class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+              <div class="bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
                 最受欢迎
               </div>
             </div>
@@ -216,19 +207,21 @@ const handlePurchase = (plan: typeof plans[0]) => {
                     {{ plan.originalPrice }}
                   </span>
                 </div>
-                <div v-if="plan.quota > 0" class="text-2xl font-semibold text-primary-600 dark:text-primary-400">
-                  <span v-if="plan.bonusQuota">
-                    {{ plan.quota + plan.bonusQuota }} 个配额
-                  </span>
-                  <span v-else>
-                    {{ plan.quota }} 个配额
-                  </span>
+                <div
+                  v-if="plan.quota > 0"
+                  class="text-2xl font-semibold text-primary-600 dark:text-primary-400"
+                >
+                  <span v-if="plan.bonusQuota"> {{ plan.quota + plan.bonusQuota }} 个配额 </span>
+                  <span v-else> {{ plan.quota }} 个配额 </span>
                 </div>
                 <div v-else class="text-lg font-medium text-green-600 dark:text-green-400">
                   新用户福利
                 </div>
                 <!-- 赠送提示 -->
-                <div v-if="plan.bonusQuota" class="text-sm text-orange-500 dark:text-orange-400 mt-1">
+                <div
+                  v-if="plan.bonusQuota"
+                  class="text-sm text-orange-500 dark:text-orange-400 mt-1"
+                >
                   含赠送 {{ plan.bonusQuota }} 个
                 </div>
               </div>
@@ -258,9 +251,7 @@ const handlePurchase = (plan: typeof plans[0]) => {
                   :class="[
                     'w-full py-2 px-4 rounded-md font-medium text-sm transition-colors duration-200 shadow-sm hover:shadow-md',
                     plan.buttonColor,
-                    plan.disabled
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'cursor-pointer'
+                    plan.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                   ]"
                 >
                   {{ plan.buttonText }}
@@ -276,12 +267,8 @@ const handlePurchase = (plan: typeof plans[0]) => {
     <section class="py-20 bg-white dark:bg-gray-900">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            常见问题
-          </h2>
-          <p class="text-xl text-gray-600 dark:text-gray-400">
-            关于配额购买的常见疑问解答
-          </p>
+          <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">常见问题</h2>
+          <p class="text-xl text-gray-600 dark:text-gray-400">关于配额购买的常见疑问解答</p>
         </div>
 
         <div class="space-y-6">
@@ -303,11 +290,9 @@ const handlePurchase = (plan: typeof plans[0]) => {
     </section>
 
     <!-- CTA Section -->
-    <section class="py-20 bg-gradient-to-r from-primary-600 to-primary-600">
+    <section class="marketing-cta py-20">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-bold text-white mb-6">
-          还有疑问？
-        </h2>
+        <h2 class="text-3xl font-bold text-white mb-6">还有疑问？</h2>
         <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
           如果您有其他问题或需要定制化服务，请联系本站管理员
         </p>

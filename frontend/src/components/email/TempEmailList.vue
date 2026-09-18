@@ -94,7 +94,7 @@ const formatDate = (dateString: string) => {
               class="text-4xl text-primary-500 dark:text-primary-400"
             />
           </div>
-          <div class="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-lg">
+          <div class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-lg">
             <font-awesome-icon :icon="['fas', 'plus']" class="text-white text-sm" />
           </div>
         </div>
@@ -142,7 +142,7 @@ const formatDate = (dateString: string) => {
         <!-- 选中状态的装饰条 -->
         <div
           v-if="selectedTempEmail?.id === tempEmail.id"
-          class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-l-xl"
+          class="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-l-xl"
         ></div>
 
         <div class="flex items-start justify-between">
@@ -274,7 +274,7 @@ const formatDate = (dateString: string) => {
     <div v-if="tempEmails.length > 0" class="flex-shrink-0 p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm">
+          <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center shadow-sm">
             <font-awesome-icon :icon="['fas', 'list']" class="text-white text-xs" />
           </div>
           <div>

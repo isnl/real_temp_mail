@@ -385,7 +385,7 @@ const handleRandomCreateEmail = async () => {
             class="quota-summary-card"
           >
             <div class="flex items-center">
-              <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mr-4">
+              <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center mr-4">
                 <font-awesome-icon :icon="['fas', 'check-circle']" class="text-white text-lg" />
               </div>
               <div>
@@ -401,7 +401,7 @@ const handleRandomCreateEmail = async () => {
             class="quota-summary-card"
           >
             <div class="flex items-center">
-              <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mr-4">
+              <div class="w-12 h-12 bg-sky-400 rounded-lg flex items-center justify-center mr-4">
                 <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-lg" />
               </div>
               <div>
@@ -431,7 +431,7 @@ const handleRandomCreateEmail = async () => {
               <div class="flex flex-col gap-4">
                 <div class="flex items-center space-x-3">
                   <div
-                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg"
+                    class="w-10 h-10 flex-shrink-0 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <font-awesome-icon :icon="['fas', 'inbox']" class="text-white text-lg" />
                   </div>
@@ -520,7 +520,7 @@ const handleRandomCreateEmail = async () => {
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center space-x-3 min-w-0">
                   <div
-                    class="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg"
+                    class="w-10 h-10 flex-shrink-0 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg"
                   >
                     <font-awesome-icon
                       :icon="['fas', 'envelope-open-text']"

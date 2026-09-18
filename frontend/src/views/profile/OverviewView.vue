@@ -76,7 +76,7 @@ onMounted(async () => {
             class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
           >
             <div class="flex items-center mb-2">
-              <font-awesome-icon :icon="['fas', 'clock']" class="text-orange-500 text-sm mr-2" />
+              <font-awesome-icon :icon="['fas', 'clock']" class="text-sky-500 text-sm mr-2" />
               <p class="text-sm font-medium text-gray-900 dark:text-gray-100">最后登录</p>
             </div>
             <p class="text-sm text-gray-900 dark:text-gray-100">
@@ -159,11 +159,11 @@ onMounted(async () => {
       <div class="card-base p-6">
         <div class="flex items-center space-x-4">
           <div
-            class="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center"
+            class="w-12 h-12 bg-sky-100 dark:bg-sky-900/30 rounded-lg flex items-center justify-center"
           >
             <font-awesome-icon
               :icon="['fas', 'clock']"
-              class="text-orange-600 dark:text-orange-400 text-xl"
+              class="text-sky-600 dark:text-sky-400 text-xl"
             />
           </div>
           <div class="flex-1">

@@ -75,10 +75,10 @@ const currentEmail = computed(() => emailInput.value.trim().toLowerCase())
 const hasPublicAccessForEmail = (email: string) => {
   return Boolean(
     email &&
-    publicAccessEmail.value === email &&
-    publicAccessToken.value &&
-    publicAccessTokenExpiresAt.value &&
-    new Date(publicAccessTokenExpiresAt.value).getTime() > Date.now(),
+      publicAccessEmail.value === email &&
+      publicAccessToken.value &&
+      publicAccessTokenExpiresAt.value &&
+      new Date(publicAccessTokenExpiresAt.value).getTime() > Date.now(),
   )
 }
 
@@ -134,9 +134,10 @@ const handleSubmit = async (options: { force?: boolean } = {}) => {
   }
 
   const hasEmailPublicAccess = hasPublicAccessForEmail(targetEmail)
-  const turnstileToken = hasEmailPublicAccess || !turnstile.required.value
-    ? undefined
-    : turnstile.turnstileToken.value || undefined
+  const turnstileToken =
+    hasEmailPublicAccess || !turnstile.required.value
+      ? undefined
+      : turnstile.turnstileToken.value || undefined
 
   if (turnstile.required.value && !hasEmailPublicAccess && !turnstileToken) {
     pendingQueryAfterVerify.value = true
@@ -226,7 +227,10 @@ const loadPublicEmailDetail = async (email: EmailMessage): Promise<EmailMessage>
     email: targetEmail,
     publicAccessToken: token,
   })
-  if (requestVersion !== accessStateVersion.value || targetEmail !== loadedEmail.value.toLowerCase()) {
+  if (
+    requestVersion !== accessStateVersion.value ||
+    targetEmail !== loadedEmail.value.toLowerCase()
+  ) {
     throw new Error('收件箱已切换，请重新打开邮件')
   }
   if (!response.success || !response.data) {
@@ -313,7 +317,9 @@ watch(
       <section
         class="flex-1 min-h-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden flex flex-col"
       >
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-4">
+        <div
+          class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-4"
+        >
           <div class="min-w-0">
             <div class="flex items-center gap-3">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">邮件列表</h2>
@@ -331,7 +337,10 @@ watch(
           </div>
 
           <div class="flex items-center gap-3">
-            <div v-if="hasLoaded" class="hidden sm:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <div
+              v-if="hasLoaded"
+              class="hidden sm:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+            >
               <font-awesome-icon :icon="['fas', 'inbox']" class="text-green-500" />
               <span>共 {{ totalEmails }} 封</span>
             </div>
@@ -350,12 +359,11 @@ watch(
         </div>
 
         <div class="flex-1 min-h-0">
-          <div
-            v-if="requiresChallenge"
-            class="h-full flex items-center justify-center p-8"
-          >
+          <div v-if="requiresChallenge" class="h-full flex items-center justify-center p-8">
             <div class="w-full max-w-sm">
-              <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5">
+              <div
+                class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-5"
+              >
                 <TurnstileWidget
                   v-if="turnstile.siteKey.value"
                   ref="turnstileRef"
@@ -403,10 +411,11 @@ watch(
               >
                 <font-awesome-icon :icon="['fas', 'inbox']" class="text-3xl text-primary-500" />
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                等待查询
-              </h3>
-              <p v-if="pendingQueryAfterVerify" class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">等待查询</h3>
+              <p
+                v-if="pendingQueryAfterVerify"
+                class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed"
+              >
                 验证通过后会自动加载邮件列表。
               </p>
             </div>
@@ -422,8 +431,8 @@ watch(
   min-height: 64px;
   padding: 0 22px;
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(50, 35, 24, 0.08);
-  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 30px rgba(18, 59, 50, 0.08);
+  border: 1px solid var(--border);
   background: #ffffff;
   transition:
     border-color 0.2s ease,
@@ -432,14 +441,14 @@ watch(
 
 .public-email-input :deep(.el-input__wrapper:hover),
 .public-email-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #60a5fa;
-  box-shadow: 0 14px 36px rgba(59, 130, 246, 0.16);
+  border-color: var(--focus);
+  box-shadow: 0 14px 36px rgba(52, 211, 153, 0.16);
 }
 
 .public-email-input :deep(.el-input__inner) {
   font-size: 18px;
   font-weight: 600;
-  color: #29231f;
+  color: var(--text-primary);
 }
 
 .public-query-button {
@@ -448,19 +457,19 @@ watch(
   border-radius: 8px;
   font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 10px 24px rgba(52, 211, 153, 0.25);
 }
 
 .dark .public-email-input :deep(.el-input__wrapper) {
-  background: #111827;
-  border-color: #1f2937;
+  background: var(--surface);
+  border-color: var(--border);
   box-shadow: none;
 }
 
 .dark .public-email-input :deep(.el-input__wrapper:hover),
 .dark .public-email-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #60a5fa;
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.18);
+  border-color: var(--focus);
+  box-shadow: 0 12px 30px rgba(52, 211, 153, 0.18);
 }
 
 .dark .public-email-input :deep(.el-input__inner) {

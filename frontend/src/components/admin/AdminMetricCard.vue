@@ -5,7 +5,7 @@ withDefaults(
     value: number
     icon: string
     detail?: string
-    tone?: 'brand' | 'success' | 'warm' | 'neutral'
+    tone?: 'brand' | 'success' | 'warm' | 'accent' | 'neutral'
   }>(),
   { tone: 'brand' },
 )

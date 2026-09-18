@@ -224,6 +224,9 @@
 .metric-tone-warm {
   --metric-color: var(--warning);
 }
+.metric-tone-accent {
+  --metric-color: var(--brand-accent);
+}
 .metric-tone-neutral {
   --metric-color: var(--text-secondary);
 }
@@ -271,10 +274,10 @@
   position: relative;
   overflow: hidden;
   padding: 28px 32px;
-  border: 1px solid #bb6031;
+  border: 1px solid var(--border);
   border-radius: 18px;
-  background: linear-gradient(115deg, #a44920, #bd5722);
-  color: #fff;
+  background: var(--brand-soft);
+  color: var(--text-primary);
   box-shadow: var(--shadow-sm);
 }
 .dashboard-mail-card::after {
@@ -284,7 +287,7 @@
   right: -90px;
   width: 380px;
   height: 380px;
-  border: 55px solid rgba(255, 255, 255, 0.035);
+  border: 55px solid color-mix(in srgb, var(--brand-500) 8%, transparent);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -300,10 +303,10 @@
 }
 .dashboard-period {
   padding: 4px 10px;
-  border: 1px solid #ffffff30;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   font-size: 11px;
-  color: #fff0e2;
+  color: var(--brand-link);
 }
 .dashboard-mail-value {
   margin: 15px 0 24px;
@@ -317,7 +320,7 @@
   margin-left: 12px;
   font-size: 14px;
   letter-spacing: 0;
-  color: #fbe5d2;
+  color: var(--text-secondary);
   font-weight: 400;
 }
 .dashboard-mail-summary {
@@ -325,11 +328,11 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   padding-top: 20px;
-  border-top: 1px solid #ffffff26;
+  border-top: 1px solid var(--border-strong);
 }
 .dashboard-mail-summary span {
   display: block;
-  color: #fbe5d2;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .dashboard-mail-summary strong {
@@ -660,6 +663,12 @@
 .settings-readonly-control .el-input__inner {
   font-size: 12px;
 }
-.admin-table-card .admin-row-action.el-button:not(.el-button--danger) { color: var(--el-color-primary); }
-.admin-table-card .admin-row-action.el-button--danger { color: var(--danger); }
-.admin-table-card .admin-row-action.el-button:hover { opacity: .85; }
+.admin-table-card .admin-row-action.el-button:not(.el-button--danger) {
+  color: var(--el-color-primary);
+}
+.admin-table-card .admin-row-action.el-button--danger {
+  color: var(--danger);
+}
+.admin-table-card .admin-row-action.el-button:hover {
+  opacity: 0.85;
+}

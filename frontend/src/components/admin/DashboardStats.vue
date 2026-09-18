@@ -115,7 +115,7 @@ onMounted(loadStats)
           label="今日新增用户"
           :value="stats.recentActivity.todayRegistrations"
           icon="user-plus"
-          tone="warm"
+          tone="accent"
           :detail="`本周新增 ${formatNumber(stats.recentActivity.weekRegistrations)}`"
         />
       </div>
