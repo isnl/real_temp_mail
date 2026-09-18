@@ -151,7 +151,12 @@ onMounted(() => {
     </div>
 
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <AdminFilterBar
+        :filters="searchForm"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleReset"
+      >
         <el-form-item label="用户 ID">
           <el-input v-model="searchForm.userId" placeholder="用户ID" clearable />
         </el-form-item>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +18,34 @@ const theme = useThemeStore()
 const isMobile = useMediaQuery('(max-width: 900px)')
 const collapsed = ref(false)
 const mobileOpen = ref(false)
+const sidebar = ref<HTMLElement | null>(null)
+const menuTrigger = ref<HTMLButtonElement | null>(null)
+const mainContent = ref<HTMLElement | null>(null)
+watch(mobileOpen, async (open) => {
+  await nextTick()
+  if (open) sidebar.value?.querySelector<HTMLButtonElement>('.sidebar-collapse-button')?.focus()
+  else if (isMobile.value) menuTrigger.value?.focus()
+})
+const handleSidebarKeydown = (event: KeyboardEvent) => {
+  if (!isMobile.value || !mobileOpen.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    mobileOpen.value = false
+  } else if (event.key === 'Tab') {
+    const targets = Array.from(
+      sidebar.value?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') ?? [],
+    ).filter((element) => element.offsetParent !== null)
+    const first = targets[0]
+    const last = targets[targets.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last?.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first?.focus()
+    }
+  }
+}
 const isCollapsed = computed(() => !isMobile.value && collapsed.value)
 const activePath = computed(
   () =>
@@ -28,6 +56,7 @@ watch(
   () => route.fullPath,
   () => {
     mobileOpen.value = false
+    mainContent.value?.scrollTo({ top: 0 })
   },
 )
 watch(isMobile, () => {
@@ -52,11 +81,14 @@ const logout = async () => {
       @click="mobileOpen = false"
     />
     <aside
+      ref="sidebar"
+      :id="`${area}-navigation`"
       class="workspace-sidebar"
       :class="{ 'mobile-open': mobileOpen }"
       :aria-label="area === 'admin' ? '管理后台导航' : '个人中心导航'"
       :aria-hidden="isMobile && !mobileOpen"
       :inert="isMobile && !mobileOpen ? true : undefined"
+      @keydown="handleSidebarKeydown"
     >
       <div class="workspace-brand-row">
         <BrandLogo v-if="!isCollapsed" />
@@ -79,6 +111,7 @@ const logout = async () => {
           :aria-current="activePath === item.path ? 'page' : undefined"
           :aria-label="item.title"
           :title="isCollapsed ? item.title : undefined"
+          @click="mobileOpen = false"
         >
           <font-awesome-icon :icon="item.icon" /><span v-if="!isCollapsed">{{ item.title }}</span>
         </router-link>
@@ -90,6 +123,7 @@ const logout = async () => {
           class="workspace-menu-item"
           aria-label="管理后台"
           :title="isCollapsed ? '管理后台' : undefined"
+          @click="mobileOpen = false"
           ><font-awesome-icon icon="shield-alt" /><span v-if="!isCollapsed"
             >管理后台</span
           ></router-link
@@ -100,6 +134,7 @@ const logout = async () => {
           class="workspace-menu-item"
           aria-label="个人中心"
           :title="isCollapsed ? '个人中心' : undefined"
+          @click="mobileOpen = false"
           ><font-awesome-icon icon="user" /><span v-if="!isCollapsed">个人中心</span></router-link
         >
         <button
@@ -130,18 +165,20 @@ const logout = async () => {
         </div>
       </div>
     </aside>
-    <div class="workspace-content">
+    <div class="workspace-content" :inert="isMobile && mobileOpen ? true : undefined">
       <div v-if="isMobile" class="workspace-mobile-bar">
         <button
+          ref="menuTrigger"
           class="workspace-icon-button"
           aria-label="打开菜单"
           :aria-expanded="mobileOpen"
+          :aria-controls="`${area}-navigation`"
           @click="mobileOpen = true"
         >
           <font-awesome-icon icon="bars" /></button
         ><BrandLogo />
       </div>
-      <main id="main-content" tabindex="-1">
+      <main ref="mainContent" id="main-content" tabindex="-1">
         <div class="workspace-page"><router-view /></div>
       </main>
     </div>

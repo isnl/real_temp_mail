@@ -32,14 +32,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="profile-overview-page space-y-6">
     <!-- 欢迎卡片 -->
     <div class="card-base p-5">
       <!-- 账户详细信息 -->
       <div class="profile-account-details">
         <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">账户信息</h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="profile-account-grid grid grid-cols-1 md:grid-cols-3 gap-3">
           <!-- 邮箱地址 -->
           <div
             class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
@@ -114,7 +114,7 @@ onMounted(async () => {
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="profile-stats-grid grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- 总配额 -->
       <div class="card-base p-6">
         <div class="flex items-center space-x-4">
@@ -180,7 +180,7 @@ onMounted(async () => {
     <div class="card-base p-6">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">快捷操作</h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="profile-shortcuts-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <router-link to="/profile" class="block">
           <div
             class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"

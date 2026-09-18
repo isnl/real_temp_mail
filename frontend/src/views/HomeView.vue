@@ -101,7 +101,7 @@ const stats = [
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto bg-white dark:bg-gray-900">
+  <div class="marketing-page bg-white dark:bg-gray-900">
     <!-- Hero Section -->
     <section class="marketing-hero relative overflow-hidden">
       <!-- 背景装饰 -->

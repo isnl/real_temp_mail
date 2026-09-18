@@ -44,7 +44,6 @@ const copyPublicInboxUrl = async (email: string) => {
   await copyToClipboard(getPublicInboxUrl(email))
 }
 
-
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text)
@@ -78,237 +77,161 @@ const formatDate = (dateString: string) => {
 </script>
 
 <template>
-  <div class="temp-email-list min-h-0 h-full px-10px pb-10px overflow-hidden flex flex-col">
-    <!-- Loading State -->
-    <div v-if="loading" class="p-6 text-center">
-      <el-skeleton :rows="3" animated />
+  <div class="temp-email-list">
+    <div v-if="loading" class="p-5"><el-skeleton :rows="4" animated /></div>
+    <div v-else-if="tempEmails.length === 0" class="mailbox-empty">
+      <font-awesome-icon icon="inbox" />
+      <h3>还没有临时邮箱</h3>
+      <p>选择域名创建邮箱，即可开始收信。</p>
     </div>
-
-    <!-- Empty State -->
-    <div v-else-if="tempEmails.length === 0" class="flex items-center justify-center h-full p-12">
-      <div class="text-center max-w-sm">
-        <div class="relative mb-8">
-          <div class="w-32 h-32 mx-auto bg-gradient-to-br from-primary-100 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/30 rounded-full flex items-center justify-center shadow-inner">
-            <font-awesome-icon
-              :icon="['fas', 'envelope-open']"
-              class="text-4xl text-primary-500 dark:text-primary-400"
-            />
-          </div>
-          <div class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-lg">
-            <font-awesome-icon :icon="['fas', 'plus']" class="text-white text-sm" />
-          </div>
-        </div>
-
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-          创建您的第一个临时邮箱
-        </h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-          临时邮箱可以帮助您保护隐私，快速接收验证码和重要邮件
-        </p>
-
-        <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-          <div class="flex items-center justify-center space-x-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-            <font-awesome-icon :icon="['fas', 'bolt']" class="text-primary-500" />
-            <span>集中查看邮箱来信</span>
-          </div>
-          <div class="flex items-center justify-center space-x-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-            <font-awesome-icon :icon="['fas', 'magic']" class="text-primary-500" />
-            <span>自动识别验证码</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Email List -->
-    <div v-else class="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
-      <div
+    <div v-else class="mailbox-items">
+      <article
         v-for="tempEmail in tempEmails"
         :key="tempEmail.id"
-        class="mailbox-item group relative p-4 rounded-xl transition-colors duration-200 cursor-pointer border"
-        :class="{
-          'bg-gradient-to-r from-primary-50 to-primary-50 dark:from-primary-900/20 dark:to-primary-900/20 border-primary-200 dark:border-primary-700 shadow-md':
-            selectedTempEmail?.id === tempEmail.id,
-          'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md':
-            selectedTempEmail?.id !== tempEmail.id
-        }"
-        role="button"
-        tabindex="0"
-        :aria-pressed="selectedTempEmail?.id === tempEmail.id"
-        :aria-label="`选择邮箱 ${tempEmail.email}`"
-        @click="handleSelect(tempEmail)"
-        @keydown.enter.prevent="handleSelect(tempEmail)"
-        @keydown.space.prevent="handleSelect(tempEmail)"
+        class="mailbox-item"
+        :class="{ 'is-selected': selectedTempEmail?.id === tempEmail.id }"
       >
-        <!-- 选中状态的装饰条 -->
-        <div
-          v-if="selectedTempEmail?.id === tempEmail.id"
-          class="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-l-xl"
-        ></div>
-
-        <div class="flex items-start justify-between">
-          <div class="flex-1 min-w-0">
-            <!-- Email Address -->
-            <div class="flex items-center space-x-3 mb-3">
-              <div class="flex-shrink-0">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center"
-                     :class="{
-                       'bg-primary-500 text-white shadow-lg': selectedTempEmail?.id === tempEmail.id,
-                       'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400': selectedTempEmail?.id !== tempEmail.id
-                     }">
-                  <font-awesome-icon :icon="['fas', 'at']" class="text-sm" />
-                </div>
-              </div>
-
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center space-x-2">
-                  <span class="text-sm font-semibold truncate"
-                        :class="{
-                          'text-primary-900 dark:text-primary-100': selectedTempEmail?.id === tempEmail.id,
-                          'text-gray-900 dark:text-gray-100': selectedTempEmail?.id !== tempEmail.id
-                        }">
-                    {{ tempEmail.email }}
-                  </span>
-
-                  <!-- 复制按钮 -->
-                  <el-button
-                    @click.stop="copyToClipboard(tempEmail.email)"
-                    size="small"
-                    circle
-                    class="flex-shrink-0"
-                    :class="{
-                      'hover:bg-primary-100 dark:hover:bg-primary-900/30': selectedTempEmail?.id === tempEmail.id,
-                      'hover:bg-gray-200 dark:hover:bg-gray-600': selectedTempEmail?.id !== tempEmail.id
-                    }"
-                    title="复制邮箱地址"
-                  >
-                    <font-awesome-icon
-                      :icon="['fas', 'copy']"
-                      class="text-xs"
-                      :class="{
-                        'text-primary-600 dark:text-primary-400': selectedTempEmail?.id === tempEmail.id,
-                        'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300': selectedTempEmail?.id !== tempEmail.id
-                      }"
-                    />
-                  </el-button>
-
-                  <!-- 活跃状态指示器 -->
-                  <div class="flex-shrink-0">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  </div>
-                </div>
-
-                <!-- 创建时间 -->
-                <div class="flex items-center space-x-1 mt-1">
-                  <font-awesome-icon :icon="['fas', 'clock']" class="text-xs text-gray-400" />
-                  <span class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ formatDate(tempEmail.created_at) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 操作按钮区域 -->
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <!-- 状态标签 -->
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                      :class="{
-                        'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300': selectedTempEmail?.id === tempEmail.id,
-                        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300': selectedTempEmail?.id !== tempEmail.id
-                      }">
-                  <font-awesome-icon :icon="['fas', 'circle']" class="mr-1 text-xs" />
-                  活跃中
-                </span>
-                <span
-                  v-if="tempEmail.public_inbox_enabled"
-                  class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                >
-                  <font-awesome-icon :icon="['fas', 'share-nodes']" class="mr-1 text-xs" />
-                  公开收件箱
-                </span>
-              </div>
-
-              <div class="mailbox-actions flex items-center gap-2" @click.stop>
-                <el-switch
-                  :model-value="Boolean(tempEmail.public_inbox_enabled)"
-                  :aria-label="`公开收件箱：${tempEmail.email}`"
-                  inline-prompt
-                  active-text="公开"
-                  inactive-text="私密"
-                  @change="(value: string | number | boolean) => handleTogglePublicInbox(tempEmail, Boolean(value))"
-                />
-                <el-button
-                  v-if="tempEmail.public_inbox_enabled"
-                  @click.stop="copyPublicInboxUrl(tempEmail.email)"
-                  size="small"
-                  circle
-                  title="复制公开收件箱链接"
-                >
-                  <font-awesome-icon :icon="['fas', 'link']" class="text-xs text-amber-600 dark:text-amber-400" />
-                </el-button>
-                <el-button
-                  type="danger"
-                  plain
-                  size="small"
-                  circle
-                  :loading="deletingId === tempEmail.id"
-                  :disabled="deletingId !== null"
-                  title="删除临时邮箱"
-                  :aria-label="`删除邮箱 ${tempEmail.email}`"
-                  @click.stop="emit('delete', tempEmail)"
-                >
-                  <font-awesome-icon
-                    v-if="deletingId !== tempEmail.id"
-                    :icon="['fas', 'trash']"
-                    class="text-xs"
-                  />
-                </el-button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div v-if="tempEmails.length > 0" class="flex-shrink-0 p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center shadow-sm">
-            <font-awesome-icon :icon="['fas', 'list']" class="text-white text-xs" />
-          </div>
-          <div>
-            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-              共 {{ tempEmails.length }} 个邮箱
-            </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
-              全部处于活跃状态
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-3">
-          <div class="flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-xs font-medium text-green-700 dark:text-green-300">活跃</span>
-          </div>
-        </div>
-      </div>
+        <button
+          type="button"
+          class="mailbox-select"
+          :aria-pressed="selectedTempEmail?.id === tempEmail.id"
+          :aria-label="`选择邮箱 ${tempEmail.email}`"
+          @click="handleSelect(tempEmail)"
+        >
+          <span class="mailbox-address-icon"><font-awesome-icon icon="at" /></span>
+          <span class="mailbox-address-copy">
+            <strong :title="tempEmail.email">{{ tempEmail.email }}</strong>
+            <small
+              >{{ formatDate(tempEmail.created_at)
+              }}<span v-if="tempEmail.public_inbox_enabled"> · 公开收件箱</span></small
+            >
+          </span>
+        </button>
+        <el-dropdown trigger="click" placement="bottom-end" popper-class="mailbox-actions-menu">
+          <button
+            type="button"
+            class="mailbox-icon-button"
+            :aria-label="`邮箱操作：${tempEmail.email}`"
+          >
+            <font-awesome-icon icon="ellipsis" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="copyToClipboard(tempEmail.email)"
+                >复制邮箱地址</el-dropdown-item
+              >
+              <el-dropdown-item
+                @click="handleTogglePublicInbox(tempEmail, !tempEmail.public_inbox_enabled)"
+                >{{
+                  tempEmail.public_inbox_enabled ? '关闭公开收件箱' : '开启公开收件箱'
+                }}</el-dropdown-item
+              >
+              <el-dropdown-item
+                v-if="tempEmail.public_inbox_enabled"
+                @click="copyPublicInboxUrl(tempEmail.email)"
+                >复制公开收件箱链接</el-dropdown-item
+              >
+              <el-dropdown-item
+                divided
+                class="mailbox-delete-action"
+                :disabled="deletingId !== null"
+                @click="emit('delete', tempEmail)"
+                >{{ deletingId === tempEmail.id ? '删除中…' : '删除邮箱' }}</el-dropdown-item
+              >
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </article>
     </div>
   </div>
 </template>
 
 <style scoped>
+.temp-email-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.mailbox-items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .mailbox-item {
-  border-style: solid;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
 }
-
-.mailbox-actions :deep(.el-button) {
-  margin-left: 0;
+.mailbox-item:hover {
+  background: var(--surface-muted);
 }
-
-.mailbox-actions :deep(.el-switch) {
-  --el-switch-off-color: #64748b;
+.mailbox-item.is-selected {
+  background: var(--brand-soft);
+}
+.mailbox-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+}
+.mailbox-address-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-size: 19px;
+}
+.is-selected .mailbox-address-icon {
+  color: var(--brand-link);
+}
+.mailbox-address-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.mailbox-address-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.mailbox-address-copy small {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+@media (max-width: 1100px) {
+  .temp-email-list {
+    height: auto;
+  }
+  .mailbox-items {
+    overflow: visible;
+  }
+}
+@media (max-width: 600px) {
+  .mailbox-item {
+    padding: 10px 12px;
+    gap: 4px;
+  }
+  .mailbox-select {
+    gap: 6px;
+  }
+  .mailbox-address-icon {
+    width: 24px;
+    font-size: 17px;
+  }
 }
 </style>

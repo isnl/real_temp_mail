@@ -135,7 +135,12 @@ onMounted(() => {
 <template>
   <div class="admin-module">
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <AdminFilterBar
+        :filters="searchForm"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleReset"
+      >
         <el-form-item label="关键词">
           <el-input v-model="searchForm.search" placeholder="搜索用户邮箱或IP地址" clearable>
             <template #prefix>
@@ -143,8 +148,13 @@ onMounted(() => {
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="操作类型">
-          <el-select v-model="searchForm.action" placeholder="选择操作类型" clearable class="w-full">
+        <el-form-item label="操作类型" class="admin-filter-wide">
+          <el-select
+            v-model="searchForm.action"
+            placeholder="选择操作类型"
+            clearable
+            class="w-full"
+          >
             <el-option
               v-for="action in actions"
               :key="action"

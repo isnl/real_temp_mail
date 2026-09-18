@@ -154,11 +154,7 @@ const exportEmails = () => {
 
     const csvContent = [
       Object.keys(emailData[0]).map(escapeCsvCell).join(','),
-      ...emailData.map((row) =>
-        Object.values(row)
-          .map(escapeCsvCell)
-          .join(','),
-      ),
+      ...emailData.map((row) => Object.values(row).map(escapeCsvCell).join(',')),
     ].join('\n')
 
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -259,396 +255,295 @@ const truncateText = (text: string, maxLength: number = 100) => {
   if (!text) return ''
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
-
-const getEmailTypeIcon = (subject: string, content: string) => {
-  const lowerSubject = subject?.toLowerCase() || ''
-  const lowerContent = content?.toLowerCase() || ''
-
-  if (
-    lowerSubject.includes('verification') ||
-    lowerSubject.includes('验证') ||
-    lowerContent.includes('verification code') ||
-    lowerContent.includes('验证码')
-  ) {
-    return { icon: 'shield-alt', color: 'text-green-500' }
-  }
-
-  if (
-    lowerSubject.includes('reset') ||
-    lowerSubject.includes('password') ||
-    lowerSubject.includes('重置') ||
-    lowerSubject.includes('密码')
-  ) {
-    return { icon: 'key', color: 'text-orange-500' }
-  }
-
-  if (
-    lowerSubject.includes('welcome') ||
-    lowerSubject.includes('confirm') ||
-    lowerSubject.includes('欢迎') ||
-    lowerSubject.includes('确认')
-  ) {
-    return { icon: 'user-plus', color: 'text-primary-500' }
-  }
-
-  return { icon: 'envelope', color: 'text-gray-500' }
-}
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <!-- Toolbar -->
-    <div
-      v-if="emails.length > 0 && !readonly"
-      class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10"
-    >
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex min-w-0 items-center sm:space-x-4">
-          <div class="flex min-w-0 flex-wrap items-center gap-3">
-            <el-checkbox
-              v-model="selectAll"
-              @change="handleSelectAll"
-              :indeterminate="selectedEmails.length > 0 && selectedEmails.length < emails.length"
-              class="font-medium"
-            >
-              全选
-            </el-checkbox>
-
-            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
-
-            <div class="flex items-center space-x-2">
-              <div
-                class="w-6 h-6 bg-primary-500 rounded-lg flex items-center justify-center shadow-sm"
-              >
-                <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-xs" />
-              </div>
-              <div class="text-sm">
-                <span
-                  v-if="selectedEmails.length > 0"
-                  class="font-semibold text-green-700 dark:text-green-300"
-                >
-                  已选择 {{ selectedEmails.length }} 封邮件
-                </span>
-                <span v-else class="font-medium text-gray-700 dark:text-gray-300">
-                  共 {{ emails.length }} 封邮件
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-          <el-button
-            v-if="selectedEmails.length > 0"
-            size="default"
-            type="danger"
-            @click="handleBatchDelete"
-            :disabled="loading"
-            class="shadow-sm"
-          >
-            <font-awesome-icon icon="trash" class="mr-2" />
-            批量删除 ({{ selectedEmails.length }})
-          </el-button>
-
-          <el-button size="default" @click="exportEmails" :disabled="loading" class="shadow-sm">
-            <font-awesome-icon icon="download" class="mr-2" />
-            导出邮件
-          </el-button>
-        </div>
+  <div class="email-list">
+    <div v-if="emails.length > 0 && !readonly" class="email-list-toolbar">
+      <el-checkbox
+        v-model="selectAll"
+        @change="handleSelectAll"
+        :indeterminate="selectedEmails.length > 0 && selectedEmails.length < emails.length"
+        >全选</el-checkbox
+      >
+      <span class="email-selection-count">{{
+        selectedEmails.length ? `已选 ${selectedEmails.length}` : `${emails.length} 封`
+      }}</span>
+      <div class="email-toolbar-actions">
+        <el-button
+          v-if="selectedEmails.length > 0"
+          type="danger"
+          plain
+          @click="handleBatchDelete"
+          :disabled="loading"
+          >删除 {{ selectedEmails.length }}</el-button
+        >
+        <el-button @click="exportEmails" :disabled="loading"
+          ><font-awesome-icon icon="download" class="mr-1" />导出</el-button
+        >
       </div>
     </div>
-
-    <!-- Content Area -->
-    <div class="flex-1 overflow-y-auto">
-      <!-- Loading State -->
-      <div v-if="loading" class="p-6">
-        <el-skeleton :rows="4" animated />
+    <div class="email-list-scroll">
+      <div v-if="loading" class="p-5"><el-skeleton :rows="4" animated /></div>
+      <div v-else-if="emails.length === 0" class="mailbox-empty">
+        <font-awesome-icon icon="envelope-open" />
+        <h3>暂时没有来信</h3>
+        <p>新邮件到达后，刷新即可查看。</p>
       </div>
-
-      <!-- Empty State -->
-      <div v-else-if="emails.length === 0" class="flex items-center justify-center h-full p-12">
-        <div class="text-center max-w-sm">
-          <div class="relative mb-8">
-            <div
-              class="w-32 h-32 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center shadow-inner"
-            >
-              <font-awesome-icon
-                :icon="['fas', 'inbox']"
-                class="text-4xl text-gray-400 dark:text-gray-500"
-              />
-            </div>
-            <div
-              class="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-lg"
-            >
-              <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-sm" />
-            </div>
-          </div>
-
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">邮箱空空如也</h3>
-          <p class="text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-            新邮件到达后，点击刷新即可在这里查看
-          </p>
-
-          <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <div class="flex items-center justify-center space-x-2">
-              <font-awesome-icon :icon="['fas', 'bolt']" class="text-yellow-500" />
-              <span>集中查看来信</span>
-            </div>
-            <div class="flex items-center justify-center space-x-2">
-              <font-awesome-icon :icon="['fas', 'shield-alt']" class="text-green-500" />
-              <span>自动识别验证码</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Email List -->
-      <div v-else class="p-4 space-y-3">
+      <div v-else>
         <article
           v-for="email in sortedEmails"
           :key="email.id"
-          class="group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer"
-          :class="{
-            'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md': true,
-            'ring-2 ring-primary-200 dark:ring-primary-800 bg-primary-50/30 dark:bg-primary-900/10':
-              !readonly && !Boolean(email.is_read),
-          }"
-          @click="handleEmailClick(email)"
-          @keydown.enter.prevent="handleEmailClick(email)"
-          @keydown.space.prevent="handleEmailClick(email)"
-          role="button"
-          tabindex="0"
-          :aria-label="`查看邮件：${email.subject || '无主题'}`"
+          class="message-row"
+          :class="{ 'is-unread': !readonly && !Boolean(email.is_read) }"
         >
-          <!-- 未读邮件的装饰条 -->
-          <div
-            v-if="!readonly && !Boolean(email.is_read)"
-            class="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-l-xl"
-          ></div>
-
-          <div class="flex items-start gap-3 sm:gap-4">
-            <!-- Checkbox -->
-            <div v-if="!readonly" class="flex-shrink-0 mt-1">
-              <el-checkbox
-                :model-value="selectedEmails.includes(email.id)"
-                @change="(checked: boolean) => handleSelectEmail(email.id, checked)"
-                @click.stop
-                class="opacity-60 group-hover:opacity-100 transition-opacity"
-              />
-            </div>
-
-            <!-- Email Type Icon -->
-            <div class="flex-shrink-0 mt-1">
-              <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                :class="{
-                  'bg-primary-500 text-white':
-                    ['shield-alt', 'user-plus'].includes(getEmailTypeIcon(email.subject || '', email.content || '').icon),
-                  'bg-gradient-to-br from-orange-500 to-red-600 text-white':
-                    getEmailTypeIcon(email.subject || '', email.content || '').icon === 'key',
-                  'bg-gradient-to-br from-gray-400 to-gray-600 text-white':
-                    getEmailTypeIcon(email.subject || '', email.content || '').icon === 'envelope',
-                }"
+          <div class="message-main">
+            <el-checkbox
+              v-if="!readonly"
+              :model-value="selectedEmails.includes(email.id)"
+              :aria-label="`选择邮件：${email.subject || '无主题'}`"
+              @change="(checked: boolean) => handleSelectEmail(email.id, checked)"
+            />
+            <button
+              type="button"
+              class="message-open"
+              :aria-label="`查看邮件：${email.subject || '无主题'}`"
+              @click="handleEmailClick(email)"
+            >
+              <span class="message-meta"
+                ><span class="message-sender" :title="email.sender">{{ email.sender }}</span
+                ><time>{{ formatDate(email.received_at) }}</time></span
               >
-                <font-awesome-icon
-                  :icon="['fas', getEmailTypeIcon(email.subject || '', email.content || '').icon]"
-                  class="text-sm"
-                />
-              </div>
+              <strong class="message-subject">{{ email.subject || '无主题' }}</strong>
+              <span class="message-preview">{{
+                truncateText(email.preview || email.content_preview || email.content || '')
+              }}</span>
+            </button>
+          </div>
+          <div class="message-extras">
+            <div v-if="email.verification_code" class="message-code">
+              <span>验证码</span><strong>{{ email.verification_code }}</strong>
+              <button
+                type="button"
+                class="mailbox-icon-button"
+                aria-label="复制验证码"
+                @click="copyToClipboard(email.verification_code!)"
+              >
+                <font-awesome-icon icon="copy" />
+              </button>
             </div>
-
-            <!-- Email Content -->
-            <div class="flex-1 min-w-0">
-              <!-- Header -->
-              <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
-                <div class="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-                  <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {{ email.sender }}
-                  </span>
-                  <div v-if="!readonly" class="flex items-center space-x-2">
-                    <span
-                      v-if="!Boolean(email.is_read)"
-                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300"
-                    >
-                      <div class="w-1.5 h-1.5 bg-primary-500 rounded-full mr-1 animate-pulse"></div>
-                      新邮件
-                    </span>
-                    <span
-                      v-else
-                      class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                    >
-                      已读
-                    </span>
-                  </div>
-                </div>
-                <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 font-medium">
-                  {{ formatDate(email.received_at) }}
-                </span>
-              </div>
-
-              <!-- Subject -->
-              <div class="mb-3">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-                  {{ email.subject || '无主题' }}
-                </h3>
-              </div>
-
-              <!-- Preview -->
-              <div class="mb-3">
-                <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                  {{ truncateText(email.preview || email.content_preview || email.content || '') }}
-                </p>
-              </div>
-
-              <!-- Verification Code -->
-              <div v-if="email.verification_code" class="mb-4">
-                <div
-                  class="inline-flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-100 dark:from-primary-900/20 dark:to-primary-900/20 rounded-xl border border-green-200 dark:border-green-800"
-                >
-                  <div class="flex items-center space-x-2">
-                    <div class="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
-                      <font-awesome-icon :icon="['fas', 'key']" class="text-white text-xs" />
-                    </div>
-                    <span class="text-xs font-medium text-green-700 dark:text-green-300"
-                      >验证码</span
-                    >
-                  </div>
-
-                  <span
-                    class="text-lg font-mono font-bold text-green-800 dark:text-green-200 tracking-wider"
-                  >
-                    {{ email.verification_code }}
-                  </span>
-
-                  <el-button
-                    @click.stop="copyToClipboard(email.verification_code!)"
-                    size="small"
-                    circle
-                    class="hover:bg-green-200 dark:hover:bg-green-800 shadow-sm"
-                    title="复制验证码"
-                  >
-                    <font-awesome-icon
-                      :icon="['fas', 'copy']"
-                      class="text-green-600 dark:text-green-400 text-xs"
-                    />
-                  </el-button>
-                </div>
-              </div>
-
-              <!-- Actions -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                  <!-- 邮件类型标签 -->
-                  <span
-                    v-if="email.verification_code"
-                    class="inline-flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full text-xs font-medium text-green-700 dark:text-green-300"
-                  >
-                    <font-awesome-icon :icon="['fas', 'shield-alt']" />
-                    <span>验证邮件</span>
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center space-x-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400"
-                  >
-                    <font-awesome-icon :icon="['fas', 'envelope']" />
-                    <span>普通邮件</span>
-                  </span>
-                </div>
-
-                <div
-                  class="flex items-center space-x-2 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                >
-                  <el-button
-                    @click.stop="handleEmailClick(email)"
-                    size="small"
-                    circle
-                    class="hover:bg-primary-100 dark:hover:bg-primary-900/30 shadow-sm"
-                    title="查看详情"
-                  >
-                    <font-awesome-icon :icon="['fas', 'eye']" class="text-primary-500 text-xs" />
-                  </el-button>
-
-                  <el-button
-                    v-if="!readonly"
-                    @click.stop="handleDeleteEmail(email.id)"
-                    size="small"
-                    circle
-                    class="hover:bg-red-100 dark:hover:bg-red-900/20 shadow-sm"
-                    title="删除邮件"
-                  >
-                    <font-awesome-icon :icon="['fas', 'trash']" class="text-red-500 text-xs" />
-                  </el-button>
-                </div>
-              </div>
-            </div>
+            <span v-if="!readonly" class="message-read-status">{{
+              Boolean(email.is_read) ? '已读' : '未读'
+            }}</span>
+            <button
+              v-if="!readonly"
+              type="button"
+              class="mailbox-icon-button message-delete"
+              :aria-label="`删除邮件：${email.subject || '无主题'}`"
+              @click="handleDeleteEmail(email.id)"
+            >
+              <font-awesome-icon icon="trash" />
+            </button>
           </div>
         </article>
       </div>
-
-      <!-- Footer -->
-      <div
-        v-if="emails.length > 0"
-        class="p-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50 to-primary-50/30 dark:from-gray-800/50 dark:to-primary-900/10"
-      >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center space-x-3">
-            <div
-              class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center shadow-sm"
-            >
-              <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-white text-xs" />
-            </div>
-            <div>
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">邮件统计</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                当前 {{ emails.length }} 封，共 {{ displayTotal }} 封
-              </div>
-            </div>
-          </div>
-
-          <el-pagination
-            v-if="displayTotal > pageSize"
-            small
-            background
-            layout="prev, pager, next"
-            :current-page="page"
-            :page-size="pageSize"
-            :pager-count="5"
-            :total="displayTotal"
-            aria-label="邮件分页"
-            @current-change="emit('pageChange', $event)"
-          />
-
-          <div v-if="!readonly" class="flex items-center space-x-4">
-            <div
-              class="flex items-center space-x-1 px-3 py-1 bg-primary-100 dark:bg-primary-900/30 rounded-full"
-            >
-              <div class="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
-              <span class="text-xs font-medium text-primary-700 dark:text-primary-300">
-                {{ emails.filter((e) => !e.is_read).length }} 未读
-              </span>
-            </div>
-            <div
-              class="flex items-center space-x-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full"
-            >
-              <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
-              <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {{ emails.filter((e) => e.is_read).length }} 已读
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <footer v-if="emails.length > 0" class="email-list-footer">
+        <span>当前 {{ emails.length }} 封，共 {{ displayTotal }} 封</span>
+        <el-pagination
+          v-if="displayTotal > pageSize"
+          small
+          background
+          layout="prev, pager, next"
+          :current-page="page"
+          :page-size="pageSize"
+          :pager-count="5"
+          :total="displayTotal"
+          aria-label="邮件分页"
+          @current-change="emit('pageChange', $event)"
+        />
+      </footer>
     </div>
   </div>
-  <!-- Email Detail Dialog -->
   <EmailDetailDialog v-model="showDetailDialog" :email="selectedEmail" :loading="detailLoading" />
 </template>
 
 <style scoped>
-.line-clamp-2 {
+.email-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.email-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.email-selection-count {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+.email-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.email-toolbar-actions :deep(.el-button) {
+  margin: 0;
+}
+.email-list-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.message-row {
+  min-width: 0;
+  padding: 16px 20px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.message-row:hover {
+  background: var(--surface-muted);
+}
+.message-row.is-unread {
+  background: color-mix(in srgb, var(--brand-soft) 38%, var(--surface));
+}
+.message-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.message-main > :deep(.el-checkbox) {
+  flex-shrink: 0;
+  height: 32px;
+}
+.message-open {
+  display: grid;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text-primary);
+  background: transparent;
+  text-align: left;
+}
+.message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+.message-sender {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.message-meta time {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.message-subject {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.message-preview {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.message-extras {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.message-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding-left: 10px;
+  border-radius: 7px;
+  background: var(--brand-soft);
+  color: var(--brand-link);
+}
+.message-code > span {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.message-code strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+.message-read-status {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.message-delete {
+  color: var(--text-tertiary);
+}
+.message-delete:hover {
+  color: var(--danger);
+}
+.email-list-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .email-list {
+    height: auto;
+  }
+  .mailbox-messages .email-list-scroll {
+    overflow: visible;
+  }
+}
+@media (max-width: 600px) {
+  .email-list-toolbar {
+    padding: 8px 12px;
+  }
+  .message-row {
+    padding: 14px 12px 8px;
+  }
+  .message-main {
+    gap: 8px;
+  }
+  .message-meta {
+    flex-wrap: wrap;
+    gap: 3px 8px;
+  }
+  .message-sender {
+    flex-basis: 100%;
+  }
+  .email-list-footer {
+    padding: 14px 12px;
+  }
 }
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import AdminFilterBar from './AdminFilterBar.vue'
+import AdminActionsColumn from '@/components/admin/AdminActionsColumn.vue'
 import AdminPagination from './AdminPagination.vue'
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -160,6 +161,12 @@ const handleDelete = async (domain: Domain) => {
   }
 }
 
+const rowActions = (row: Domain) => [
+  { label: row.status === 1 ? '禁用' : '启用', run: () => handleToggleStatus(row) },
+  { label: '删除', danger: true, run: () => handleDelete(row) },
+]
+const rowLabel = (row: Domain) => String(row.domain || row.id)
+
 onMounted(() => {
   loadDomains()
 })
@@ -173,7 +180,12 @@ onMounted(() => {
       >
     </div>
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <AdminFilterBar
+        :filters="filters"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleReset"
+      >
         <el-form-item label="域名"
           ><el-input v-model="filters.search" placeholder="搜索域名" clearable
         /></el-form-item>
@@ -206,30 +218,7 @@ onMounted(() => {
             {{ new Date(row.created_at).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <div class="admin-row-actions">
-              <el-button
-                link
-                class="admin-row-action"
-                :type="row.status === 1 ? 'warning' : 'success'"
-                size="small"
-                @click="handleToggleStatus(row)"
-                >{{ row.status === 1 ? '禁用' : '启用' }}</el-button
-              >
-              <el-button
-                link
-                class="admin-row-action"
-                type="danger"
-                size="small"
-                @click="handleDelete(row)"
-                aria-label="删除域名"
-                title="删除域名"
-                >删除</el-button
-              >
-            </div>
-          </template>
-        </el-table-column>
+        <AdminActionsColumn :actions="rowActions" :row-label="rowLabel" :width="200" />
       </el-table>
 
       <AdminPagination

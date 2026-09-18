@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import AdminFilterBar from '@/components/admin/AdminFilterBar.vue'
+import AdminActionsColumn from '@/components/admin/AdminActionsColumn.vue'
 import AdminPagination from '@/components/admin/AdminPagination.vue'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -180,6 +181,13 @@ const handleQuotaSubmit = async () => {
   }
 }
 
+const rowActions = (row: AdminUserDetails) => [
+  { label: '编辑', run: () => handleEdit(row) },
+  { label: '分配配额', run: () => handleAllocateQuota(row) },
+  { label: '删除', danger: true, run: () => handleDelete(row) },
+]
+const rowLabel = (row: AdminUserDetails) => String(row.email || row.id)
+
 onMounted(() => {
   loadUsers()
 })
@@ -188,7 +196,12 @@ onMounted(() => {
 <template>
   <div class="admin-module">
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <AdminFilterBar
+        :filters="searchForm"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleReset"
+      >
         <el-form-item label="邮箱地址">
           <el-input v-model="searchForm.search" placeholder="搜索邮箱地址" clearable>
             <template #prefix>
@@ -245,42 +258,7 @@ onMounted(() => {
               {{ new Date(row.created_at).toLocaleString() }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <div class="admin-row-actions">
-                <el-button
-                  link
-                  class="admin-row-action"
-                  type="primary"
-                  size="small"
-                  @click="handleEdit(row)"
-                  aria-label="编辑"
-                  title="编辑"
-                  >编辑</el-button
-                >
-                <el-button
-                  link
-                  class="admin-row-action"
-                  type="success"
-                  size="small"
-                  @click="handleAllocateQuota(row)"
-                  aria-label="分配配额"
-                  title="分配配额"
-                  >分配配额</el-button
-                >
-                <el-button
-                  link
-                  class="admin-row-action"
-                  type="danger"
-                  size="small"
-                  @click="handleDelete(row)"
-                  aria-label="删除"
-                  title="删除"
-                  >删除</el-button
-                >
-              </div>
-            </template>
-          </el-table-column>
+          <AdminActionsColumn :actions="rowActions" :row-label="rowLabel" :width="200" />
         </el-table>
       </div>
 

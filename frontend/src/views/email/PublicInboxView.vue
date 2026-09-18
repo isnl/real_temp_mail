@@ -283,7 +283,7 @@ watch(
 </script>
 
 <template>
-  <div class="h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+  <div class="public-inbox-page h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
     <div class="max-w-1200px mx-auto h-full px-4 sm:px-6 lg:px-8 py-5 flex flex-col gap-5">
       <section class="flex-shrink-0">
         <div class="flex flex-col gap-3 sm:flex-row">

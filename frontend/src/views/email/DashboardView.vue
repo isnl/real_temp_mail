@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { useEmailStore } from '@/stores/email'
 import { useAuthStore } from '@/stores/auth'
 import { useUserQueries } from '@/composables/useUserQueries'
@@ -30,6 +31,19 @@ const { checkAndShowAnnouncement } = useAnnouncement()
 const publicSettings = usePublicSettings()
 
 const loading = ref(false)
+const compactMailbox = useMediaQuery('(max-width: 1100px)')
+const mobilePane = ref<'mailboxes' | 'messages'>('mailboxes')
+const workbench = ref<HTMLElement | null>(null)
+const showPane = async (pane: 'mailboxes' | 'messages') => {
+  mobilePane.value = pane
+  if (compactMailbox.value) {
+    await nextTick()
+    workbench.value
+      ?.querySelector<HTMLButtonElement>('.mailbox-mobile-tabs button[aria-pressed="true"]')
+      ?.focus({ preventScroll: true })
+    workbench.value?.scrollIntoView({ block: 'start' })
+  }
+}
 
 const showRedeemDialog = ref(false)
 const isCreatingInline = ref(false)
@@ -38,6 +52,9 @@ const deletingEmailId = ref<number | null>(null)
 
 const selectedTempEmail = computed(() => emailStore.selectedTempEmail)
 const currentEmails = computed(() => emailStore.currentEmails)
+watch(selectedTempEmail, (email) => {
+  if (!email) mobilePane.value = 'mailboxes'
+})
 const publicInboxRequiresTurnstile = computed(
   () =>
     publicSettings.settings.value.turnstileEnabled &&
@@ -74,8 +91,16 @@ const loadData = async () => {
 }
 
 const handleSelectEmail = async (tempEmail: TempEmail) => {
+  void showPane('messages')
   try {
     await emailStore.fetchEmailsForTempEmail(tempEmail.id)
+    if (
+      compactMailbox.value &&
+      mobilePane.value === 'messages' &&
+      selectedTempEmail.value?.id === tempEmail.id
+    ) {
+      void showPane('messages')
+    }
   } catch (error) {
     console.error('Fetch emails error:', error)
     ElMessage.error('获取邮件列表失败')
@@ -226,7 +251,7 @@ const handleInlineCreateEmail = async (domainId?: number) => {
 
   try {
     const request: CreateEmailRequest = {
-      domainId: targetDomainId
+      domainId: targetDomainId,
     }
 
     const response = await emailStore.createTempEmail(request)
@@ -243,6 +268,7 @@ const handleInlineCreateEmail = async (domainId?: number) => {
 
       // 自动选中新创建的邮箱
       emailStore.setSelectedTempEmail(newTempEmail)
+      void showPane('messages')
 
       // 自动复制邮箱地址到剪贴板
       try {
@@ -253,7 +279,7 @@ const handleInlineCreateEmail = async (domainId?: number) => {
           message: `临时邮箱创建成功！邮箱地址 ${newTempEmail.email} 已复制到剪贴板`,
           type: 'success',
           duration: 4000,
-          showClose: true
+          showClose: true,
         })
       } catch (copyError) {
         console.error('Copy failed:', copyError)
@@ -272,7 +298,6 @@ const handleInlineCreateEmail = async (domainId?: number) => {
       // 兜底处理：如果没有返回邮箱信息
       ElMessage.success('临时邮箱创建成功')
     }
-
   } catch (error) {
     console.error('Create email error:', error)
 
@@ -292,7 +317,6 @@ const handleInlineCreateEmail = async (domainId?: number) => {
     }
 
     ElMessage.error(errorMessage)
-
   } finally {
     isCreatingInline.value = false
   }
@@ -330,346 +354,384 @@ const handleRandomCreateEmail = async () => {
 }
 
 // 删除了 handleCreateCommand 函数，因为现在直接调用对应的方法
-
-
 </script>
 
 <template>
-  <div class="dashboard-page flex flex-col">
-    <!-- Header -->
-    <div
-      class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-lg dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700"
-    >
-      <div class="px-6 py-4">
-        <div class="flex justify-end gap-4">
-          <!-- Action Buttons -->
-          <div class="flex items-center gap-3">
-            <el-button @click="showRedeemDialog = true" type="primary" size="default">
-              <font-awesome-icon :icon="['fas', 'gift']" class="mr-2" />
-              兑换配额
+  <div class="dashboard-page">
+    <div class="console-quota-row">
+      <div class="console-quota-grid" :aria-busy="quotaLoading && !quotaReady">
+        <div
+          v-for="(item, index) in [
+            { label: '总配额', value: quotaInfo.total },
+            { label: '已使用', value: quotaInfo.used },
+            { label: '剩余配额', value: quotaInfo.remaining },
+          ]"
+          :key="item.label"
+          class="console-quota-stat"
+          :class="{ 'is-remaining': index === 2 }"
+        >
+          <span>{{ item.label }}</span>
+          <el-skeleton v-if="quotaLoading && !quotaReady" animated :rows="0" />
+          <strong v-else>{{ item.value.toLocaleString('zh-CN') }}</strong>
+        </div>
+      </div>
+      <el-button type="primary" class="console-redeem" @click="showRedeemDialog = true">
+        <font-awesome-icon icon="gift" />兑换配额
+      </el-button>
+    </div>
+
+    <div ref="workbench" class="mailbox-workbench">
+      <div v-if="compactMailbox" class="mailbox-mobile-tabs" aria-label="收件工作区">
+        <button
+          type="button"
+          :aria-pressed="mobilePane === 'mailboxes'"
+          @click="showPane('mailboxes')"
+        >
+          <font-awesome-icon icon="inbox" />邮箱
+          <span>{{ emailStore.activeTempEmails.length }}</span>
+        </button>
+        <button
+          type="button"
+          :aria-pressed="mobilePane === 'messages'"
+          :disabled="!selectedTempEmail"
+          @click="showPane('messages')"
+        >
+          <font-awesome-icon icon="envelope" />邮件
+        </button>
+      </div>
+      <div class="mailbox-grid">
+        <section
+          v-show="!compactMailbox || mobilePane === 'mailboxes'"
+          class="mailbox-panel mailbox-addresses"
+          aria-label="临时邮箱"
+        >
+          <header class="mailbox-panel-heading">
+            <h2><font-awesome-icon icon="inbox" />临时邮箱</h2>
+            <span class="mailbox-count">{{ emailStore.activeTempEmails.length }}</span>
+          </header>
+          <div class="mailbox-create-controls">
+            <div class="mailbox-create-row">
+              <el-select
+                v-model="selectedDomainId"
+                placeholder="选择域名"
+                class="mailbox-domain-select"
+                aria-label="邮箱域名"
+                :disabled="emailStore.availableDomains.length === 0"
+              >
+                <el-option
+                  v-for="domain in emailStore.availableDomains"
+                  :key="domain.id"
+                  :label="`@${domain.domain}`"
+                  :value="domain.id"
+                />
+              </el-select>
+              <el-button
+                type="primary"
+                :loading="isCreatingInline"
+                :disabled="!quotaReady || quotaInfo.remaining <= 0 || !selectedDomainId"
+                @click="handleInlineCreateEmail()"
+              >
+                <font-awesome-icon v-if="!isCreatingInline" icon="plus" />创建
+              </el-button>
+            </div>
+            <el-button
+              plain
+              :loading="isCreatingInline"
+              :disabled="!quotaReady || quotaInfo.remaining <= 0"
+              @click="handleRandomCreateEmail"
+            >
+              <font-awesome-icon v-if="!isCreatingInline" icon="dice" />随机域名创建
             </el-button>
           </div>
-        </div>
-
-        <!-- Quota Cards -->
-        <div v-if="quotaLoading && !quotaReady" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6" aria-label="正在加载配额">
-          <div v-for="index in 3" :key="index" class="quota-summary-skeleton">
-            <el-skeleton animated>
-              <template #template>
-                <div class="flex items-center gap-4">
-                  <el-skeleton-item variant="circle" style="width: 48px; height: 48px" />
-                  <div class="flex-1"><el-skeleton-item variant="text" style="width: 54%" /><el-skeleton-item variant="h1" style="width: 72%; margin-top: 8px" /></div>
-                </div>
-              </template>
-            </el-skeleton>
+          <div class="mailbox-body">
+            <TempEmailList
+              :loading="loading"
+              :deleting-id="deletingEmailId"
+              @select="handleSelectEmail"
+              @toggle-public-inbox="handleTogglePublicInbox"
+              @delete="handleDeleteTempEmail"
+            />
           </div>
-        </div>
-        <div v-else class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          <div
-            class="quota-summary-card"
-          >
-            <div class="flex items-center">
-              <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center mr-4">
-                <font-awesome-icon :icon="['fas', 'envelope']" class="text-white text-lg" />
-              </div>
-              <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">总配额</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ quotaInfo.total }}
-                </p>
-              </div>
+        </section>
+
+        <section
+          v-show="!compactMailbox || mobilePane === 'messages'"
+          class="mailbox-panel mailbox-messages"
+          aria-label="邮件列表"
+        >
+          <header class="mailbox-panel-heading">
+            <div class="mailbox-heading-copy">
+              <h2><font-awesome-icon icon="envelope-open-text" />邮件列表</h2>
+              <span v-if="selectedTempEmail" class="mailbox-selected-address">{{
+                selectedTempEmail.email
+              }}</span>
+            </div>
+            <div v-if="selectedTempEmail" class="mailbox-heading-actions">
+              <button
+                type="button"
+                class="mailbox-icon-button"
+                aria-label="复制邮箱地址"
+                @click="copyToClipboard(selectedTempEmail.email)"
+              >
+                <font-awesome-icon icon="copy" />
+              </button>
+              <button
+                type="button"
+                class="mailbox-icon-button"
+                aria-label="刷新邮件"
+                :disabled="emailStore.isLoading"
+                @click="handleEmailRefresh"
+              >
+                <font-awesome-icon
+                  icon="refresh"
+                  :class="{ 'animate-spin': emailStore.isLoading }"
+                />
+              </button>
+            </div>
+          </header>
+          <div class="mailbox-body">
+            <EmailList
+              v-if="selectedTempEmail"
+              :temp-email-id="selectedTempEmail.id"
+              :emails="currentEmails"
+              :loading="emailStore.isLoading"
+              :page="emailStore.currentEmailPage"
+              :page-size="emailStore.currentEmailPageSize"
+              :total="emailStore.currentEmailTotal"
+              @page-change="handleEmailPageChange"
+            />
+            <div v-else class="mailbox-empty">
+              <font-awesome-icon icon="envelope-open" />
+              <h3>选择一个邮箱</h3>
+              <p>在邮箱列表中选择地址，查看收到的邮件。</p>
             </div>
           </div>
-
-          <div
-            class="quota-summary-card"
-          >
-            <div class="flex items-center">
-              <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center mr-4">
-                <font-awesome-icon :icon="['fas', 'check-circle']" class="text-white text-lg" />
-              </div>
-              <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">已使用</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ quotaInfo.used }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="quota-summary-card"
-          >
-            <div class="flex items-center">
-              <div class="w-12 h-12 bg-sky-400 rounded-lg flex items-center justify-center mr-4">
-                <font-awesome-icon :icon="['fas', 'clock']" class="text-white text-lg" />
-              </div>
-              <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">剩余配额</p>
-                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {{ quotaInfo.remaining }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
-
-    <!-- Main Content -->
-    <div class="dashboard-content flex-1 py-6">
-      <div class="mailbox-grid">
-        <!-- Temp Email List -->
-        <div class="mailbox-panel group relative">
-          <div
-            class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
-          >
-            <!-- 顶部装饰条 -->
-            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-primary-500 via-primary-500 to-primary-500"></div>
-
-            <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center space-x-3">
-                  <div
-                    class="w-10 h-10 flex-shrink-0 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg"
-                  >
-                    <font-awesome-icon :icon="['fas', 'inbox']" class="text-white text-lg" />
-                  </div>
-                  <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">临时邮箱</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">点击邮箱查看收到的邮件</p>
-                  </div>
-                </div>
-                <div class="mailbox-create-controls">
-                  <!-- 指定域名创建 -->
-                  <div class="mailbox-create-row">
-                    <el-select
-                      v-model="selectedDomainId"
-                      placeholder="选择域名"
-                      class="mailbox-domain-select"
-                      aria-label="邮箱域名"
-                      :disabled="emailStore.availableDomains.length === 0"
-                      size="default"
-                    >
-                      <el-option
-                        v-for="domain in emailStore.availableDomains"
-                        :key="domain.id"
-                        :label="`@${domain.domain}`"
-                        :value="domain.id"
-                      />
-                    </el-select>
-                    <el-button
-                      type="primary"
-                      :loading="isCreatingInline"
-                      :disabled="!quotaReady || quotaInfo.remaining <= 0 || !selectedDomainId"
-                      @click="handleInlineCreateEmail()"
-                      class="flex-1"
-                    >
-                      <font-awesome-icon
-                        v-if="!isCreatingInline"
-                        :icon="['fas', 'at']"
-                        class="mr-2"
-                      />
-                      {{ isCreatingInline ? '创建中...' : '使用指定域名创建' }}
-                    </el-button>
-                  </div>
-
-                  <!-- 随机域名创建 -->
-                  <div class="flex items-center">
-                    <el-button
-                      type="success"
-                      :loading="isCreatingInline"
-                      :disabled="!quotaReady || quotaInfo.remaining <= 0"
-                      @click="handleRandomCreateEmail()"
-                      class="w-full"
-                      plain
-                    >
-                      <font-awesome-icon
-                        v-if="!isCreatingInline"
-                        :icon="['fas', 'dice']"
-                        class="mr-2"
-                      />
-                      {{ isCreatingInline ? '创建中...' : '随机域名创建（推荐）' }}
-                    </el-button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex-1 min-h-0 overflow-hidden">
-              <TempEmailList
-                :loading="loading"
-                :deleting-id="deletingEmailId"
-                @select="handleSelectEmail"
-                @toggle-public-inbox="handleTogglePublicInbox"
-                @delete="handleDeleteTempEmail"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Email List -->
-        <div class="mailbox-panel group relative">
-          <div
-            class="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden"
-          >
-            <!-- 顶部装饰条 -->
-            <div class="h-1 flex-shrink-0 bg-gradient-to-r from-primary-500 via-primary-500 to-primary-500"></div>
-
-            <div class="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex-shrink-0">
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center space-x-3 min-w-0">
-                  <div
-                    class="w-10 h-10 flex-shrink-0 bg-primary-500 rounded-xl flex items-center justify-center shadow-lg"
-                  >
-                    <font-awesome-icon
-                      :icon="['fas', 'envelope-open-text']"
-                      class="text-white text-lg"
-                    />
-                  </div>
-                  <div class="min-w-0">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">邮件列表</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                      <span v-if="selectedTempEmail" class="flex items-center space-x-2">
-                        <font-awesome-icon :icon="['fas', 'at']" class="text-green-500 text-xs" />
-                        <span class="font-medium truncate" :title="selectedTempEmail.email">{{ selectedTempEmail.email }}</span>
-                        <el-button
-                          @click.stop="copyToClipboard(selectedTempEmail.email)"
-                          size="small"
-                          circle
-                          class="ml-2 hover:bg-green-100 dark:hover:bg-green-900/30"
-                          title="复制邮箱地址"
-                        >
-                          <font-awesome-icon
-                            :icon="['fas', 'copy']"
-                            class="text-green-500 text-xs"
-                          />
-                        </el-button>
-                      </span>
-                    </p>
-                  </div>
-                </div>
-
-                <!-- 刷新按钮 - 只在选中临时邮箱时显示 -->
-                <div v-if="selectedTempEmail" class="flex items-center gap-2 flex-shrink-0">
-                  <el-button
-                    @click="handleEmailRefresh"
-                    :disabled="emailStore.isLoading"
-                    size="default"
-                    circle
-                    class="shadow-md hover:shadow-lg transition-shadow"
-                    title="刷新邮件列表"
-                  >
-                    <font-awesome-icon
-                      :icon="['fas', 'refresh']"
-                      :class="{ 'animate-spin': emailStore.isLoading }"
-                    />
-                  </el-button>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex-1 min-h-0 overflow-hidden">
-              <EmailList
-                v-if="selectedTempEmail"
-                :temp-email-id="selectedTempEmail.id"
-                :emails="currentEmails"
-                :loading="emailStore.isLoading"
-                :page="emailStore.currentEmailPage"
-                :page-size="emailStore.currentEmailPageSize"
-                :total="emailStore.currentEmailTotal"
-                @page-change="handleEmailPageChange"
-              />
-
-              <div v-else class="flex items-center justify-center h-full p-6">
-                <div class="text-center max-w-sm">
-                  <div class="relative mb-8">
-                    <div
-                      class="w-32 h-32 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center shadow-inner"
-                    >
-                      <font-awesome-icon
-                        :icon="['fas', 'envelope-open']"
-                        class="text-4xl text-gray-400 dark:text-gray-500"
-                      />
-                    </div>
-                  </div>
-
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    选择邮箱开始查看
-                  </h3>
-                  <p class="text-gray-500 dark:text-gray-400 leading-relaxed">
-                    从左侧选择一个临时邮箱，即可在此处查看收到的所有邮件
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dialogs -->
     <RedeemCodeDialog v-model="showRedeemDialog" @success="handleRedeemSuccess" />
-
-
   </div>
 </template>
 
 <style scoped>
-.dashboard-page { min-width: 0; }
+.dashboard-page {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.console-quota-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.console-quota-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 1;
+  min-width: 0;
+}
+.console-quota-stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 24px;
+  border-right: 1px solid var(--border);
+}
+.console-quota-stat:first-child {
+  padding-left: 0;
+}
+.console-quota-stat:last-child {
+  border: 0;
+}
+.console-quota-stat > span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.console-quota-stat strong {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 650;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.console-quota-stat.is-remaining strong {
+  color: var(--brand-link);
+}
+.console-redeem svg {
+  margin-right: 8px;
+}
+.mailbox-workbench {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
 .mailbox-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
 }
-
 .mailbox-panel {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  height: max(36rem, calc(100dvh - 20rem));
-  container-type: inline-size;
+  min-height: 0;
+  height: max(32rem, calc(100dvh - 12rem));
 }
-
-.mailbox-panel > div {
-  border-style: solid;
+.mailbox-addresses {
+  border-right: 1px solid var(--border);
 }
-
+.mailbox-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 72px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.mailbox-panel-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 650;
+}
+.mailbox-panel-heading h2 > svg {
+  color: var(--brand-link);
+  font-size: 16px;
+}
+.mailbox-count {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.mailbox-heading-copy {
+  min-width: 0;
+}
+.mailbox-selected-address {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.mailbox-heading-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
 .mailbox-create-controls {
   display: grid;
-  gap: 12px;
-  min-width: 0;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
 }
-
 .mailbox-create-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  gap: 8px;
 }
-
 .mailbox-domain-select {
   width: 100%;
   min-width: 0;
 }
-
 .mailbox-create-controls :deep(.el-button) {
-  width: 100%;
   margin: 0;
 }
-
-@container (max-width: 380px) {
-  .mailbox-create-row {
+.mailbox-create-controls :deep(.el-button svg) {
+  margin-right: 6px;
+}
+.mailbox-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.mailbox-mobile-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+.mailbox-mobile-tabs button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mailbox-mobile-tabs button[aria-pressed='true'] {
+  color: var(--brand-link);
+  background: var(--surface);
+}
+.mailbox-mobile-tabs button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.mailbox-mobile-tabs span {
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .mailbox-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .mailbox-panel {
+    height: auto;
+    min-height: 300px;
+  }
+  .mailbox-addresses {
+    border-right: 0;
+  }
+  .mailbox-body {
+    overflow: visible;
+  }
+  .mailbox-panel-heading {
+    padding: 14px 16px;
+    min-height: 60px;
   }
 }
-
-@media (max-width: 1023px) {
-  .dashboard-page { min-width: 0; }
-.mailbox-grid {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 600px) {
+  .dashboard-page {
+    gap: 14px;
   }
-
-  .mailbox-panel {
-    height: 36rem;
+  .console-quota-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .console-quota-grid {
+    flex-basis: 100%;
+  }
+  .console-quota-stat {
+    padding: 2px 14px;
+  }
+  .console-quota-stat > span {
+    font-size: 12px;
+  }
+  .console-redeem {
+    margin-left: auto;
+  }
+  .mailbox-workbench {
+    border-radius: 10px;
+  }
+  .mailbox-panel-heading {
+    padding: 12px;
+  }
+  .mailbox-panel-heading h2 {
+    font-size: 15px;
+  }
+  .mailbox-create-controls {
+    padding: 12px;
   }
 }
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import AdminFilterBar from '@/components/admin/AdminFilterBar.vue'
+import AdminActionsColumn from '@/components/admin/AdminActionsColumn.vue'
 import AdminPagination from '@/components/admin/AdminPagination.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -452,6 +453,11 @@ const getStatusText = (code: AdminRedeemCodeDetails): string => {
   return '未使用'
 }
 
+const rowActions = (row: AdminRedeemCodeDetails) => [
+  { label: '删除', danger: true, disabled: row.used, run: () => handleDelete(row) },
+]
+const rowLabel = (row: AdminRedeemCodeDetails) => row.code
+
 onMounted(() => {
   loadCodes()
   // 设置默认有效期
@@ -469,19 +475,46 @@ onMounted(() => {
           <font-awesome-icon icon="plus" class="mr-2" />
           创建兑换码
         </el-button>
-        <el-button @click="handleBatchCreate">
+        <el-button class="admin-toolbar-secondary" @click="handleBatchCreate">
           <font-awesome-icon icon="layer-group" class="mr-2" />
           批量创建
         </el-button>
-        <el-button @click="handleExportCurrentList" :disabled="codes.length === 0">
+        <el-button
+          class="admin-toolbar-secondary"
+          @click="handleExportCurrentList"
+          :disabled="codes.length === 0"
+        >
           <font-awesome-icon icon="download" class="mr-2" />
           导出列表
         </el-button>
+        <el-dropdown
+          trigger="click"
+          placement="bottom-end"
+          class="admin-toolbar-overflow"
+          popper-class="admin-actions-menu"
+        >
+          <button type="button" class="admin-more-button" aria-label="更多列表操作">
+            <font-awesome-icon icon="ellipsis" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="handleBatchCreate">批量创建</el-dropdown-item>
+              <el-dropdown-item :disabled="codes.length === 0" @click="handleExportCurrentList"
+                >导出列表</el-dropdown-item
+              >
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleResetFilters">
+      <AdminFilterBar
+        :filters="filters"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleResetFilters"
+      >
         <el-form-item label="兑换码">
           <el-input v-model="filters.search" placeholder="搜索兑换码" clearable>
             <template #prefix>
@@ -489,7 +522,7 @@ onMounted(() => {
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="名称">
+        <el-form-item label="名称" class="admin-filter-wide">
           <el-input v-model="filters.name" placeholder="按名称筛选" clearable>
             <template #prefix>
               <font-awesome-icon icon="tag" class="text-gray-400" />
@@ -619,21 +652,7 @@ onMounted(() => {
               {{ new Date(row.created_at).toLocaleString() }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100" fixed="right">
-            <template #default="{ row }">
-              <el-button
-                link
-                class="admin-row-action"
-                type="danger"
-                size="small"
-                @click="handleDelete(row)"
-                aria-label="删除"
-                title="删除"
-                :disabled="row.used"
-                >删除</el-button
-              >
-            </template>
-          </el-table-column>
+          <AdminActionsColumn :actions="rowActions" :row-label="rowLabel" :width="100" />
         </el-table>
       </div>
 

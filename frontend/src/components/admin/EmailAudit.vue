@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import AdminFilterBar from '@/components/admin/AdminFilterBar.vue'
+import AdminActionsColumn from '@/components/admin/AdminActionsColumn.vue'
 import AdminPagination from '@/components/admin/AdminPagination.vue'
 import { computed, ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -136,6 +137,12 @@ const truncateText = (text: string, maxLength: number = 50): string => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
 
+const rowActions = (row: AdminEmailSummary) => [
+  { label: '查看', run: () => handleViewDetail(row) },
+  { label: '删除', danger: true, run: () => handleDelete(row) },
+]
+const rowLabel = (row: AdminEmailSummary) => String(row.subject || row.id)
+
 onMounted(() => {
   loadEmails()
 })
@@ -144,7 +151,12 @@ onMounted(() => {
 <template>
   <div class="admin-module">
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+      <AdminFilterBar
+        :filters="searchForm"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="handleReset"
+      >
         <el-form-item label="关键词">
           <el-input v-model="searchForm.search" placeholder="搜索主题或内容" clearable>
             <template #prefix>
@@ -152,7 +164,7 @@ onMounted(() => {
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item label="发件人">
+        <el-form-item label="发件人" class="admin-filter-wide">
           <el-input v-model="searchForm.sender" placeholder="发件人" clearable>
             <template #prefix>
               <font-awesome-icon icon="user" />
@@ -223,32 +235,7 @@ onMounted(() => {
               {{ new Date(row.received_at).toLocaleString() }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="150" fixed="right">
-            <template #default="{ row }">
-              <div class="admin-row-actions">
-                <el-button
-                  link
-                  class="admin-row-action"
-                  type="primary"
-                  size="small"
-                  @click="handleViewDetail(row)"
-                  aria-label="查看"
-                  title="查看"
-                  >查看</el-button
-                >
-                <el-button
-                  link
-                  class="admin-row-action"
-                  type="danger"
-                  size="small"
-                  @click="handleDelete(row)"
-                  aria-label="删除"
-                  title="删除"
-                  >删除</el-button
-                >
-              </div>
-            </template>
-          </el-table-column>
+          <AdminActionsColumn :actions="rowActions" :row-label="rowLabel" :width="150" />
         </el-table>
       </div>
 

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import AdminFilterBar from '@/components/admin/AdminFilterBar.vue'
+import AdminActionsColumn from '@/components/admin/AdminActionsColumn.vue'
 import AdminPagination from '@/components/admin/AdminPagination.vue'
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -229,6 +230,13 @@ const formatDate = (dateString: string) => {
 }
 
 // 初始化
+const rowActions = (row: Announcement) => [
+  { label: '编辑', run: () => openEditDialog(row) },
+  { label: row.is_active ? '禁用' : '启用', run: () => handleToggleStatus(row) },
+  { label: '删除', danger: true, run: () => handleDelete(row) },
+]
+const rowLabel = (row: Announcement) => String(row.title || row.id)
+
 onMounted(() => {
   fetchAnnouncements()
 })
@@ -246,7 +254,12 @@ onMounted(() => {
 
     <!-- 搜索和筛选 -->
     <div class="admin-table-card">
-      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="resetSearch">
+      <AdminFilterBar
+        :filters="searchForm"
+        :loading="loading"
+        @search="handleSearch"
+        @reset="resetSearch"
+      >
         <el-form-item label="关键词">
           <el-input v-model="searchForm.search" placeholder="搜索标题或内容..." clearable>
             <template #prefix>
@@ -298,44 +311,7 @@ onMounted(() => {
             </span>
           </template>
         </el-table-column>
-
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <div class="admin-row-actions">
-              <el-button
-                link
-                class="admin-row-action"
-                type="primary"
-                size="small"
-                @click="openEditDialog(row)"
-                aria-label="编辑"
-                title="编辑"
-                >编辑</el-button
-              >
-
-              <el-button
-                link
-                class="admin-row-action"
-                :type="row.is_active ? 'warning' : 'success'"
-                size="small"
-                @click="handleToggleStatus(row)"
-                :aria-label="row.is_active ? '禁用' : '启用'"
-                >{{ row.is_active ? '禁用' : '启用' }}</el-button
-              >
-
-              <el-button
-                link
-                class="admin-row-action"
-                type="danger"
-                size="small"
-                @click="handleDelete(row)"
-                aria-label="删除"
-                title="删除"
-                >删除</el-button
-              >
-            </div>
-          </template>
-        </el-table-column>
+        <AdminActionsColumn :actions="rowActions" :row-label="rowLabel" :width="200" />
       </el-table>
 
       <!-- 分页 -->

@@ -15,6 +15,7 @@ import 'element-plus/es/components/message-box/style/css'
 import 'element-plus/es/components/notification/style/css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import './assets/main.css'
+import './assets/responsive.css'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 // FontAwesome
@@ -52,6 +53,7 @@ import {
   faDice,
   faDownload,
   faEdit,
+  faEllipsis,
   faEnvelope,
   faEnvelopeOpen,
   faEnvelopeOpenText,
@@ -145,6 +147,7 @@ library.add(
   faDice,
   faDownload,
   faEdit,
+  faEllipsis,
   faEnvelope,
   faEnvelopeOpen,
   faEnvelopeOpenText,

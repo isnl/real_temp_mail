@@ -820,11 +820,7 @@ svg {
   padding: 22px 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: linear-gradient(
-    135deg,
-    var(--surface),
-    color-mix(in srgb, var(--brand-50) 65%, var(--surface))
-  );
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1170,8 +1166,7 @@ svg {
 
   .auth-form-grid,
   .settings-field,
-  .quota-insights-grid,
-  .quota-stat-pair {
+  .quota-insights-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1200,15 +1195,53 @@ svg {
   .metric-card {
     min-height: 100px;
     padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
   }
 
   .metric-icon {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
   }
 
   .metric-card strong {
     font-size: 1.35rem;
+    overflow-wrap: anywhere;
+  }
+
+  .quota-stat-pair > div {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px;
+    padding: 12px;
+  }
+
+  .quota-stat-icon {
+    grid-column: 2;
+    grid-row: 1;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+  }
+
+  .quota-stat-pair p {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .quota-stat-pair strong,
+  .quota-stat-pair small {
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+  }
+
+  .quota-insights-grid .surface-card,
+  .quota-history {
+    min-width: 0;
+    padding: 16px;
   }
 
   .quota-usage-card {
@@ -1240,9 +1273,6 @@ svg {
     padding-inline: 17px;
   }
 
-  .quota-overview-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 480px) {
