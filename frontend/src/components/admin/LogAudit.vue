@@ -134,50 +134,50 @@ onMounted(() => {
 
 <template>
   <div class="admin-module">
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="关键词">
-        <el-input v-model="searchForm.search" placeholder="搜索用户邮箱或IP地址" clearable>
-          <template #prefix>
-            <font-awesome-icon icon="search" class="text-gray-400" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="操作类型">
-        <el-select v-model="searchForm.action" placeholder="选择操作类型" clearable class="w-full">
-          <el-option
-            v-for="action in actions"
-            :key="action"
-            :label="formatAction(action)"
-            :value="action"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="开始日期">
-        <el-date-picker
-          v-model="searchForm.startDate"
-          type="date"
-          placeholder="选择开始日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          clearable
-          class="w-full"
-        />
-      </el-form-item>
-      <el-form-item label="结束日期">
-        <el-date-picker
-          v-model="searchForm.endDate"
-          type="date"
-          placeholder="选择结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          clearable
-          class="w-full"
-        />
-      </el-form-item>
-    </AdminFilterBar>
-
-    <!-- 日志列表 -->
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+        <el-form-item label="关键词">
+          <el-input v-model="searchForm.search" placeholder="搜索用户邮箱或IP地址" clearable>
+            <template #prefix>
+              <font-awesome-icon icon="search" class="text-gray-400" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="操作类型">
+          <el-select v-model="searchForm.action" placeholder="选择操作类型" clearable class="w-full">
+            <el-option
+              v-for="action in actions"
+              :key="action"
+              :label="formatAction(action)"
+              :value="action"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="开始日期">
+          <el-date-picker
+            v-model="searchForm.startDate"
+            type="date"
+            placeholder="选择开始日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+            class="w-full"
+          />
+        </el-form-item>
+        <el-form-item label="结束日期">
+          <el-date-picker
+            v-model="searchForm.endDate"
+            type="date"
+            placeholder="选择结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+            class="w-full"
+          />
+        </el-form-item>
+      </AdminFilterBar>
+
+      <!-- 日志列表 -->
       <div class="admin-table-body">
         <el-table :data="logs" v-loading="loading" class="w-full" :max-height="640">
           <el-table-column prop="id" label="ID" width="80" />

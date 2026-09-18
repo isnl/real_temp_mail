@@ -172,18 +172,18 @@ onMounted(() => {
         ><font-awesome-icon icon="plus" />添加域名</el-button
       >
     </div>
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="域名"
-        ><el-input v-model="filters.search" placeholder="搜索域名" clearable
-      /></el-form-item>
-      <el-form-item label="状态"
-        ><el-select v-model="filters.status" placeholder="全部状态" clearable
-          ><el-option label="启用" :value="1" /><el-option label="禁用" :value="0" /></el-select
-      ></el-form-item>
-    </AdminFilterBar>
-
-    <!-- 域名列表 -->
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+        <el-form-item label="域名"
+          ><el-input v-model="filters.search" placeholder="搜索域名" clearable
+        /></el-form-item>
+        <el-form-item label="状态"
+          ><el-select v-model="filters.status" placeholder="全部状态" clearable
+            ><el-option label="启用" :value="1" /><el-option label="禁用" :value="0" /></el-select
+        ></el-form-item>
+      </AdminFilterBar>
+
+      <!-- 域名列表 -->
       <el-table :data="visibleDomains" v-loading="loading" :max-height="640" class="w-full">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="domain" label="域名" min-width="200">

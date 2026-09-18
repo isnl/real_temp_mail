@@ -480,58 +480,58 @@ onMounted(() => {
       </div>
     </div>
 
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleResetFilters">
-      <el-form-item label="兑换码">
-        <el-input v-model="filters.search" placeholder="搜索兑换码" clearable>
-          <template #prefix>
-            <font-awesome-icon icon="search" class="text-gray-400" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="名称">
-        <el-input v-model="filters.name" placeholder="按名称筛选" clearable>
-          <template #prefix>
-            <font-awesome-icon icon="tag" class="text-gray-400" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="使用状态">
-        <el-select v-model="filters.status" placeholder="使用状态">
-          <el-option label="全部状态" value="all" />
-          <el-option label="未使用" value="unused" />
-          <el-option label="已使用" value="used" />
-          <el-option label="已过期" value="expired" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="有效期状态">
-        <el-select v-model="filters.validityStatus" placeholder="有效期状态">
-          <el-option label="全部" value="all" />
-          <el-option label="有效" value="valid" />
-          <el-option label="已过期" value="expired" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="开始日期">
-        <el-date-picker
-          v-model="filters.startDate"
-          type="date"
-          placeholder="创建开始日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-        />
-      </el-form-item>
-      <el-form-item label="结束日期">
-        <el-date-picker
-          v-model="filters.endDate"
-          type="date"
-          placeholder="创建结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-        />
-      </el-form-item>
-    </AdminFilterBar>
-
-    <!-- 兑换码列表 -->
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleResetFilters">
+        <el-form-item label="兑换码">
+          <el-input v-model="filters.search" placeholder="搜索兑换码" clearable>
+            <template #prefix>
+              <font-awesome-icon icon="search" class="text-gray-400" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="名称">
+          <el-input v-model="filters.name" placeholder="按名称筛选" clearable>
+            <template #prefix>
+              <font-awesome-icon icon="tag" class="text-gray-400" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="使用状态">
+          <el-select v-model="filters.status" placeholder="使用状态">
+            <el-option label="全部状态" value="all" />
+            <el-option label="未使用" value="unused" />
+            <el-option label="已使用" value="used" />
+            <el-option label="已过期" value="expired" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="有效期状态">
+          <el-select v-model="filters.validityStatus" placeholder="有效期状态">
+            <el-option label="全部" value="all" />
+            <el-option label="有效" value="valid" />
+            <el-option label="已过期" value="expired" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="开始日期">
+          <el-date-picker
+            v-model="filters.startDate"
+            type="date"
+            placeholder="创建开始日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="结束日期">
+          <el-date-picker
+            v-model="filters.endDate"
+            type="date"
+            placeholder="创建结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+      </AdminFilterBar>
+
+      <!-- 兑换码列表 -->
       <div class="admin-table-body">
         <el-table :data="codes" v-loading="loading" class="w-full" :max-height="640">
           <el-table-column label="兑换码" min-width="150">

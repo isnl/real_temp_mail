@@ -150,47 +150,47 @@ onMounted(() => {
       />
     </div>
 
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="用户 ID">
-        <el-input v-model="searchForm.userId" placeholder="用户ID" clearable />
-      </el-form-item>
-      <el-form-item label="类型">
-        <el-select v-model="searchForm.type" placeholder="类型" clearable>
-          <el-option label="获得" value="earn" />
-          <el-option label="消费" value="consume" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="来源">
-        <el-select v-model="searchForm.source" placeholder="来源" clearable>
-          <el-option label="注册赠送" value="register" />
-          <el-option label="历史签到奖励" value="checkin" />
-          <el-option label="兑换码" value="redeem_code" />
-          <el-option label="管理员调整" value="admin_adjust" />
-          <el-option label="创建邮箱" value="create_email" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="开始日期">
-        <el-date-picker
-          v-model="searchForm.startDate"
-          type="date"
-          placeholder="开始日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-        />
-      </el-form-item>
-      <el-form-item label="结束日期">
-        <el-date-picker
-          v-model="searchForm.endDate"
-          type="date"
-          placeholder="结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-        />
-      </el-form-item>
-    </AdminFilterBar>
-
-    <!-- Quota Logs Table -->
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+        <el-form-item label="用户 ID">
+          <el-input v-model="searchForm.userId" placeholder="用户ID" clearable />
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="searchForm.type" placeholder="类型" clearable>
+            <el-option label="获得" value="earn" />
+            <el-option label="消费" value="consume" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="来源">
+          <el-select v-model="searchForm.source" placeholder="来源" clearable>
+            <el-option label="注册赠送" value="register" />
+            <el-option label="历史签到奖励" value="checkin" />
+            <el-option label="兑换码" value="redeem_code" />
+            <el-option label="管理员调整" value="admin_adjust" />
+            <el-option label="创建邮箱" value="create_email" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="开始日期">
+          <el-date-picker
+            v-model="searchForm.startDate"
+            type="date"
+            placeholder="开始日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="结束日期">
+          <el-date-picker
+            v-model="searchForm.endDate"
+            type="date"
+            placeholder="结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+      </AdminFilterBar>
+
+      <!-- Quota Logs Table -->
       <div class="admin-table-body">
         <el-table :data="quotaLogs" v-loading="loading" style="width: 100%" :max-height="640">
           <el-table-column prop="id" label="ID" width="80" />

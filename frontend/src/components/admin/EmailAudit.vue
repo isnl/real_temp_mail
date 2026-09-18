@@ -143,45 +143,45 @@ onMounted(() => {
 
 <template>
   <div class="admin-module">
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="关键词">
-        <el-input v-model="searchForm.search" placeholder="搜索主题或内容" clearable>
-          <template #prefix>
-            <font-awesome-icon icon="search" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="发件人">
-        <el-input v-model="searchForm.sender" placeholder="发件人" clearable>
-          <template #prefix>
-            <font-awesome-icon icon="user" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="开始日期">
-        <el-date-picker
-          v-model="searchForm.startDate"
-          type="date"
-          placeholder="开始日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          clearable
-        />
-      </el-form-item>
-      <el-form-item label="结束日期">
-        <el-date-picker
-          v-model="searchForm.endDate"
-          type="date"
-          placeholder="结束日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          clearable
-        />
-      </el-form-item>
-    </AdminFilterBar>
-
-    <!-- 邮件列表 -->
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+        <el-form-item label="关键词">
+          <el-input v-model="searchForm.search" placeholder="搜索主题或内容" clearable>
+            <template #prefix>
+              <font-awesome-icon icon="search" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="发件人">
+          <el-input v-model="searchForm.sender" placeholder="发件人" clearable>
+            <template #prefix>
+              <font-awesome-icon icon="user" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="开始日期">
+          <el-date-picker
+            v-model="searchForm.startDate"
+            type="date"
+            placeholder="开始日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="结束日期">
+          <el-date-picker
+            v-model="searchForm.endDate"
+            type="date"
+            placeholder="结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            clearable
+          />
+        </el-form-item>
+      </AdminFilterBar>
+
+      <!-- 邮件列表 -->
       <div class="admin-table-body">
         <el-table :data="emails" v-loading="loading" class="w-full" :max-height="640">
           <el-table-column prop="id" label="ID" width="80" />

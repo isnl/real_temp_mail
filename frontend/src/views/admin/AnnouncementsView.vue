@@ -245,23 +245,23 @@ onMounted(() => {
     </div>
 
     <!-- 搜索和筛选 -->
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="resetSearch">
-      <el-form-item label="关键词">
-        <el-input v-model="searchForm.search" placeholder="搜索标题或内容..." clearable>
-          <template #prefix>
-            <font-awesome-icon icon="search" class="text-gray-400" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="searchForm.status" placeholder="全部状态" clearable class="w-full">
-          <el-option label="启用" value="active" />
-          <el-option label="禁用" value="inactive" />
-        </el-select>
-      </el-form-item>
-    </AdminFilterBar>
-
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="resetSearch">
+        <el-form-item label="关键词">
+          <el-input v-model="searchForm.search" placeholder="搜索标题或内容..." clearable>
+            <template #prefix>
+              <font-awesome-icon icon="search" class="text-gray-400" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" placeholder="全部状态" clearable class="w-full">
+            <el-option label="启用" value="active" />
+            <el-option label="禁用" value="inactive" />
+          </el-select>
+        </el-form-item>
+      </AdminFilterBar>
+
       <el-table :data="announcements" :max-height="640" v-loading="loading" class="w-full">
         <el-table-column prop="id" label="ID" width="80" />
 

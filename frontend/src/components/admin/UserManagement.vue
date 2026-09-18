@@ -187,30 +187,30 @@ onMounted(() => {
 
 <template>
   <div class="admin-module">
-    <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
-      <el-form-item label="邮箱地址">
-        <el-input v-model="searchForm.search" placeholder="搜索邮箱地址" clearable>
-          <template #prefix>
-            <font-awesome-icon icon="search" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item label="角色">
-        <el-select v-model="searchForm.role" placeholder="选择角色" clearable>
-          <el-option label="普通用户" value="user" />
-          <el-option label="管理员" value="admin" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="searchForm.status" placeholder="选择状态" clearable>
-          <el-option label="正常" value="active" />
-          <el-option label="禁用" value="inactive" />
-        </el-select>
-      </el-form-item>
-    </AdminFilterBar>
-
-    <!-- 用户列表 -->
     <div class="admin-table-card">
+      <AdminFilterBar :loading="loading" @search="handleSearch" @reset="handleReset">
+        <el-form-item label="邮箱地址">
+          <el-input v-model="searchForm.search" placeholder="搜索邮箱地址" clearable>
+            <template #prefix>
+              <font-awesome-icon icon="search" />
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="searchForm.role" placeholder="选择角色" clearable>
+            <el-option label="普通用户" value="user" />
+            <el-option label="管理员" value="admin" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="searchForm.status" placeholder="选择状态" clearable>
+            <el-option label="正常" value="active" />
+            <el-option label="禁用" value="inactive" />
+          </el-select>
+        </el-form-item>
+      </AdminFilterBar>
+
+      <!-- 用户列表 -->
       <div class="admin-table-body">
         <el-table :data="users" v-loading="loading" style="width: 100%" :max-height="640">
           <el-table-column prop="id" label="ID" width="80" />
