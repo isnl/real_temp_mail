@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useSiteBranding } from '@/composables/useSiteBranding'
+const { siteName } = useSiteBranding()
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
@@ -139,7 +141,7 @@ onMounted(async () => {
         <div class="auth-brand-mark" aria-hidden="true">
           <font-awesome-icon :icon="['fas', 'envelope-open-text']" />
         </div>
-        <p class="auth-eyebrow">临时邮箱管理系统</p>
+        <p class="auth-eyebrow">{{ siteName }}</p>
         <h1 id="login-heading">欢迎回来</h1>
         <p>安全管理临时邮箱、验证码与配额，所有入口均由系统策略统一控制。</p>
         <ul class="auth-benefits" aria-label="服务特点">
@@ -156,7 +158,11 @@ onMounted(async () => {
           <p>管理员可直接使用管理员账号，普通用户可使用账号或邮箱。</p>
         </div>
 
-        <el-skeleton v-if="publicSettings.loading.value && !publicSettings.loaded.value" :rows="5" animated />
+        <el-skeleton
+          v-if="publicSettings.loading.value && !publicSettings.loaded.value"
+          :rows="5"
+          animated
+        />
 
         <template v-else>
           <div v-if="publicSettings.error.value" class="auth-alert" role="alert">

@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { useSiteBranding } from '@/composables/useSiteBranding'
+const { siteName } = useSiteBranding()
 defineProps<{ compact?: boolean }>()
 </script>
 
 <template>
-  <router-link to="/" class="brand-logo" aria-label="临时邮箱管理系统首页">
+  <router-link to="/" class="brand-logo" :aria-label="`${siteName}首页`" :title="siteName">
     <img src="/brand-mark.png" alt="" width="36" height="36" />
-    <span v-if="!compact">临时邮箱管理系统</span>
+    <span v-if="!compact">{{ siteName }}</span>
   </router-link>
 </template>
 
@@ -25,6 +27,9 @@ defineProps<{ compact?: boolean }>()
   object-fit: contain;
 }
 .brand-logo span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 16px;
   font-weight: 720;
   letter-spacing: -0.4px;

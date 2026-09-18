@@ -76,6 +76,10 @@ export interface SystemSetting {
 }
 
 export type SystemSettingKey =
+  | 'site_name'
+  | 'contact_email'
+  | 'contact_email_enabled'
+  | 'pricing_content'
   | 'default_user_quota'
   | 'registration_enabled'
   | 'turnstile_enabled'
@@ -93,6 +97,9 @@ export type SystemSettingKey =
   | 'admin_password'
 
 export interface PublicSystemSettings {
+  siteName: string
+  contactEmail: string
+  pricing: PricingContent
   registrationEnabled: boolean
   githubEnabled: boolean
   turnstileEnabled: boolean
@@ -101,6 +108,33 @@ export interface PublicSystemSettings {
   turnstileRegisterEnabled: boolean
   turnstileRedeemEnabled: boolean
   turnstilePublicInboxEnabled: boolean
+}
+
+export interface PricingPlan {
+  id: string
+  name: string
+  description: string
+  price: string
+  originalPrice: string
+  quota: number
+  bonusQuota: number
+  popular: boolean
+  enabled: boolean
+  features: string[]
+  buttonText: string
+  buttonAction: 'text' | 'link'
+  buttonUrl: string
+}
+
+export interface PricingFaq {
+  id: string
+  question: string
+  answer: string
+}
+
+export interface PricingContent {
+  plans: PricingPlan[]
+  faqs: PricingFaq[]
 }
 
 // 配额记录类型

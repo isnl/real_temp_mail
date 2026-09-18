@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import BrandLogo from '@/components/layout/BrandLogo.vue'
+import { useSiteBranding } from '@/composables/useSiteBranding'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -15,7 +15,7 @@ const publicSettings = usePublicSettings()
 void publicSettings.load().catch(() => undefined)
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
-const currentYear = new Date().getFullYear()
+const { siteName } = useSiteBranding()
 
 const goToRegister = () => {
   router.push('/register')
@@ -91,12 +91,11 @@ const useCases = [
   },
 ]
 
-// 使用可验证的系统边界，避免展示无法核实的运营数字。
 const stats = [
-  { number: '7 天', label: '邮件可见期限' },
-  { number: '50 封', label: '单箱邮件上限' },
-  { number: '4 MiB', label: '单箱内容上限' },
-  { number: '1 套', label: '统一 Worker 部署' },
+  { number: '一键', label: '快速创建邮箱' },
+  { number: '多域名', label: '自由选择地址' },
+  { number: '验证码', label: '自动识别提取' },
+  { number: '多设备', label: '随时查看来信' },
 ]
 </script>
 
@@ -127,7 +126,7 @@ const stats = [
 
           <!-- Title -->
           <h1 class="text-5xl md:text-7xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            临时邮箱管理系统
+            {{ siteName }}
           </h1>
 
           <p
@@ -141,7 +140,7 @@ const stats = [
           </p>
 
           <!-- CTA Buttons -->
-          <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+          <div class="marketing-actions flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <el-button
               v-if="!isLoggedIn && publicSettings.loading.value && !publicSettings.loaded.value"
               loading
@@ -226,11 +225,11 @@ const stats = [
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="home-feature-grid grid grid-cols-2 lg:grid-cols-3 gap-8">
           <div
             v-for="feature in features"
             :key="feature.title"
-            class="bg-white dark:bg-gray-800 p-8 rounded-2xl transition-colors duration-200 border border-gray-100 dark:border-gray-700"
+            class="home-feature-card bg-white dark:bg-gray-800 p-8 rounded-2xl transition-colors duration-200 border border-gray-100 dark:border-gray-700"
           >
             <div class="w-16 h-16 bg-primary-500 rounded-xl flex items-center justify-center mb-6">
               <font-awesome-icon :icon="['fas', feature.icon]" class="text-white text-2xl" />
@@ -256,11 +255,11 @@ const stats = [
           </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="home-use-case-grid grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             v-for="useCase in useCases"
             :key="useCase.title"
-            class="text-center p-6 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300"
+            class="home-use-case-card text-center p-6 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-300"
           >
             <div
               class="w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-100 dark:from-primary-900/30 dark:to-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-6"
@@ -367,7 +366,7 @@ const stats = [
           }}，配额余额与使用记录清晰可查
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <div class="marketing-actions flex flex-col sm:flex-row gap-4 justify-center">
           <el-button
             v-if="!isLoggedIn && publicSettings.settings.value.registrationEnabled"
             @click="goToRegister"
@@ -401,55 +400,5 @@ const stats = [
         </div>
       </div>
     </section>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <!-- Logo和描述 -->
-          <div class="md:col-span-2">
-            <div class="flex items-center mb-4">
-              <BrandLogo />
-            </div>
-            <p class="text-gray-400 mb-4 max-w-md">
-              现代化临时邮箱服务，保护您的隐私，提供安全可靠的邮件接收体验。
-            </p>
-          </div>
-
-          <!-- 功能特性 -->
-          <div>
-            <h3 class="text-lg font-semibold mb-4">核心功能</h3>
-            <div class="space-y-2 text-gray-400">
-              <div>临时邮箱创建</div>
-              <div>邮件集中接收</div>
-              <div>验证码识别</div>
-              <div>配额管理</div>
-              <div>兑换码补充配额</div>
-            </div>
-          </div>
-
-          <!-- 联系方式 -->
-          <div>
-            <h3 class="text-lg font-semibold mb-4">联系我们</h3>
-            <div class="space-y-3 text-gray-400">
-              <div class="flex items-center">
-                <font-awesome-icon :icon="['fas', 'envelope']" class="mr-2 text-primary-500" />
-                <span>如需帮助，请联系本站管理员</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {{ currentYear }} 临时邮箱管理系统。保护隐私，安全可靠。</p>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
-
-<style scoped>
-footer :deep(.brand-logo) {
-  color: #e7f5ee;
-}
-</style>

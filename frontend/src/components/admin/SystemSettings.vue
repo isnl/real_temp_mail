@@ -5,8 +5,18 @@ import { getSystemSettings, updateSystemSettings, type SystemSetting } from '@/a
 import { loadPublicSettings } from '@/composables/usePublicSettings'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
+import PricingContentEditor from './PricingContentEditor.vue'
+import { validatePricingContent } from '@/utils/pricing'
 
-type FieldType = 'switch' | 'text' | 'password' | 'number' | 'url' | 'readonly'
+type FieldType =
+  | 'switch'
+  | 'text'
+  | 'password'
+  | 'number'
+  | 'url'
+  | 'readonly'
+  | 'email'
+  | 'pricing'
 
 interface SettingField {
   key: string
@@ -15,6 +25,7 @@ interface SettingField {
   placeholder?: string
   min?: number
   max?: number
+  maxLength?: number
 }
 
 interface SettingSection {
@@ -24,6 +35,26 @@ interface SettingSection {
 }
 
 const sections: SettingSection[] = [
+  {
+    key: 'site',
+    title: '站点信息',
+    fields: [
+      { key: 'site_name', label: '系统名称', type: 'text', maxLength: 40 },
+      {
+        key: 'contact_email',
+        label: '管理员联系邮箱',
+        type: 'email',
+        placeholder: 'admin@example.com',
+        maxLength: 254,
+      },
+      { key: 'contact_email_enabled', label: '前台展示管理员邮箱', type: 'switch' },
+    ],
+  },
+  {
+    key: 'pricing',
+    title: '价格展示',
+    fields: [{ key: 'pricing_content', label: '价格内容', type: 'pricing' }],
+  },
   {
     key: 'access',
     title: '账号与访问',
@@ -87,7 +118,7 @@ const sections: SettingSection[] = [
 const secretKeys = new Set(['admin_password', 'github_client_secret', 'turnstile_secret_key'])
 const knownKeys = new Set(sections.flatMap((section) => section.fields.map((field) => field.key)))
 const retiredKeys = new Set(['daily_checkin_quota'])
-const activeSection = ref('access')
+const activeSection = ref('site')
 const visibleSections = computed(() =>
   sections.filter((section) => section.key === activeSection.value),
 )
@@ -159,6 +190,15 @@ const loadSettings = async () => {
 }
 
 const validateSection = (section: SettingSection): string => {
+  if (section.key === 'site') {
+    if (!values.site_name?.trim() || values.site_name.trim().length > 40)
+      return '系统名称须为 1–40 个字符'
+    const email = values.contact_email?.trim() || ''
+    if (email && !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email))
+      return '请输入有效的管理员联系邮箱'
+    if (toBoolean(values.contact_email_enabled) && !email) return '展示管理员邮箱前请先填写联系邮箱'
+  }
+  if (section.key === 'pricing') return validatePricingContent(values.pricing_content || '')
   for (const field of section.fields) {
     const value = values[field.key] ?? ''
     if (field.type === 'number' && value) {
@@ -305,8 +345,18 @@ onMounted(loadSettings)
         :aria-label="section.title"
       >
         <div class="settings-fields">
-          <div v-for="field in section.fields" :key="field.key" class="settings-field">
-            <div class="settings-field-copy">
+          <div
+            v-for="field in section.fields"
+            :key="field.key"
+            class="settings-field"
+            :class="{ 'settings-field-pricing': field.type === 'pricing' }"
+          >
+            <PricingContentEditor
+              v-if="field.type === 'pricing'"
+              v-model="values[field.key]"
+              :disabled="loading || !!savingSection"
+            />
+            <div v-if="field.type !== 'pricing'" class="settings-field-copy">
               <label :for="`setting-${field.key}`">{{ field.label }}</label>
               <span v-if="secretKeys.has(field.key)" class="secret-status">
                 <font-awesome-icon
@@ -316,7 +366,7 @@ onMounted(loadSettings)
               </span>
             </div>
 
-            <div class="settings-control">
+            <div v-if="field.type !== 'pricing'" class="settings-control">
               <el-switch
                 v-if="field.type === 'switch'"
                 :id="`setting-${field.key}`"
@@ -349,11 +399,13 @@ onMounted(loadSettings)
                 v-else
                 :id="`setting-${field.key}`"
                 v-model="values[field.key]"
-                :type="field.type === 'password' ? 'password' : 'text'"
+                :type="
+                  field.type === 'password' ? 'password' : field.type === 'email' ? 'email' : 'text'
+                "
                 :autocomplete="field.type === 'password' ? 'new-password' : 'off'"
                 :show-password="field.type === 'password'"
                 :placeholder="field.placeholder"
-                maxlength="512"
+                :maxlength="field.maxLength || 512"
               />
               <el-input
                 v-if="field.key === 'admin_password' && values.admin_password"

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useSiteBranding } from '@/composables/useSiteBranding'
+const { siteName } = useSiteBranding()
 import { usePageTitle } from '@/composables/usePageTitle'
 
 // 设置页面标题
@@ -8,21 +10,15 @@ usePageTitle()
 <template>
   <div class="max-w-4xl mx-auto flex flex-col gap-8">
     <div class="text-center">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-        服务条款
-      </h1>
-      <p class="text-gray-600 dark:text-gray-400">
-        最后更新时间：2024年3月1日
-      </p>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">服务条款</h1>
+      <p class="text-gray-600 dark:text-gray-400">最后更新时间：2024年3月1日</p>
     </div>
 
     <div class="card-base p-8 flex flex-col gap-6">
       <section>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          1. 服务说明
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">1. 服务说明</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-3">
-          临时邮箱管理系统为用户提供临时邮箱地址生成、邮件接收等功能。
+          {{ siteName }}为用户提供临时邮箱地址生成、邮件接收等功能。
           本服务旨在帮助用户保护隐私，避免垃圾邮件骚扰。
         </p>
         <p class="text-gray-600 dark:text-gray-400">
@@ -47,9 +43,7 @@ usePageTitle()
       </section>
 
       <section>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          3. 服务限制
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">3. 服务限制</h2>
         <div class="text-gray-600 dark:text-gray-400 flex flex-col gap-3">
           <ul class="list-disc pl-6 flex flex-col gap-2">
             <li>临时邮箱地址具有时效性，邮件可能在一定时间后被自动删除</li>
@@ -61,9 +55,7 @@ usePageTitle()
       </section>
 
       <section>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          4. 隐私保护
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">4. 隐私保护</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-3">
           我们承诺保护用户隐私，采用行业标准的安全措施保护用户数据。
           详细的隐私保护政策请参阅我们的隐私政策文档。
@@ -74,9 +66,7 @@ usePageTitle()
       </section>
 
       <section>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          5. 免责声明
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">5. 免责声明</h2>
         <div class="text-gray-600 dark:text-gray-400 flex flex-col gap-3">
           <ul class="list-disc pl-6 flex flex-col gap-2">
             <li>本服务按"现状"提供，不提供任何明示或暗示的保证</li>
@@ -88,9 +78,7 @@ usePageTitle()
       </section>
 
       <section>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          6. 法律适用
-        </h2>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">6. 法律适用</h2>
         <p class="text-gray-600 dark:text-gray-400 mb-3">
           本条款的解释和执行将根据服务提供方所在地的适用法律进行。
           如发生争议，应首先通过友好协商解决。

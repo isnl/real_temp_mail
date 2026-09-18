@@ -219,6 +219,11 @@
   grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
   gap: 24px;
 }
+#admin-layout .settings-field-pricing {
+  display: block;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
 #admin-layout .settings-control {
   justify-items: start;
 }

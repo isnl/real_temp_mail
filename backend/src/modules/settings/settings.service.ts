@@ -6,8 +6,9 @@ import type {
   SystemSettingKey
 } from '@/types'
 import { ValidationError } from '@/types'
+import { DEFAULT_PRICING_CONTENT, parsePricingContent } from './pricing'
 
-type SettingKind = 'boolean' | 'integer' | 'string' | 'url' | 'username' | 'password'
+type SettingKind = 'boolean' | 'integer' | 'string' | 'url' | 'username' | 'password' | 'site-name' | 'email' | 'pricing'
 
 interface SettingDefinition {
   defaultValue: string
@@ -19,6 +20,10 @@ interface SettingDefinition {
 export const SECRET_MASK = '********'
 
 export const SYSTEM_SETTING_DEFINITIONS: Record<SystemSettingKey, SettingDefinition> = {
+  site_name: { defaultValue: '临时邮箱管理系统', description: '系统名称', kind: 'site-name' },
+  contact_email: { defaultValue: '', description: '管理员联系邮箱', kind: 'email' },
+  contact_email_enabled: { defaultValue: 'false', description: '前台展示管理员邮箱', kind: 'boolean' },
+  pricing_content: { defaultValue: JSON.stringify(DEFAULT_PRICING_CONTENT), description: '价格展示内容', kind: 'pricing' },
   default_user_quota: {
     defaultValue: '5',
     description: '新用户默认配额',
@@ -140,8 +145,12 @@ export class SystemSettingsService {
     // disabling a configured challenge.
     const turnstileEnabled = enabled('turnstile_enabled')
     const githubConfigured = Boolean(value('github_client_id') && value('github_client_secret'))
+    const pricing = parsePricingContent(value('pricing_content'))
 
     return {
+      siteName: value('site_name'),
+      contactEmail: enabled('contact_email_enabled') ? value('contact_email') : '',
+      pricing: { ...pricing, plans: pricing.plans.filter(plan => plan.enabled) },
       registrationEnabled: enabled('registration_enabled'),
       githubEnabled: enabled('github_oauth_enabled') && githubConfigured,
       turnstileEnabled,
@@ -246,6 +255,9 @@ export class SystemSettingsService {
 
   private validateEffectiveConfiguration(values: Map<SystemSettingKey, string>): void {
     const get = (key: SystemSettingKey) => values.get(key) ?? SYSTEM_SETTING_DEFINITIONS[key].defaultValue
+    if (get('contact_email_enabled') === 'true' && !get('contact_email')) {
+      throw new ValidationError('展示管理员邮箱前请先填写联系邮箱')
+    }
     if (get('turnstile_enabled') === 'true' && (!get('turnstile_site_key') || !get('turnstile_secret_key'))) {
       throw new ValidationError('启用 Turnstile 前必须先配置 Site Key 和 Secret Key')
     }
@@ -263,6 +275,14 @@ export class SystemSettingsService {
     const definition = SYSTEM_SETTING_DEFINITIONS[key]
 
     switch (definition.kind) {
+      case 'site-name':
+        if (!value || value.length > 40) throw new ValidationError('系统名称须为 1–40 个字符')
+        return value
+      case 'email':
+        if (value && (value.length > 254 || /[\u0000-\u001f\u007f]/.test(value) || !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(value))) throw new ValidationError('请输入有效的管理员联系邮箱')
+        return value.toLowerCase()
+      case 'pricing':
+        return JSON.stringify(parsePricingContent(value))
       case 'boolean': {
         const lower = value.toLowerCase()
         if (!['true', 'false', '1', '0'].includes(lower)) {

@@ -3,6 +3,8 @@ import { onMounted } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import { loadPublicSettings } from '@/composables/usePublicSettings'
+import { usePageTitle } from '@/composables/usePageTitle'
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
@@ -11,6 +13,8 @@ const router = useRouter()
 
 // Apply the persisted theme before the first component paint.
 themeStore.initTheme()
+usePageTitle()
+void loadPublicSettings().catch(() => undefined)
 
 onMounted(async () => {
   // App is the only lifecycle owner for cross-page initialization. Keeping

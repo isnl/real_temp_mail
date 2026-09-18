@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useSiteBranding } from '@/composables/useSiteBranding'
+const { siteName } = useSiteBranding()
 import { ref } from 'vue'
 
 const visible = ref(false)
@@ -14,9 +16,8 @@ const close = () => {
 // 暴露方法给父组件
 defineExpose({
   open,
-  close
+  close,
 })
-
 </script>
 
 <template>
@@ -30,14 +31,12 @@ defineExpose({
     <div class="max-h-96 overflow-y-auto px-4">
       <div class="prose prose-sm max-w-none dark:prose-invert">
         <h2 class="text-xl font-bold mb-4">用户服务协议</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          生效日期：2025-08-17
-        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">生效日期：2025-08-17</p>
 
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">1. 服务说明</h3>
           <p class="mb-3">
-            欢迎使用临时邮箱管理系统服务。本服务为用户提供临时邮箱地址生成、邮件接收等功能。
+            欢迎使用{{ siteName }}服务。本服务为用户提供临时邮箱地址生成、邮件接收等功能。
             通过注册或使用本服务，您同意遵守本协议的所有条款。
           </p>
         </section>
@@ -49,7 +48,9 @@ defineExpose({
             <li>不得使用本服务进行垃圾邮件发送、网络攻击、诈骗、钓鱼等恶意行为</li>
             <li>不得滥用服务资源，包括但不限于恶意创建大量邮箱地址或进行自动化攻击</li>
             <li>您有责任保护自己的账户安全，不得与他人共享账户信息</li>
-            <li>严格遵守所在地区的互联网相关法律法规，包括但不限于网络安全、数据保护、反垃圾邮件等法律</li>
+            <li>
+              严格遵守所在地区的互联网相关法律法规，包括但不限于网络安全、数据保护、反垃圾邮件等法律
+            </li>
             <li>不得使用本服务进行任何可能损害他人权益或违反国际互联网规范的行为</li>
           </ul>
         </section>
@@ -95,9 +96,7 @@ defineExpose({
 
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">7. 联系我们</h3>
-          <p class="mb-3">
-            如您对本协议有任何疑问，请联系本站管理员。
-          </p>
+          <p class="mb-3">如您对本协议有任何疑问，请联系本站管理员。</p>
         </section>
       </div>
     </div>
@@ -119,7 +118,8 @@ defineExpose({
   color: var(--el-text-color-primary);
 }
 
-.prose p, .prose li {
+.prose p,
+.prose li {
   color: var(--el-text-color-regular);
   line-height: 1.6;
 }

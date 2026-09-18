@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useSiteBranding } from '@/composables/useSiteBranding'
+const { siteName } = useSiteBranding()
 import { ref } from 'vue'
 
 const visible = ref(false)
@@ -14,9 +16,8 @@ const close = () => {
 // 暴露方法给父组件
 defineExpose({
   open,
-  close
+  close,
 })
-
 </script>
 
 <template>
@@ -30,19 +31,19 @@ defineExpose({
     <div class="max-h-96 overflow-y-auto px-4">
       <div class="prose prose-sm max-w-none dark:prose-invert">
         <h2 class="text-xl font-bold mb-4">隐私政策</h2>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          生效日期：2026-09-13
-        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">生效日期：2026-09-13</p>
 
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">1. 信息收集</h3>
           <p class="mb-3">
-            我们致力于保护您的隐私。在您使用临时邮箱管理系统服务时，我们可能收集以下信息：
+            我们致力于保护您的隐私。在您使用{{ siteName }}服务时，我们可能收集以下信息：
           </p>
           <ul class="list-disc pl-6 space-y-2">
             <li>GitHub账户的公开信息（用户名、邮箱地址、头像等）</li>
             <li>您创建的临时邮箱地址信息</li>
-            <li>接收到的邮件内容（默认仅向您展示；主动开启公开收件箱后会向访问者公开，关闭后立即停止公开访问）</li>
+            <li>
+              接收到的邮件内容（默认仅向您展示；主动开启公开收件箱后会向访问者公开，关闭后立即停止公开访问）
+            </li>
             <li>服务使用日志和统计信息</li>
             <li>设备信息和IP地址（用于安全防护）</li>
           </ul>
@@ -87,7 +88,9 @@ defineExpose({
           <h3 class="text-lg font-semibold mb-3">5. 数据保留</h3>
           <ul class="list-disc pl-6 space-y-2">
             <li>邮件接收超过 7 天后立即停止通过接口提供，并在下一轮每日清理任务中物理删除</li>
-            <li>每个收件箱最多保留最近 50 封邮件，且可存储的邮件内容总量约为 4 MiB，以先达到的限制为准</li>
+            <li>
+              每个收件箱最多保留最近 50 封邮件，且可存储的邮件内容总量约为 4 MiB，以先达到的限制为准
+            </li>
             <li>您停用临时邮箱地址后，地址及其邮件会在下一轮每日清理任务中删除</li>
             <li>安全审计与操作日志超过 30 天后，会在下一轮每日清理任务中删除</li>
             <li>配额流水作为账户账本保留至账户删除</li>
@@ -145,8 +148,7 @@ defineExpose({
         <section class="mb-6">
           <h3 class="text-lg font-semibold mb-3">11. 联系我们</h3>
           <p class="mb-3">
-            如您对本隐私政策有任何疑问或建议，请联系本站管理员。
-            我们将在合理时间内回复您的询问。
+            如您对本隐私政策有任何疑问或建议，请联系本站管理员。 我们将在合理时间内回复您的询问。
           </p>
         </section>
       </div>
@@ -169,7 +171,8 @@ defineExpose({
   color: var(--el-text-color-primary);
 }
 
-.prose p, .prose li {
+.prose p,
+.prose li {
   color: var(--el-text-color-regular);
   line-height: 1.6;
 }

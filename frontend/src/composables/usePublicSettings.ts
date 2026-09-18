@@ -3,6 +3,9 @@ import { authApi } from '@/api/auth'
 import type { PublicSystemSettings } from '@/types'
 
 const DEFAULT_SETTINGS: PublicSystemSettings = {
+  siteName: '临时邮箱管理系统',
+  contactEmail: '',
+  pricing: { plans: [], faqs: [] },
   registrationEnabled: false,
   githubEnabled: false,
   turnstileEnabled: false,
@@ -21,9 +24,13 @@ let inFlightRequest: Promise<PublicSystemSettings> | null = null
 let loadedAt = 0
 const CACHE_TTL = 60_000
 
-const toBoolean = (value: unknown): boolean => value === true || value === 'true' || value === 1 || value === '1'
+const toBoolean = (value: unknown): boolean =>
+  value === true || value === 'true' || value === 1 || value === '1'
 
 const normalizeSettings = (value: Partial<PublicSystemSettings>): PublicSystemSettings => ({
+  siteName: value.siteName?.trim() || DEFAULT_SETTINGS.siteName,
+  contactEmail: value.contactEmail?.trim() || '',
+  pricing: value.pricing ?? { plans: [], faqs: [] },
   registrationEnabled: toBoolean(value.registrationEnabled),
   githubEnabled: toBoolean(value.githubEnabled),
   turnstileEnabled: toBoolean(value.turnstileEnabled),
@@ -44,7 +51,8 @@ export const loadPublicSettings = async (force = false): Promise<PublicSystemSet
 
   loading.value = true
   error.value = ''
-  inFlightRequest = authApi.getPublicSettings()
+  inFlightRequest = authApi
+    .getPublicSettings()
     .then((response) => {
       if (!response.success || !response.data) {
         throw new Error(response.error || '无法读取系统登录配置')
@@ -68,12 +76,12 @@ export const loadPublicSettings = async (force = false): Promise<PublicSystemSet
 }
 
 export const usePublicSettings = () => {
-  const loginTurnstileRequired = computed(() => (
-    settings.value.turnstileEnabled && settings.value.turnstileLoginEnabled
-  ))
-  const registerTurnstileRequired = computed(() => (
-    settings.value.turnstileEnabled && settings.value.turnstileRegisterEnabled
-  ))
+  const loginTurnstileRequired = computed(
+    () => settings.value.turnstileEnabled && settings.value.turnstileLoginEnabled,
+  )
+  const registerTurnstileRequired = computed(
+    () => settings.value.turnstileEnabled && settings.value.turnstileRegisterEnabled,
+  )
 
   return {
     settings: readonly(settings),

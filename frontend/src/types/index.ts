@@ -83,7 +83,7 @@ export interface QuotaLogsResponse {
 // 兑换码类型
 export interface RedeemCode {
   code: string
-  name?: string                   // 新增：兑换码名称（可选）
+  name?: string // 新增：兑换码名称（可选）
   quota: number
   valid_until: string
   used: boolean
@@ -133,6 +133,9 @@ export interface RegisterRequest {
 }
 
 export interface PublicSystemSettings {
+  siteName: string
+  contactEmail: string
+  pricing: PricingContent
   registrationEnabled: boolean
   githubEnabled: boolean
   turnstileEnabled: boolean
@@ -239,4 +242,31 @@ declare global {
       Editor: unknown
     }
   }
+}
+
+export interface PricingPlan {
+  id: string
+  name: string
+  description: string
+  price: string
+  originalPrice: string
+  quota: number
+  bonusQuota: number
+  popular: boolean
+  enabled: boolean
+  features: string[]
+  buttonText: string
+  buttonAction: 'text' | 'link'
+  buttonUrl: string
+}
+
+export interface PricingFaq {
+  id: string
+  question: string
+  answer: string
+}
+
+export interface PricingContent {
+  plans: PricingPlan[]
+  faqs: PricingFaq[]
 }
