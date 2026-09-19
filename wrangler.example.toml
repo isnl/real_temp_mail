@@ -1,0 +1,44 @@
+#:schema node_modules/wrangler/config-schema.json
+# 首次部署：复制为 wrangler.toml，再填写自己的站点域名和 D1 数据库信息。
+
+name = "my-temp-mail"
+main = "backend/src/index.ts"
+tsconfig = "backend/tsconfig.json"
+compatibility_date = "2024-09-23"
+workers_dev = false
+preview_urls = false
+
+# 域名必须托管在当前 Cloudflare 账号下；部署时会自动绑定 Custom Domain。
+routes = [
+  { pattern = "mail.example.com", custom_domain = true },
+]
+
+[assets]
+directory = "frontend/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api", "/api/*", "/public-inbox", "/public-inbox/*"]
+
+[vars]
+ENVIRONMENT = "production"
+FRONTEND_DOMAIN = "mail.example.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "my-temp-mail-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "backend/migrations"
+
+[triggers]
+# UTC 时间；每天清理过期邮件、日志与令牌。
+crons = ["17 3 * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[dev]
+port = 8787
+local_protocol = "http"
+host = "localhost:8787"
+upstream_protocol = "http"

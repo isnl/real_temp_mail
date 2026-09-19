@@ -242,22 +242,17 @@
   .quota-history .el-tabs__item {
     padding-inline: 12px;
   }
-  .settings-tabs .el-tabs__nav-wrap.is-scrollable,
   .quota-history .el-tabs__nav-wrap.is-scrollable {
     padding-inline: 0;
   }
-  .settings-tabs .el-tabs__nav-prev,
-  .settings-tabs .el-tabs__nav-next,
   .quota-history .el-tabs__nav-prev,
   .quota-history .el-tabs__nav-next {
     display: none;
   }
-  .settings-tabs .el-tabs__nav-scroll,
   .quota-history .el-tabs__nav-scroll {
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .settings-tabs .el-tabs__nav,
   .quota-history .el-tabs__nav {
     float: none;
     display: flex;

@@ -182,38 +182,70 @@
   border-radius: 7px;
 }
 
-/* Settings are rendered one category at a time. */
+/* Fixed-width category buttons; change indicators never participate in layout. */
 #admin-layout .settings-page {
   gap: 20px;
 }
-#admin-layout .settings-tabs .el-tabs__header {
-  margin: 0;
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 3px;
+  margin: -3px;
+  scrollbar-width: thin;
 }
-#admin-layout .settings-tabs .el-tabs__nav-wrap::after {
-  height: 1px;
-  background: var(--border);
-}
-#admin-layout .settings-tabs .el-tabs__item {
-  height: 48px;
+.settings-tab {
+  position: relative;
+  flex: 0 0 120px;
+  width: 120px;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
-#admin-layout .settings-tabs .el-tabs__content {
-  display: none;
+.settings-tab:hover {
+  color: var(--brand-link);
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
 }
-.settings-tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.settings-tab.is-active {
+  color: #fff;
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+}
+.settings-tab:focus-visible {
+  outline: 2px solid var(--brand-link);
+  outline-offset: 2px;
 }
 .settings-tab-dot {
-  width: 6px;
-  height: 6px;
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--warning);
+  background: var(--danger);
 }
 #admin-layout .settings-section {
   border-radius: 16px;
   background: var(--surface);
+  box-shadow: none;
+}
+#admin-layout .settings-group-title {
+  margin: 0 0 22px;
+  font-size: 15px;
+  font-weight: 650;
 }
 #admin-layout .settings-field {
   grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);

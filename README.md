@@ -38,13 +38,25 @@ npm ci
 
 项目使用 npm workspaces 管理 `frontend` 与 `backend`。请从仓库根目录执行构建、开发和部署命令。
 
+## 全新部署
+
+新实例使用 [wrangler.example.toml](wrangler.example.toml) 填写自己的域名与数据库绑定，再用 **[backend/init.sql](backend/init.sql)** 一次性初始化空 D1 数据库：
+
+```bash
+npm run db:init
+```
+
+SQL 包含全部表、索引、触发器和迁移基线，不包含现有账户、域名或密钥。新管理员通过初始化接口创建，系统名称、价格等使用服务端默认内容并可在后台维护。
+
+完整的安装顺序、Cloudflare 配置、管理员初始化和收信验证见 **[全新部署指南](docs/DEPLOYMENT.md)**。已有实例继续使用下方数据库迁移流程。
+
 ## 配置
 
 ### Wrangler 公共配置
 
 部署前检查根目录 `wrangler.toml` 中的非敏感配置：
 
-- `FRONTEND_DOMAIN`：允许跨源开发请求的前端站点域名，不包含协议；统一同源部署时也可保留为正式域名。
+- `FRONTEND_DOMAIN`：正式站点域名，不包含协议；用于站点链接、跨源校验与固定的 GitHub 授权回调地址。
 - `database_name`、`database_id`：目标 D1 数据库。
 - `migrations_dir`：保持为 `backend/migrations`。
 
@@ -71,7 +83,7 @@ cp .dev.vars.example .dev.vars
 
 ### 首次创建管理员
 
-应用迁移后，先确认是否需要初始化管理员：
+完成数据库初始化或升级并部署后，先确认是否需要初始化管理员：
 
 ```bash
 curl https://你的统一域名/api/auth/bootstrap-status
@@ -104,13 +116,11 @@ npx wrangler secret delete ADMIN_SETUP_TOKEN
 
 以下运行时能力由管理员在后台“系统设置”中配置，不再通过前端构建变量或 Wrangler 明文变量固化：
 
-- 管理员登录账号与密码
-- 是否允许新用户注册
-- Turnstile 总开关、Site Key、Secret Key
-- 登录是否要求 Turnstile
-- 注册是否要求 Turnstile
-- GitHub 登录开关、Client ID、Client Secret 与可选回调地址
-- 新用户默认配额等业务参数
+- 站点设置：系统名称、管理员联系邮箱与页脚展示开关、新用户默认配额，各分组独立保存。
+- 价格展示：套餐、权益、常见问题、按钮文字与跳转链接。
+- 账号与安全：账号与访问、第三方登录、人机验证，各分组独立保存。
+- 人机验证支持总开关、站点密钥、验证密钥，以及登录、注册、兑换配额、公开收件箱的独立场景开关。
+- GitHub 登录支持应用标识、应用密钥，授权回调地址由站点域名固定生成。
 
 敏感字段写入后只显示掩码。关闭注册后，前端隐藏注册入口，注册 API 同时拒绝请求；关闭 GitHub 或 Turnstile 后，对应前端入口与服务端校验也会同步关闭。
 
@@ -122,9 +132,18 @@ https://你的统一域名/api/auth/github/callback
 
 回调地址由 `FRONTEND_DOMAIN` 自动生成，后台只读展示并支持复制。将这个地址填入 GitHub OAuth App 的 Authorization callback URL；旧的手动回调配置不再生效。通过兼容 API 域名发起登录时，会先跳转到正式站点再开始授权。
 
-## 数据库迁移
+## 数据库初始化与升级
 
-本地 D1：
+全新空库导入一份完整 SQL：
+
+```bash
+npm run db:init:local # 本地
+npm run db:init       # 远程
+```
+
+这两个初始化命令二选一对应目标环境，且只执行一次。初始化脚本有空库保护，会拒绝已有应用表或迁移记录的数据库。
+
+已有实例升级使用迁移命令。本地 D1：
 
 ```bash
 npm run db:migrate:local
@@ -137,6 +156,8 @@ npm run db:migrate
 ```
 
 两个脚本都通过稳定的 `DB` binding 定位 `wrangler.toml` 中配置的数据库。部署新代码前先备份生产数据库，再应用迁移。
+
+维护者新增迁移后运行 `npm run db:schema` 更新完整 SQL，运行 `npm run db:check` 验证完整结构、约束和迁移一致性。这两个维护命令使用 Python 3；部署预生成的 SQL 不需要 Python。
 
 如果旧实例由历史初始化脚本创建，表中已有业务数据但 `d1_migrations` 为空，不能直接重放 0001-0013。先核对并执行带结构保护的基线脚本，再应用后续迁移：
 
@@ -191,7 +212,7 @@ npx wrangler deploy --dry-run
 
 ### 绑定统一域名
 
-首次部署后，在 Cloudflare Dashboard 的 Worker 设置中为这个 Worker 添加 Custom Domain。前端和 API 使用同一个源，例如：
+新实例模板通过 `routes` 中的 `custom_domain = true` 自动绑定站点域名。也可在 Cloudflare Dashboard 的 Worker 设置中管理 Custom Domain。前端和 API 使用同一个源，例如：
 
 ```text
 https://mail.example.com/
@@ -210,7 +231,7 @@ Email Routing 的 Catch-all/路由目标也应指向这个 Worker，因为同一
 
 1. 备份 D1，并确认根 `wrangler.toml` 仍绑定原数据库和 Email Routing。
 2. 配置 `JWT_SECRET` 与一次性的 `ADMIN_SETUP_TOKEN`，应用最新 D1 migrations。
-3. 执行 `npm run deploy`，先通过 Workers Preview URL 验证首页、深层路由与 `/api/health`。
+3. 执行 `npm run deploy`，通过已配置的域名验证首页、深层路由与 `/api/health`；默认配置不开放 Workers Preview URL。
 4. 调用 bootstrap 接口创建管理员，验证登录后删除 `ADMIN_SETUP_TOKEN`。
 5. 从旧 Pages 项目移除前端自定义域名，再把该域名绑定到统一 Worker。
 6. 检查可收信域名、GitHub callback URL、Email Routing 目标与后台系统设置。
@@ -235,8 +256,12 @@ curl http://localhost:8787/api/health
 
 ```text
 .
-├── backend/             # Worker API、邮件处理与 D1 migrations
+├── backend/init.sql     # 全新部署的完整数据库 SQL
+├── backend/migrations/  # 已有实例的升级迁移
+├── backend/src/         # Worker API 与邮件处理
+├── docs/DEPLOYMENT.md    # 新实例部署与交付指南
 ├── frontend/            # Vue 应用
 ├── package.json         # 单入口构建、开发与部署脚本
+├── wrangler.example.toml # 新实例部署配置模板
 └── wrangler.toml        # 唯一 Cloudflare 部署配置
 ```

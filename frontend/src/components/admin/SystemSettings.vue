@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSystemSettings, updateSystemSettings, type SystemSetting } from '@/api/admin'
 import { loadPublicSettings } from '@/composables/usePublicSettings'
@@ -33,6 +33,18 @@ interface SettingSection {
   title: string
   fields: SettingField[]
 }
+
+interface SettingTab {
+  key: string
+  title: string
+  sectionKeys: string[]
+}
+
+const settingTabs: SettingTab[] = [
+  { key: 'site', title: '站点设置', sectionKeys: ['site', 'quota'] },
+  { key: 'pricing', title: '价格展示', sectionKeys: ['pricing'] },
+  { key: 'security', title: '账号与安全', sectionKeys: ['access', 'github', 'turnstile'] },
+]
 
 const sections: SettingSection[] = [
   {
@@ -71,32 +83,32 @@ const sections: SettingSection[] = [
   },
   {
     key: 'github',
-    title: 'GitHub OAuth',
+    title: '第三方登录',
     fields: [
       { key: 'github_oauth_enabled', label: '启用 GitHub 登录', type: 'switch' },
-      { key: 'github_client_id', label: 'Client ID', type: 'text', placeholder: 'Ov23li…' },
+      { key: 'github_client_id', label: '应用标识', type: 'text', placeholder: 'GitHub Client ID' },
       {
         key: 'github_client_secret',
-        label: 'Client Secret',
+        label: '应用密钥',
         type: 'password',
         placeholder: '留空则不修改',
       },
       {
         key: 'github_callback_url',
-        label: 'Callback URL',
+        label: '授权回调地址',
         type: 'readonly',
       },
     ],
   },
   {
     key: 'turnstile',
-    title: 'Cloudflare Turnstile',
+    title: '人机验证',
     fields: [
-      { key: 'turnstile_enabled', label: '启用 Turnstile', type: 'switch' },
-      { key: 'turnstile_site_key', label: 'Site Key', type: 'text', placeholder: '0x4AAAA…' },
+      { key: 'turnstile_enabled', label: '启用人机验证', type: 'switch' },
+      { key: 'turnstile_site_key', label: '站点密钥', type: 'text', placeholder: '0x4AAAA…' },
       {
         key: 'turnstile_secret_key',
-        label: 'Secret Key',
+        label: '验证密钥',
         type: 'password',
         placeholder: '留空则不修改',
       },
@@ -118,9 +130,11 @@ const sections: SettingSection[] = [
 const secretKeys = new Set(['admin_password', 'github_client_secret', 'turnstile_secret_key'])
 const knownKeys = new Set(sections.flatMap((section) => section.fields.map((field) => field.key)))
 const retiredKeys = new Set(['daily_checkin_quota'])
-const activeSection = ref('site')
+const activeTab = ref('site')
 const visibleSections = computed(() =>
-  sections.filter((section) => section.key === activeSection.value),
+  sections.filter((section) =>
+    settingTabs.find((tab) => tab.key === activeTab.value)?.sectionKeys.includes(section.key),
+  ),
 )
 const loading = ref(false)
 const savingSection = ref('')
@@ -141,6 +155,29 @@ const unknownSettings = computed(() =>
   ),
 )
 
+const tabs = computed<SettingTab[]>(() => [
+  ...settingTabs,
+  ...(unknownSettings.value.length ? [{ key: 'other', title: '其他配置', sectionKeys: [] }] : []),
+])
+
+const handleTabKeydown = async (event: KeyboardEvent, index: number) => {
+  let nextIndex = index
+  if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.value.length
+  else if (event.key === 'ArrowLeft')
+    nextIndex = (index - 1 + tabs.value.length) % tabs.value.length
+  else if (event.key === 'Home') nextIndex = 0
+  else if (event.key === 'End') nextIndex = tabs.value.length - 1
+  else return
+
+  event.preventDefault()
+  const tabList = (event.currentTarget as HTMLElement).parentElement
+  activeTab.value = tabs.value[nextIndex]!.key
+  await nextTick()
+  const button = tabList?.querySelector<HTMLButtonElement>(`#settings-tab-${activeTab.value}`)
+  button?.focus({ preventScroll: true })
+  button?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+}
+
 const isFieldDirty = (field: SettingField) => {
   if (field.type === 'readonly') return false
   const value = values[field.key] ?? ''
@@ -150,6 +187,8 @@ const isFieldDirty = (field: SettingField) => {
 }
 
 const isSectionDirty = (section: SettingSection) => section.fields.some(isFieldDirty)
+const isTabDirty = (tab: SettingTab) =>
+  sections.some((section) => tab.sectionKeys.includes(section.key) && isSectionDirty(section))
 
 const loadSettings = async () => {
   const requestVersion = ++loadVersion
@@ -229,19 +268,20 @@ const validateSection = (section: SettingSection): string => {
       return '两次输入的管理员密码不一致'
   }
   if (section.key === 'github' && toBoolean(values.github_oauth_enabled)) {
-    if (!values.github_client_id?.trim()) return '启用 GitHub 登录前请填写 Client ID'
+    if (!values.github_client_id?.trim()) return '启用 GitHub 登录前请填写应用标识'
     if (!configuredSecrets.github_client_secret && !values.github_client_secret)
-      return '启用 GitHub 登录前请填写 Client Secret'
+      return '启用 GitHub 登录前请填写应用密钥'
   }
   if (section.key === 'turnstile' && toBoolean(values.turnstile_enabled)) {
-    if (!values.turnstile_site_key?.trim()) return '启用 Turnstile 前请填写 Site Key'
+    if (!values.turnstile_site_key?.trim()) return '启用人机验证前请填写站点密钥'
     if (!configuredSecrets.turnstile_secret_key && !values.turnstile_secret_key)
-      return '启用 Turnstile 前请填写 Secret Key'
+      return '启用人机验证前请填写验证密钥'
   }
   return ''
 }
 
 const saveSection = async (section: SettingSection) => {
+  if (savingSection.value) return
   const validationMessage = validateSection(section)
   if (validationMessage) {
     ElMessage.warning(validationMessage)
@@ -318,136 +358,164 @@ onMounted(loadSettings)
 
 <template>
   <div class="settings-page">
-    <el-tabs v-model="activeSection" class="settings-tabs" aria-label="设置分类">
-      <el-tab-pane v-for="section in sections" :key="section.key" :name="section.key">
-        <template #label>
-          <span class="settings-tab-label"
-            >{{ section.title
-            }}<span
-              v-if="isSectionDirty(section)"
-              class="settings-tab-dot"
-              aria-label="有未保存修改"
-          /></span>
-        </template>
-      </el-tab-pane>
-      <el-tab-pane v-if="unknownSettings.length" name="other" label="其他配置" />
-    </el-tabs>
-
-    <div v-if="loading && !settings.length" class="settings-skeleton" aria-label="正在加载系统设置">
-      <el-skeleton v-for="index in 3" :key="index" :rows="4" animated />
+    <div class="settings-tabs" role="tablist" aria-label="设置分类">
+      <button
+        v-for="(tab, index) in tabs"
+        :id="`settings-tab-${tab.key}`"
+        :key="tab.key"
+        type="button"
+        role="tab"
+        class="settings-tab"
+        :class="{ 'is-active': activeTab === tab.key }"
+        :aria-selected="activeTab === tab.key"
+        :aria-controls="`settings-panel-${tab.key}`"
+        :aria-label="`${tab.title}${isTabDirty(tab) ? '，有未保存修改' : ''}`"
+        :tabindex="activeTab === tab.key ? 0 : -1"
+        @click="activeTab = tab.key"
+        @keydown="handleTabKeydown($event, index)"
+      >
+        {{ tab.title }}
+        <span v-if="isTabDirty(tab)" class="settings-tab-dot" aria-hidden="true" />
+      </button>
     </div>
 
-    <div v-else class="settings-sections">
-      <section
-        v-for="section in visibleSections"
-        :key="section.key"
-        class="settings-section"
-        :aria-label="section.title"
+    <div
+      :id="`settings-panel-${activeTab}`"
+      class="settings-sections"
+      role="tabpanel"
+      :aria-labelledby="`settings-tab-${activeTab}`"
+      :aria-busy="loading"
+    >
+      <div
+        v-if="loading && !settings.length"
+        class="settings-skeleton"
+        aria-label="正在加载系统设置"
       >
-        <div class="settings-fields">
-          <div
-            v-for="field in section.fields"
-            :key="field.key"
-            class="settings-field"
-            :class="{ 'settings-field-pricing': field.type === 'pricing' }"
-          >
-            <PricingContentEditor
-              v-if="field.type === 'pricing'"
-              v-model="values[field.key]"
-              :disabled="loading || !!savingSection"
-            />
-            <div v-if="field.type !== 'pricing'" class="settings-field-copy">
-              <label :for="`setting-${field.key}`">{{ field.label }}</label>
-              <span v-if="secretKeys.has(field.key)" class="secret-status">
-                <font-awesome-icon
-                  :icon="['fas', configuredSecrets[field.key] ? 'circle-check' : 'circle-minus']"
-                />
-                {{ configuredSecrets[field.key] ? '已配置' : '未配置' }}
-              </span>
-            </div>
-
-            <div v-if="field.type !== 'pricing'" class="settings-control">
-              <el-switch
-                v-if="field.type === 'switch'"
-                :id="`setting-${field.key}`"
-                :model-value="toBoolean(values[field.key] || 'false')"
-                inline-prompt
-                active-text="开"
-                inactive-text="关"
-                @update:model-value="values[field.key] = $event ? 'true' : 'false'"
-              />
-              <el-input-number
-                v-else-if="field.type === 'number'"
-                :id="`setting-${field.key}`"
-                :model-value="Number(values[field.key] || 0)"
-                :min="field.min"
-                :max="field.max"
-                :step="1"
-                controls-position="right"
-                @update:model-value="values[field.key] = String($event ?? 0)"
-              />
-              <div v-else-if="field.type === 'readonly'" class="settings-readonly-control">
-                <el-input :id="`setting-${field.key}`" :model-value="values[field.key]" readonly />
-                <el-button
-                  :disabled="!values[field.key]"
-                  @click="copyCallbackUrl"
-                  aria-label="复制 GitHub 回调地址"
-                  >复制</el-button
-                >
-              </div>
-              <el-input
-                v-else
-                :id="`setting-${field.key}`"
+        <el-skeleton v-for="index in 2" :key="index" :rows="4" animated />
+      </div>
+      <template v-else>
+        <section
+          v-for="section in visibleSections"
+          :key="section.key"
+          class="settings-section"
+          :aria-label="section.title"
+        >
+          <h3 v-if="visibleSections.length > 1" class="settings-group-title">
+            {{ section.title }}
+          </h3>
+          <div class="settings-fields">
+            <div
+              v-for="field in section.fields"
+              :key="field.key"
+              class="settings-field"
+              :class="{ 'settings-field-pricing': field.type === 'pricing' }"
+            >
+              <PricingContentEditor
+                v-if="field.type === 'pricing'"
                 v-model="values[field.key]"
-                :type="
-                  field.type === 'password' ? 'password' : field.type === 'email' ? 'email' : 'text'
-                "
-                :autocomplete="field.type === 'password' ? 'new-password' : 'off'"
-                :show-password="field.type === 'password'"
-                :placeholder="field.placeholder"
-                :maxlength="field.maxLength || 512"
+                :disabled="loading || !!savingSection"
               />
-              <el-input
-                v-if="field.key === 'admin_password' && values.admin_password"
-                id="setting-admin-password-confirmation"
-                v-model="adminPasswordConfirmation"
-                type="password"
-                autocomplete="new-password"
-                show-password
-                placeholder="再次输入新管理员密码"
-                maxlength="128"
-                aria-label="确认新管理员密码"
-              />
+              <div v-if="field.type !== 'pricing'" class="settings-field-copy">
+                <label :for="`setting-${field.key}`">{{ field.label }}</label>
+                <span v-if="secretKeys.has(field.key)" class="secret-status">
+                  <font-awesome-icon
+                    :icon="['fas', configuredSecrets[field.key] ? 'circle-check' : 'circle-minus']"
+                  />
+                  {{ configuredSecrets[field.key] ? '已配置' : '未配置' }}
+                </span>
+              </div>
+
+              <div v-if="field.type !== 'pricing'" class="settings-control">
+                <el-switch
+                  v-if="field.type === 'switch'"
+                  :id="`setting-${field.key}`"
+                  :model-value="toBoolean(values[field.key] || 'false')"
+                  inline-prompt
+                  active-text="开"
+                  inactive-text="关"
+                  @update:model-value="values[field.key] = $event ? 'true' : 'false'"
+                />
+                <el-input-number
+                  v-else-if="field.type === 'number'"
+                  :id="`setting-${field.key}`"
+                  :model-value="Number(values[field.key] || 0)"
+                  :min="field.min"
+                  :max="field.max"
+                  :step="1"
+                  controls-position="right"
+                  @update:model-value="values[field.key] = String($event ?? 0)"
+                />
+                <div v-else-if="field.type === 'readonly'" class="settings-readonly-control">
+                  <el-input
+                    :id="`setting-${field.key}`"
+                    :model-value="values[field.key]"
+                    readonly
+                  />
+                  <el-button
+                    :disabled="!values[field.key]"
+                    @click="copyCallbackUrl"
+                    aria-label="复制 GitHub 回调地址"
+                    >复制</el-button
+                  >
+                </div>
+                <el-input
+                  v-else
+                  :id="`setting-${field.key}`"
+                  v-model="values[field.key]"
+                  :type="
+                    field.type === 'password'
+                      ? 'password'
+                      : field.type === 'email'
+                        ? 'email'
+                        : 'text'
+                  "
+                  :autocomplete="field.type === 'password' ? 'new-password' : 'off'"
+                  :show-password="field.type === 'password'"
+                  :placeholder="field.placeholder"
+                  :maxlength="field.maxLength || 512"
+                />
+                <el-input
+                  v-if="field.key === 'admin_password' && values.admin_password"
+                  id="setting-admin-password-confirmation"
+                  v-model="adminPasswordConfirmation"
+                  type="password"
+                  autocomplete="new-password"
+                  show-password
+                  placeholder="再次输入新管理员密码"
+                  maxlength="128"
+                  aria-label="确认新管理员密码"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <footer>
-          <el-button
-            type="primary"
-            :loading="savingSection === section.key"
-            :disabled="
-              !isSectionDirty(section) || (!!savingSection && savingSection !== section.key)
-            "
-            @click="saveSection(section)"
-          >
-            保存设置
-          </el-button>
-        </footer>
-      </section>
+          <footer>
+            <el-button
+              type="primary"
+              :loading="savingSection === section.key"
+              :disabled="
+                !isSectionDirty(section) || (!!savingSection && savingSection !== section.key)
+              "
+              @click="saveSection(section)"
+            >
+              保存{{ section.title }}
+            </el-button>
+          </footer>
+        </section>
 
-      <section
-        v-if="activeSection === 'other' && unknownSettings.length"
-        class="settings-section"
-        aria-label="其他配置"
-      >
-        <dl class="settings-unknown-list">
-          <div v-for="setting in unknownSettings" :key="setting.setting_key">
-            <dt>{{ setting.description || setting.setting_key }}</dt>
-            <dd>{{ displayValue(setting) }}</dd>
-          </div>
-        </dl>
-      </section>
+        <section
+          v-if="activeTab === 'other' && unknownSettings.length"
+          class="settings-section"
+          aria-label="其他配置"
+        >
+          <dl class="settings-unknown-list">
+            <div v-for="setting in unknownSettings" :key="setting.setting_key">
+              <dt>{{ setting.description || setting.setting_key }}</dt>
+              <dd>{{ displayValue(setting) }}</dd>
+            </div>
+          </dl>
+        </section>
+      </template>
     </div>
   </div>
 </template>

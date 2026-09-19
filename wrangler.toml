@@ -45,3 +45,6 @@ head_sampling_rate = 1
 [dev]
 port = 8787
 local_protocol = "http"
+# Keep local request origins consistent with .dev.vars instead of the production route.
+host = "localhost:8787"
+upstream_protocol = "http"

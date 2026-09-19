@@ -36,17 +36,17 @@ export const SYSTEM_SETTING_DEFINITIONS: Record<SystemSettingKey, SettingDefinit
   },
   turnstile_enabled: {
     defaultValue: 'false',
-    description: '启用 Cloudflare Turnstile',
+    description: '启用人机验证',
     kind: 'boolean'
   },
   turnstile_site_key: {
     defaultValue: '',
-    description: 'Cloudflare Turnstile Site Key',
+    description: '人机验证站点密钥',
     kind: 'string'
   },
   turnstile_secret_key: {
     defaultValue: '',
-    description: 'Cloudflare Turnstile Secret Key',
+    description: '人机验证密钥',
     kind: 'string',
     secret: true
   },
@@ -77,18 +77,18 @@ export const SYSTEM_SETTING_DEFINITIONS: Record<SystemSettingKey, SettingDefinit
   },
   github_client_id: {
     defaultValue: '',
-    description: 'GitHub OAuth Client ID',
+    description: 'GitHub 登录应用标识',
     kind: 'string'
   },
   github_client_secret: {
     defaultValue: '',
-    description: 'GitHub OAuth Client Secret',
+    description: 'GitHub 登录应用密钥',
     kind: 'string',
     secret: true
   },
   github_callback_url: {
     defaultValue: '',
-    description: 'GitHub OAuth 回调地址（由站点自动生成）',
+    description: 'GitHub 授权回调地址（由站点自动生成）',
     kind: 'url'
   },
   admin_username: {
@@ -259,10 +259,10 @@ export class SystemSettingsService {
       throw new ValidationError('展示管理员邮箱前请先填写联系邮箱')
     }
     if (get('turnstile_enabled') === 'true' && (!get('turnstile_site_key') || !get('turnstile_secret_key'))) {
-      throw new ValidationError('启用 Turnstile 前必须先配置 Site Key 和 Secret Key')
+      throw new ValidationError('启用人机验证前必须先配置站点密钥和验证密钥')
     }
     if (get('github_oauth_enabled') === 'true' && (!get('github_client_id') || !get('github_client_secret'))) {
-      throw new ValidationError('启用 GitHub 登录前必须先配置 Client ID 和 Client Secret')
+      throw new ValidationError('启用 GitHub 登录前必须先配置应用标识和应用密钥')
     }
   }
 
