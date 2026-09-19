@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { PricingContent, PricingPlan } from '@/types'
+import type { PricingPart } from '@/utils/pricing'
 
-const props = defineProps<{ modelValue: string; disabled?: boolean }>()
+const props = defineProps<{ modelValue: string; part: PricingPart; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const content = ref<PricingContent>({ plans: [], faqs: [] })
-const activeTab = ref('plans')
 const openPlan = ref('')
 const openFaq = ref('')
 const parseError = ref(false)
@@ -17,8 +17,11 @@ watch(
     if (value === emittedValue) return
     try {
       const parsed = JSON.parse(value)
-      if (!Array.isArray(parsed.plans) || !Array.isArray(parsed.faqs)) throw new Error('invalid')
-      content.value = parsed
+      if (!Array.isArray(parsed)) throw new Error('invalid')
+      content.value = {
+        plans: props.part === 'plans' ? parsed : [],
+        faqs: props.part === 'faqs' ? parsed : [],
+      }
       parseError.value = false
     } catch {
       parseError.value = true
@@ -31,13 +34,14 @@ watch(
   content,
   (value) => {
     if (parseError.value) return
-    emittedValue = JSON.stringify({
-      ...value,
-      plans: value.plans.map((plan) => ({
-        ...plan,
-        features: plan.features.filter((feature) => feature.trim()),
-      })),
-    })
+    emittedValue = JSON.stringify(
+      props.part === 'plans'
+        ? value.plans.map((plan) => ({
+            ...plan,
+            features: plan.features.filter((feature) => feature.trim()),
+          }))
+        : value.faqs,
+    )
     emit('update:modelValue', emittedValue)
   },
   { deep: true },
@@ -87,8 +91,8 @@ const setButtonAction = (plan: PricingPlan, value: string | number | boolean | u
       type="error"
       :closable="false"
     />
-    <el-tabs v-else v-model="activeTab" aria-label="价格内容分类">
-      <el-tab-pane name="plans" label="套餐">
+    <template v-else>
+      <div v-if="part === 'plans'">
         <div class="pricing-editor-toolbar">
           <el-button
             type="primary"
@@ -198,8 +202,8 @@ const setButtonAction = (plan: PricingPlan, value: string | number | boolean | u
             </el-form>
           </el-collapse-item>
         </el-collapse>
-      </el-tab-pane>
-      <el-tab-pane name="faqs" label="常见问题">
+      </div>
+      <div v-else>
         <div class="pricing-editor-toolbar">
           <el-button
             type="primary"
@@ -248,8 +252,8 @@ const setButtonAction = (plan: PricingPlan, value: string | number | boolean | u
             </el-form>
           </el-collapse-item>
         </el-collapse>
-      </el-tab-pane>
-    </el-tabs>
+      </div>
+    </template>
   </div>
 </template>
 

@@ -1,5 +1,14 @@
 import type { PricingContent } from '@/types'
 
+export type PricingPart = keyof PricingContent
+
+// Only merge the selected group's draft. Other groups must use the last saved
+// content so that saving plans cannot accidentally publish an unfinished FAQ.
+export function mergePricingGroup(savedContent: string, part: PricingPart, draft: string): string {
+  const saved: PricingContent = JSON.parse(savedContent)
+  return JSON.stringify({ ...saved, [part]: JSON.parse(draft) })
+}
+
 export function isSafePricingLink(value: string): boolean {
   if (!value || /[\\\u0000-\u0020\u007f]/.test(value)) return false
   if (value.startsWith('/') && !value.startsWith('//')) return true
